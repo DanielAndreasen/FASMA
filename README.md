@@ -14,6 +14,6 @@ TODO
 AUTHORS
 =======
 
-D. Andreasen
-G. Teixeira
-M. Tsantaki
+    D. Andreasen
+    G. Teixeira
+    M. Tsantaki
