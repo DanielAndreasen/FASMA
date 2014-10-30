@@ -7,9 +7,9 @@ A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html), the
 TODO
 ====
 
-    - [ ] Minimization for MOOG to determine parameters.
-    - [ ] Freeze variables.
-    - [ ] Nice graphics.
+   - [ ] Minimization for MOOG to determine parameters.
+   - [ ] Freeze variables.
+   - [ ] Nice graphics.
 
 AUTHORS
 =======
