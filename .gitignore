@@ -1,6 +1,7 @@
 # Our own stuff
 *~
 programs/
+kurucz95/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
