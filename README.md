@@ -8,8 +8,12 @@ TODO
 ====
 
    - [ ] Minimization for MOOG to determine parameters.
-   - [ ] Freeze variables.
+   - [ ] Interpolate the atmospheric models.
+   - [ ] Change atmospheric models.
+   - [ ] Freeze parameters.
    - [ ] Nice graphics.
+
+
 
 AUTHORS
 =======
