@@ -22,34 +22,54 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     metallicity
     """
 
-    # Let's keep in range of the models available
-    assert (35000 >= teff and teff >= 3500), 'Temperature out of range'
-    assert (5.0 >= logg and logg >= 2.5), 'Surface gravity out of range'
-
-    if feh < 0:
-        sign = '/m'
-        # Remove the '-' and the '.'
-        feh = str(feh).replace('-', '').replace('.', '')
+    # Let's stay in range of the models available and do some checks
+    if type.lower() == 'kurucz95':
+        t_rng = 3500, 35000
+        l_rng = 2.5, 5.0
+        f_rng = -3.0, 1.0
+    elif type.lower() == 'marcz':  # How to spell this?
+        raise NotImplementedError('Patience is the key. Wait a bit more for %s\
+                                   models to be implemented.' % type)
     else:
-        sign = '/p'
-        feh = str(feh).replace('.', '')
-    folder = sign + str(feh) + '/'
-    path = type + folder
-    models = np.array(glob(path + '*.gz'))
+        raise NameError('Could not find %s models' % type)
+    assert (t_rng[0] <= teff and teff <= t_rng[1]), 'Teff out of range: %s to %s' % t_rng
+    assert (l_rng[0] <= logg and logg <= l_rng[1]), 'logg out of range: %s to %s' % l_rng
+    assert (f_rng[0] <= feh and feh <= f_rng[1]), '[Fe/H] out of range: %s to %s' % f_rng
+
+    # Make the slice in [Fe/H]
+    folders = glob('kurucz95/m*') + glob('kurucz95/p*')
+    feh_grid = [folder.replace('kurucz95/', '') for folder in folders]
+    feh_grid = [v.replace('m', '-') if v.startswith('m') else
+                v.replace('p', '') for v in feh_grid]
+    feh_grid = np.sort(np.array(map(float, feh_grid)) / 10)
+
+    feh_m = []
+    for _ in range(2):
+        i = np.argmin(abs(feh_grid - feh))
+        feh_m.append(str(feh_grid[i]).replace('.', ''))
+        feh_grid[i] = 9
+
+    paths = [f.replace('-', 'm') if f.startswith('-') else
+             'p' + f for f in feh_m]
+
+    # All the models in the [Fe/H]-space
+    models = []
+    for path in paths:
+        models.extend(glob('kurucz95/%s/*.gz' % path))
+    models = np.array(models)
+
     # This is a bit complicated way to get the temp. from the path of all the
     # models
-    teff_m = [int(model.replace(path, '').split('g')[0]) for model in models]
+    teff_m = [int(model.split('/')[-1].split('g')[0]) for model in models]
     diff_teff = abs(np.array(teff_m) - teff)
     idx_teff = []
     # Get the temperature closest and second closest to the teff selected. If
     # third closest is also needed, increace the loop by 1.
-    for i in range(2):
+    for i in range(4):
         idx = np.where(diff_teff == min(diff_teff))[0]
         diff_teff[idx] = 99999
         idx_teff += list(idx)
     models = models[idx_teff]
-    # print models
-
 
     logg_m = [model.replace(path, '').split('g')[1].split('.')[0] for model in models]
     logg_m = np.array([float(li)/10 for li in logg_m])
@@ -90,7 +110,7 @@ def minimize(teff, logg, feh):
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
     # from sys import argv
-    print _get_model(6777, 4.4, 0.0)
+    print _get_model(teff=6777, logg=4.6, feh=-0.12, type='kurucz95')
     # _transform_micro(3750, 4.40, -0.5)
 
 
