@@ -5,7 +5,7 @@
 from __future__ import division
 import numpy as np
 from glob import glob
-from clint.textui import puts, colored, indent
+# from clint.textui import puts, colored, indent
 
 
 # Why a single leading underscore? Because this is an internal function. See
@@ -89,12 +89,12 @@ def _transform_micro(teff, logg, feh):
     """
     This is the python equivalent to transform.f
     """
-    puts('Please type in the new ' + colored.yellow('micro turbulence'))
+    # puts('Please type in the new ' + colored.yellow('micro turbulence'))
     v_micro = raw_input('> ')
     try:
         v_mico = float(v_micro)
     except ValueError, e:
-        puts(colored.red('Please provide a number...'))
+        # puts(colored.red('Please provide a number...'))
         v_micro = _transform_micro(teff, logg, feh)
     return v_micro
 
@@ -110,7 +110,5 @@ def minimize(teff, logg, feh):
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
     # from sys import argv
-    print _get_model(teff=6777, logg=4.6, feh=-0.12, type='kurucz95')
+    print _get_model(teff=5777, logg=4.5, feh=0.00, type='kurucz95')
     # _transform_micro(3750, 4.40, -0.5)
-
-
