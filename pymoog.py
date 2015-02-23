@@ -110,5 +110,5 @@ def minimize(teff, logg, feh):
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
     # from sys import argv
-    print _get_model(teff=5777, logg=4.5, feh=0.00, type='kurucz95')
+    print np.sort(_get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95'))
     # _transform_micro(3750, 4.40, -0.5)
