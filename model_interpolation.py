@@ -78,7 +78,7 @@ num_of_models = len(avail_models)
 
 tauross_max = []
 tauross_min = []
-
+#These are the min and max values of tauross
 for i, x in enumerate(avail_models):
      models.append(read_model(x))
      tauross_min.append(read_model(x)[7][0])
@@ -86,4 +86,4 @@ for i, x in enumerate(avail_models):
 
 max_tauross = max(tauross_max)
 min_tauross = min(tauross_min)
-print max_tauross
+#print max_tauross
