@@ -4,6 +4,8 @@ from scipy.integrate import simps
 import scipy as sp
 import gzip
 
+from pymoog import _get_model
+
 
 """
 Following the concept of Sz. Mezeros and C. Allende Prieto: For each set
@@ -103,10 +105,11 @@ def read_model(filename):
 
 
 
-# Created by Daniel. Gives back the 8 columns we want :)
+# We can also find all models in the grid. Gives back the 8 columns we want :)
+models = _get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95')
 fname = 'kurucz95/m01/4000g15.m01.gz'
 
-m1 = _unpack_model(fname)
+m1 = _unpack_model(models[0])
 f1 = read_model(m1)
 
 
