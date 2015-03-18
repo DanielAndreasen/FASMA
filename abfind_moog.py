@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 # My imports
-from __future__ import division
+from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -19,9 +19,8 @@ def _create_model(teff, logg, feh, vmicro):
     cmd = 'echo %s %s %s | %sintermod.e > tmp' % (intermod_par)
     os.system(cmd)
 
-    # Transform to decired micro turbulence
+    # Transform to desired micro turbulence
     cmd = 'echo %s | %stransform.e > tmp' % (str(vmicro), path)
-    print cmd
     os.system(cmd)
 
     # Clean after
@@ -175,11 +174,11 @@ if __name__ == '__main__':
     # plt.ion()
     c1, c2 = plot_data(data[0])
     if c1 > 0:
-        print 'Raise temperature'
+        print('Raise temperature')
     elif c1 < 0:
-        print 'Lower temperature'
+        print('Lower temperature')
     else:
-        print 'Temperature is found %i' % args.temperature
+        print('Temperature is found %i' % args.temperature)
     raw_input('Press RETURN to exit > ')
 
     # if args.plot:
