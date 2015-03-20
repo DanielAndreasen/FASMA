@@ -57,10 +57,10 @@ def _read_header(fname):
 
 
 def tauross_scale(abross, rhox, num_layers):
-    """Build the tau-ross scale??
+    """Build the tau-ross scale
 
-    :abross: Some model thing
-    :rhox: another model thing
+    :abross: absorption 
+    :rhox: density
     :num_layers: Number of layers in the model atmosphere
     :returns: the new tau-ross scale
 
@@ -69,7 +69,7 @@ def tauross_scale(abross, rhox, num_layers):
     # This is supposed to be the first element
     tauross[0] = abross[0] * rhox[0]
     for i in range(2, num_layers+1):
-        tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i]) #, even='last')
+        tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i]) 
         # print i, tauross[i-1]
     return tauross
 
