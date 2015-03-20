@@ -93,7 +93,7 @@ def _transform_micro(teff, logg, feh):
     v_micro = raw_input('> ')
     try:
         v_mico = float(v_micro)
-    except ValueError, e:
+    except ValueError:
         # puts(colored.red('Please provide a number...'))
         v_micro = _transform_micro(teff, logg, feh)
     return v_micro

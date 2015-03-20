@@ -2,6 +2,7 @@
 import numpy as np
 from scipy.integrate import simps
 import scipy as sp
+from scipy.interpolate import interp1d
 import gzip
 
 from pymoog import _get_model
@@ -67,8 +68,9 @@ def tauross_scale(abross, rhox, num_layers):
     tauross = np.zeros(num_layers)
     # This is supposed to be the first element
     tauross[0] = abross[0] * rhox[0]
-    for i in range(1, num_layers):
-        tauross[i] = sp.integrate.simps(rhox[0:i], abross[0:i], even='last')
+    for i in range(2, num_layers+1):
+        tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i]) #, even='last')
+        # print i, tauross[i-1]
     return tauross
 
 
@@ -107,10 +109,37 @@ def read_model(filename):
 
 # We can also find all models in the grid. Gives back the 8 columns we want :)
 models = _get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95')
-fname = 'kurucz95/m01/4000g15.m01.gz'
+tauross_all = []
+model_all = []
+for model in models:
+    read = _unpack_model(model)
+    columns = read_model(read)
+    tauross = columns[-1]
+    tauross_all.append(tauross)
+    model_all.append(columns[0:-1])
 
-m1 = _unpack_model(models[0])
-f1 = read_model(m1)
+tauross = tauross_all[0]
+ntau = len(tauross)
+
+tauross_min = min([v[-1] for v in tauross_all])
+tauross_max = max([v[0] for v in tauross_all])
+
+tauross_tmp = tauross[(tauross > tauross_max) & (tauross < tauross_min)]
+f = interp1d(range(len(tauross_tmp)), tauross_tmp)
+tauross_new = f(np.linspace(0, len(tauross_tmp) -1, ntau))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
