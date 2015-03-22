@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import division, print_function
 import numpy as np
 from scipy.integrate import simps
 import scipy as sp
@@ -59,7 +60,7 @@ def _read_header(fname):
 def tauross_scale(abross, rhox, num_layers):
     """Build the tau-ross scale
 
-    :abross: absorption 
+    :abross: absorption
     :rhox: density
     :num_layers: Number of layers in the model atmosphere
     :returns: the new tau-ross scale
@@ -69,7 +70,7 @@ def tauross_scale(abross, rhox, num_layers):
     # This is supposed to be the first element
     tauross[0] = abross[0] * rhox[0]
     for i in range(2, num_layers+1):
-        tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i]) 
+        tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i])
         # print i, tauross[i-1]
     return tauross
 
@@ -105,8 +106,6 @@ def read_model(filename):
             model_accrad, model_vturb, tauross)
 
 
-
-
 # We can also find all models in the grid. Gives back the 8 columns we want :)
 models = _get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95')
 tauross_all = []
@@ -126,48 +125,4 @@ tauross_max = max([v[0] for v in tauross_all])
 
 tauross_tmp = tauross[(tauross > tauross_max) & (tauross < tauross_min)]
 f = interp1d(range(len(tauross_tmp)), tauross_tmp)
-tauross_new = f(np.linspace(0, len(tauross_tmp) -1, ntau))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# x1 = read_model('5500g45.p01')
-# x2 = read_model('5750g45.p01')
-# x3 = read_model('6000g45.p01')
-# x4 = read_model('6250g45.p01')
-# print x1[2]
-# print x2[2]
-# print x3[2]
-# print x4[2]
-
-# avail_models = ['5500g45.p01', '5750g45.p01', '6000g45.p01', '6250g45.p01']
-# num_of_models = len(avail_models)
-
-# # Now I will resample everything on the rosseland optical depth scale of model1
-# tauross_max = []
-# tauross_min = []
-# # These are the min and max values of tauross
-# # TODO: Here we read the model 3 times, when we only need to do it once
-# # TODO: We can use numpy arrays instead of .append
-# models = [read_model(model) for model in avail_models]
-# for i, model in enumerate(avail_models):
-#     model_i = read_model(model)
-#     models.append(model_i)
-#     tauross_min.append(model_i[7][0])
-#     tauross_max.append(model_i[7][-1])
-
-# max_tauross = max(tauross_max)
-# min_tauross = min(tauross_min)
-# print max_tauross
+tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, ntau))
