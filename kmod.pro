@@ -70,7 +70,6 @@ endif else begin
 
     if type eq 'old' then ncols=7 else ncols=10
 
-    grid=fltarr(2,2,2,ncols)
     tm1=availteff(teffimif)
     tp1=availteff(teffimsu)
     lm1=availlogg(loggimif)
@@ -167,27 +166,29 @@ endif else begin
 
     ; defining the  mass (RHOX;gr cm-2) sampling
     tauross=tauross1 ; re-using the vector tauross
+
     bot_tauross=min([tauross1(ntau-1),tauross2(ntau-1),$
     tauross3(ntau-1),tauross4(ntau-1),$
     tauross5(ntau-1),tauross6(ntau-1),tauross7(ntau-1),tauross8(ntau-1)])
+
     top_tauross=max([tauross1(0),tauross2(0),tauross3(0),$
     tauross4(0),tauross5(0),tauross6(0),tauross7(0),tauross8(0)])
     tauross_new=interpol(tauross(where(tauross ge $
     top_tauross and tauross le  bot_tauross)),ntau)
 
     ; lets interpolate for every depth
+    grid=fltarr(2,2,2,ncols)
     for i=1,ntau-1 do begin
         for j=0,ncols-1 do begin
-        grid(0,0,0,j)=interpol(model1(j,1:ntau-1),tauross1(1:ntau-1),tauross_new(i))
-        grid(0,0,1,j)=interpol(model2(j,1:ntau-1),tauross2(1:ntau-1),tauross_new(i))
-        grid(0,1,0,j)=interpol(model3(j,1:ntau-1),tauross3(1:ntau-1),tauross_new(i))
-        grid(0,1,1,j)=interpol(model4(j,1:ntau-1),tauross4(1:ntau-1),tauross_new(i))
-        grid(1,0,0,j)=interpol(model5(j,1:ntau-1),tauross5(1:ntau-1),tauross_new(i))
-        grid(1,0,1,j)=interpol(model6(j,1:ntau-1),tauross6(1:ntau-1),tauross_new(i))
-        grid(1,1,0,j)=interpol(model7(j,1:ntau-1),tauross7(1:ntau-1),tauross_new(i))
-        grid(1,1,1,j)=interpol(model8(j,1:ntau-1),tauross8(1:ntau-1),tauross_new(i))
-        model(j,i)=$
-        interpolate(grid(*,*,*,j),mapteff,maplogg,mapmetal)
+            grid(0,0,0,j)=interpol(model1(j,1:ntau-1),tauross1(1:ntau-1),tauross_new(i))
+            grid(0,0,1,j)=interpol(model2(j,1:ntau-1),tauross2(1:ntau-1),tauross_new(i))
+            grid(0,1,0,j)=interpol(model3(j,1:ntau-1),tauross3(1:ntau-1),tauross_new(i))
+            grid(0,1,1,j)=interpol(model4(j,1:ntau-1),tauross4(1:ntau-1),tauross_new(i))
+            grid(1,0,0,j)=interpol(model5(j,1:ntau-1),tauross5(1:ntau-1),tauross_new(i))
+            grid(1,0,1,j)=interpol(model6(j,1:ntau-1),tauross6(1:ntau-1),tauross_new(i))
+            grid(1,1,0,j)=interpol(model7(j,1:ntau-1),tauross7(1:ntau-1),tauross_new(i))
+            grid(1,1,1,j)=interpol(model8(j,1:ntau-1),tauross8(1:ntau-1),tauross_new(i))
+            model(j,i) = interpolate(grid(*,*,*,j),mapteff,maplogg,mapmetal)
         endfor
     endfor
 

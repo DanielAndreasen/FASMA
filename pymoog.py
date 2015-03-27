@@ -81,8 +81,8 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         idx_logg += list(idx)
 
     nn_feh = tuple(float(f[0:-1]+'.'+f[-1]) for f in feh_m)
-    nn_teff = tuple(set(logg_m[idx_logg]))
-    nn_logg = tuple(set(np.array(teff_m)[idx_teff]))
+    nn_logg = tuple(set(logg_m[idx_logg]))
+    nn_teff = tuple(set(np.array(teff_m)[idx_teff]))
 
     models = models[idx_logg]
     return models, nn_teff, nn_logg, nn_feh,

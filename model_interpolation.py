@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 from scipy.integrate import simps
 import scipy as sp
-from scipy.interpolate import interp1d, LinearNDInterpolator, griddata
+from scipy.interpolate import interp1d, LinearNDInterpolator, griddata, interpn
 import gzip
 
 from pymoog import _get_model
@@ -119,15 +119,13 @@ def read_model(filename):
 
 
 # We can also find all models in the grid. Gives back the 8 columns we want :)
-models, nteff, nlogg, nfeh = _get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95')
+teff, logg, feh = 5777, 4.44, 0.00
+models, nteff, nlogg, nfeh = _get_model(teff=teff, logg=logg, feh=feh, type='kurucz95')
 
-teff=5777
-logg=4.44
-feh=0.00
 
-mapteff = (teff - nteff[0]) / (nteff[0] - nteff[1])
-maplogg = (logg - nlogg[0]) / (nlogg[0] - nlogg[1])
-mapmetal = (feh - nfeh[0]) / (nfeh[0] - nfeh[1])
+mapteff = (teff - nteff[1]) / (nteff[0] - nteff[1])
+maplogg = (logg - nlogg[1]) / (nlogg[0] - nlogg[1])
+mapmetal = (feh - nfeh[1]) / (nfeh[0] - nfeh[1])
 
 tauross_all = []
 model_all = []
@@ -152,8 +150,6 @@ tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
 grid = np.zeros((2, 2, 2, columns))
 model_out = np.zeros((columns,layers))
 # Do the interpolation over the models
-
-
 for layer in range(layers):
     for column in range(columns):
         grid[0,0,0,column] = interp_model(tauross_all[0], model_all[0][column], tauross_new[layer])
@@ -165,15 +161,21 @@ for layer in range(layers):
         grid[1,0,1,column] = interp_model(tauross_all[6], model_all[6][column], tauross_new[layer])
         grid[1,1,1,column] = interp_model(tauross_all[7], model_all[7][column], tauross_new[layer])
 
-        # model_out[column, layer] = interp_all(grid[:,:,:,column], mapteff, maplogg, mapmetal)
-        #model_out[column, layer] = LinearNDInterpolator(grid[:,:,:,column], np.array((mapteff, maplogg, mapmetal)))
-        # print(griddata(grid[:,:,:,column], np.array((mapteff, maplogg, mapmetal, 2)),model_out[column,layer]))
-      #  print(LinearNDInterpolator(grid[:,:,:,column], np.array((mapteff, maplogg, mapmetal, 2))))
-    #    model(j,i) = interpolate(grid(*,*,*,j),mapteff,maplogg,mapmetal)
-
-
-       griddata((grid[:,:,:,column]), np.array((mapteff, maplogg, mapmetal, 2)),model_out[column,layer]))
 
 
 
 
+
+# Example that works
+# See:
+# http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.interpolate.interpn.html
+# See also here:
+# http://stackoverflow.com/questions/14119892/python-4d-linear-interpolation-on-a-rectangular-grid
+points = np.zeros((2, 2))
+points[0, 1] = 1
+points[1, 1] = 1
+
+values = grid[:, :, 0, 5]
+xi = np.array((mapteff, maplogg))
+
+print(interpn(points, values, xi))
