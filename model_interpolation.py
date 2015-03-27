@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 from scipy.integrate import simps
 import scipy as sp
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, LinearNDInterpolator, griddata
 import gzip
 
 from pymoog import _get_model
@@ -22,6 +22,18 @@ of the target model. Other quantities included in the models (Rosseland
 opacities, radiative pressure, etc.) were also interpolated in the same
 way.
 """
+
+
+def interp_model(tauross, model, tauross_new):
+    """Interpolate a physical quantity from the model from the tauross scale to
+    1 value of the new tauross scale
+
+    :model: TODO
+    :returns: TODO
+    """
+    f = interp1d(tauross, model)
+    return f(tauross_new)
+
 
 
 def _unpack_model(fname):
@@ -107,7 +119,16 @@ def read_model(filename):
 
 
 # We can also find all models in the grid. Gives back the 8 columns we want :)
-models = _get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95')
+models, nteff, nlogg, nfeh = _get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95')
+
+teff=5777
+logg=4.44
+feh=0.00
+
+mapteff = (teff - nteff[0]) / (nteff[0] - nteff[1])
+maplogg = (logg - nlogg[0]) / (nlogg[0] - nlogg[1])
+mapmetal = (feh - nfeh[0]) / (nfeh[0] - nfeh[1])
+
 tauross_all = []
 model_all = []
 for model in models:
@@ -118,11 +139,41 @@ for model in models:
     model_all.append(columns[0:-1])
 
 tauross = tauross_all[0]
-ntau = len(tauross)
+layers = len(tauross)
+columns = len(model_all[0])
 
 tauross_min = min([v[-1] for v in tauross_all])
 tauross_max = max([v[0] for v in tauross_all])
 
 tauross_tmp = tauross[(tauross > tauross_max) & (tauross < tauross_min)]
 f = interp1d(range(len(tauross_tmp)), tauross_tmp)
-tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, ntau))
+tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
+
+grid = np.zeros((2, 2, 2, columns))
+model_out = np.zeros((columns,layers))
+# Do the interpolation over the models
+
+
+for layer in range(layers):
+    for column in range(columns):
+        grid[0,0,0,column] = interp_model(tauross_all[0], model_all[0][column], tauross_new[layer])
+        grid[0,0,1,column] = interp_model(tauross_all[1], model_all[1][column], tauross_new[layer])
+        grid[0,1,0,column] = interp_model(tauross_all[2], model_all[2][column], tauross_new[layer])
+        grid[1,0,0,column] = interp_model(tauross_all[3], model_all[3][column], tauross_new[layer])
+        grid[0,1,1,column] = interp_model(tauross_all[4], model_all[4][column], tauross_new[layer])
+        grid[1,1,0,column] = interp_model(tauross_all[5], model_all[5][column], tauross_new[layer])
+        grid[1,0,1,column] = interp_model(tauross_all[6], model_all[6][column], tauross_new[layer])
+        grid[1,1,1,column] = interp_model(tauross_all[7], model_all[7][column], tauross_new[layer])
+
+        # model_out[column, layer] = interp_all(grid[:,:,:,column], mapteff, maplogg, mapmetal)
+        #model_out[column, layer] = LinearNDInterpolator(grid[:,:,:,column], np.array((mapteff, maplogg, mapmetal)))
+        # print(griddata(grid[:,:,:,column], np.array((mapteff, maplogg, mapmetal, 2)),model_out[column,layer]))
+      #  print(LinearNDInterpolator(grid[:,:,:,column], np.array((mapteff, maplogg, mapmetal, 2))))
+    #    model(j,i) = interpolate(grid(*,*,*,j),mapteff,maplogg,mapmetal)
+
+
+       griddata((grid[:,:,:,column]), np.array((mapteff, maplogg, mapmetal, 2)),model_out[column,layer]))
+
+
+
+

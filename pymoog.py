@@ -65,7 +65,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     idx_teff = []
     # Get the temperature closest and second closest to the teff selected. If
     # third closest is also needed, increace the loop by 1.
-    for i in range(4):
+    for i in range(2):
         idx = np.where(diff_teff == min(diff_teff))[0]
         diff_teff[idx] = 99999
         idx_teff += list(idx)
@@ -80,8 +80,12 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         diff_logg[idx] = 99
         idx_logg += list(idx)
 
+    nn_feh = tuple(float(f[0:-1]+'.'+f[-1]) for f in feh_m)
+    nn_teff = tuple(set(logg_m[idx_logg]))
+    nn_logg = tuple(set(np.array(teff_m)[idx_teff]))
+
     models = models[idx_logg]
-    return models
+    return models, nn_teff, nn_logg, nn_feh,
 
 
 

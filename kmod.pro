@@ -3,7 +3,7 @@ pro kmod,teff,logg,metal,outfile,ntau=ntau,type=type
 ;    Extracts and if necessary interpolates (linearly) a kurucz model
 ;    from his grid.
 ;    The routine is intended for stars cooler than 10000 K.
-;    The grid was ftp'ed from CCP7.
+;    The grid was ftped from CCP7.
 ;
 ;    IN: teff    - float - Effective temperature (K)
 ;        logg    - float - log(g) log_10 of the gravity (cm s-2)
@@ -175,25 +175,17 @@ endif else begin
     tauross_new=interpol(tauross(where(tauross ge $
     top_tauross and tauross le  bot_tauross)),ntau)
 
-    ; let's interpolate for every depth
+    ; lets interpolate for every depth
     for i=1,ntau-1 do begin
         for j=0,ncols-1 do begin
-        grid(0,0,0,j)=interpol(model1(j,1:ntau-1),tauross1(1:ntau-1),$
-        tauross_new(i))
-        grid(0,0,1,j)=interpol(model2(j,1:ntau-1),tauross2(1:ntau-1),$
-        tauross_new(i))
-        grid(0,1,0,j)=interpol(model3(j,1:ntau-1),tauross3(1:ntau-1),$
-        tauross_new(i))
-        grid(0,1,1,j)=interpol(model4(j,1:ntau-1),tauross4(1:ntau-1),$
-        tauross_new(i))
-        grid(1,0,0,j)=interpol(model5(j,1:ntau-1),tauross5(1:ntau-1),$
-        tauross_new(i))
-        grid(1,0,1,j)=interpol(model6(j,1:ntau-1),tauross6(1:ntau-1),$
-        tauross_new(i))
-        grid(1,1,0,j)=interpol(model7(j,1:ntau-1),tauross7(1:ntau-1),$
-        tauross_new(i))
-        grid(1,1,1,j)=interpol(model8(j,1:ntau-1),tauross8(1:ntau-1),$
-        tauross_new(i))
+        grid(0,0,0,j)=interpol(model1(j,1:ntau-1),tauross1(1:ntau-1),tauross_new(i))
+        grid(0,0,1,j)=interpol(model2(j,1:ntau-1),tauross2(1:ntau-1),tauross_new(i))
+        grid(0,1,0,j)=interpol(model3(j,1:ntau-1),tauross3(1:ntau-1),tauross_new(i))
+        grid(0,1,1,j)=interpol(model4(j,1:ntau-1),tauross4(1:ntau-1),tauross_new(i))
+        grid(1,0,0,j)=interpol(model5(j,1:ntau-1),tauross5(1:ntau-1),tauross_new(i))
+        grid(1,0,1,j)=interpol(model6(j,1:ntau-1),tauross6(1:ntau-1),tauross_new(i))
+        grid(1,1,0,j)=interpol(model7(j,1:ntau-1),tauross7(1:ntau-1),tauross_new(i))
+        grid(1,1,1,j)=interpol(model8(j,1:ntau-1),tauross8(1:ntau-1),tauross_new(i))
         model(j,i)=$
         interpolate(grid(*,*,*,j),mapteff,maplogg,mapmetal)
         endfor
