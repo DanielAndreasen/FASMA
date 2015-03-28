@@ -5,6 +5,7 @@ from scipy.integrate import simps
 import scipy as sp
 from scipy.interpolate import interp1d, LinearNDInterpolator, griddata, interpn
 import gzip
+import matplotlib.pyplot as plt
 
 from pymoog import _get_model
 
@@ -147,9 +148,12 @@ tauross_tmp = tauross[(tauross > tauross_max) & (tauross < tauross_min)]
 f = interp1d(range(len(tauross_tmp)), tauross_tmp)
 tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
 
+# Do the interpolation over the models
 grid = np.zeros((2, 2, 2, columns))
 model_out = np.zeros((columns,layers))
-# Do the interpolation over the models
+points = np.array(([0, 1], [0, 1], [0, 1]))
+# TODO: We need to be sure this is in the right order!
+xi = np.array((mapteff, maplogg, mapmetal))
 for layer in range(layers):
     for column in range(columns):
         grid[0,0,0,column] = interp_model(tauross_all[0], model_all[0][column], tauross_new[layer])
@@ -161,6 +165,14 @@ for layer in range(layers):
         grid[1,0,1,column] = interp_model(tauross_all[6], model_all[6][column], tauross_new[layer])
         grid[1,1,1,column] = interp_model(tauross_all[7], model_all[7][column], tauross_new[layer])
 
+        model_out[column, layer] = interpn(points, grid[:, :, :, column], xi)
+
+for column in range(columns):
+    plt.figure()
+    for model in model_all:
+        plt.plot(model[column])
+    plt.plot(model_out[column, :], lw=4)
+plt.show()
 
 
 
@@ -171,11 +183,33 @@ for layer in range(layers):
 # http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.interpolate.interpn.html
 # See also here:
 # http://stackoverflow.com/questions/14119892/python-4d-linear-interpolation-on-a-rectangular-grid
-points = np.zeros((2, 2))
-points[0, 1] = 1
-points[1, 1] = 1
+# points = np.zeros((2, 2))
+# points[0, 1] = 1
+# points[1, 1] = 1
 
-values = grid[:, :, 0, 5]
-xi = np.array((mapteff, maplogg))
+# values = grid[:, :, 0, 5]
+# xi = np.array((mapteff, maplogg))
 
-print(interpn(points, values, xi))
+# print(interpn(points, values, xi))
+
+# p2 = np.zeros((2, 2, 2))
+# p2[0,0,1] = 1
+# p2[0,1,1] = 1
+# p2[1,0,1] = 1
+# p2[1,1,1] = 1
+# v2 = grid[:, :, :, 5]
+# x2 = np.array((mapteff, maplogg, mapmetal))
+
+
+
+
+
+def main(models, out='out.atm'):
+    """The function to call from the main program (pymoog.py or main.py)
+
+    :models: As generated from _get_models
+    :out: The interpolated model saved in this file
+    """
+    # TODO: Find a better name for main
+    # TODO: All the above code goes here later, but leave it up there for now.
+    # It's easier for testing.
