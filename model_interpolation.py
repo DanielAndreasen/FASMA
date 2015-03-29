@@ -7,8 +7,6 @@ from scipy.interpolate import interp1d, LinearNDInterpolator, griddata, interpn
 import gzip
 import matplotlib.pyplot as plt
 
-from pymoog import _get_model
-
 
 """
 Following the concept of Sz. Mezeros and C. Allende Prieto: For each set
@@ -23,18 +21,6 @@ of the target model. Other quantities included in the models (Rosseland
 opacities, radiative pressure, etc.) were also interpolated in the same
 way.
 """
-
-
-def interp_model(tauross, model, tauross_new):
-    """Interpolate a physical quantity from the model from the tauross scale to
-    1 value of the new tauross scale
-
-    :model: TODO
-    :returns: TODO
-    """
-    f = interp1d(tauross, model)
-    return f(tauross_new)
-
 
 
 def _unpack_model(fname):
@@ -70,6 +56,36 @@ def _read_header(fname):
             return teff, num_layers
 
 
+def save_model(model, type='kurucz95', fout='out.atm'):
+    """Save the model atmosphere in the right format
+
+    :model: The interpolated model atmosphere
+    :type: Type of model atmosphere (onyl kurucz95 at the moment)
+    :fout: Which place to save to
+    """
+    if type == 'kurucz95':
+        header = 'KURUCZ\n'\
+                 'Teff=%i   log g=%.2f   [Fe/H]=%.2f    vt=%.3e\n'\
+                 'NTAU        %i' % (5777, 4.44, -0.14, 2.4e5, 72)
+    elif type.lower() == 'marcz':  # How to spell this?
+        raise NotImplementedError('Patience is the key. Wait a bit more for %s\
+                                   models to be implemented.' % type)
+    else:
+        raise NameError('Could not find %s models' % type)
+
+    footer = '    %.3e\n'\
+             'NATOMS     1  %.2f\n'\
+             '      26.0   %.2f\n'\
+             'NMOL      19\n'\
+             '      606.0    106.0    607.0    608.0    107.0    108.0    112.0  707.0\n'\
+             '       708.0    808.0     12.1  60808.0  10108.0    101.0     6.1    7.1\n'\
+             '         8.1    822.0     22.1' % (2.4e5, -0.2, 7.47-0.2)
+
+    np.savetxt(fout, model.T, header=header, footer=footer, comments='',
+               delimiter='  ',
+               fmt=('%9.8E', '%3.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E'))
+
+
 def tauross_scale(abross, rhox, num_layers):
     """Build the tau-ross scale
 
@@ -84,7 +100,6 @@ def tauross_scale(abross, rhox, num_layers):
     tauross[0] = abross[0] * rhox[0]
     for i in range(2, num_layers+1):
         tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i])
-        # print i, tauross[i-1]
     return tauross
 
 
@@ -94,24 +109,23 @@ def read_model(filename):
     teff, num_layers = _read_header(filename)
 
     # This are the thermodynamical quantities.
-    model = np.genfromtxt(filename, dtype=None, skiprows=23, skip_footer=2,
+    model = np.genfromtxt(filename, skiprows=23, skip_footer=2,
+                          usecols=(0, 1, 2, 3, 4, 5, 6),
                           names=['RHOX', 'T', 'P', 'XNE', 'ABROSS',
-                                 'ACCRAD', 'VTURB', 'tab1', 'tab2'])
+                                 'ACCRAD', 'VTURB'])
 
     # TODO: Can this even happen? Any way, a better error would be helpful :)
     if len(model) != num_layers:
             raise Exception("FORMAT ERROR")
 
-    # TODO: Do we need all this? Possible optimization for later
     model_rhox = model['RHOX']
     model_t = model['T']
     model_p = model['P']
     model_xne = model['XNE']
     model_abross = model['ABROSS']
     model_accrad = model['ACCRAD']
+    # TODO: We don't need this one. manual p. 17
     model_vturb = model['VTURB']
-    model_tab1 = model['tab1']
-    model_tab2 = model['tab2']
 
     tauross = tauross_scale(model_abross, model_rhox, num_layers)
 
@@ -119,97 +133,76 @@ def read_model(filename):
             model_accrad, model_vturb, tauross)
 
 
-# We can also find all models in the grid. Gives back the 8 columns we want :)
-teff, logg, feh = 5777, 4.44, 0.00
-models, nteff, nlogg, nfeh = _get_model(teff=teff, logg=logg, feh=feh, type='kurucz95')
+def interp_model(tauross, model, tauross_new):
+    """Interpolate a physical quantity from the model from the tauross scale to
+    1 value of the new tauross scale
+
+    :tauross: Old tauross scale
+    :model: Column in the atmospheric model to be interpolated
+    :tauross_new: New tauross scale
+    :returns: The interpolated atmospheric model to the new scale
+    """
+    # Extra key-words speed up the function with a factor of 10!
+    f = interp1d(tauross, model, assume_sorted=True, copy=False)
+    return f(tauross_new)
 
 
-mapteff = (teff - nteff[1]) / (nteff[0] - nteff[1])
-maplogg = (logg - nlogg[1]) / (nlogg[0] - nlogg[1])
-mapmetal = (feh - nfeh[1]) / (nfeh[0] - nfeh[1])
-
-tauross_all = []
-model_all = []
-for model in models:
-    read = _unpack_model(model)
-    columns = read_model(read)
-    tauross = columns[-1]
-    tauross_all.append(tauross)
-    model_all.append(columns[0:-1])
-
-tauross = tauross_all[0]
-layers = len(tauross)
-columns = len(model_all[0])
-
-tauross_min = min([v[-1] for v in tauross_all])
-tauross_max = max([v[0] for v in tauross_all])
-
-tauross_tmp = tauross[(tauross > tauross_max) & (tauross < tauross_min)]
-f = interp1d(range(len(tauross_tmp)), tauross_tmp)
-tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
-
-# Do the interpolation over the models
-grid = np.zeros((2, 2, 2, columns))
-model_out = np.zeros((columns,layers))
-points = np.array(([0, 1], [0, 1], [0, 1]))
-# TODO: We need to be sure this is in the right order!
-xi = np.array((mapteff, maplogg, mapmetal))
-for layer in range(layers):
-    for column in range(columns):
-        grid[0,0,0,column] = interp_model(tauross_all[0], model_all[0][column], tauross_new[layer])
-        grid[0,0,1,column] = interp_model(tauross_all[1], model_all[1][column], tauross_new[layer])
-        grid[0,1,0,column] = interp_model(tauross_all[2], model_all[2][column], tauross_new[layer])
-        grid[1,0,0,column] = interp_model(tauross_all[3], model_all[3][column], tauross_new[layer])
-        grid[0,1,1,column] = interp_model(tauross_all[4], model_all[4][column], tauross_new[layer])
-        grid[1,1,0,column] = interp_model(tauross_all[5], model_all[5][column], tauross_new[layer])
-        grid[1,0,1,column] = interp_model(tauross_all[6], model_all[6][column], tauross_new[layer])
-        grid[1,1,1,column] = interp_model(tauross_all[7], model_all[7][column], tauross_new[layer])
-
-        model_out[column, layer] = interpn(points, grid[:, :, :, column], xi)
-
-for column in range(columns):
-    plt.figure()
-    for model in model_all:
-        plt.plot(model[column])
-    plt.plot(model_out[column, :], lw=4)
-plt.show()
-
-
-
-
-
-# Example that works
-# See:
-# http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.interpolate.interpn.html
-# See also here:
-# http://stackoverflow.com/questions/14119892/python-4d-linear-interpolation-on-a-rectangular-grid
-# points = np.zeros((2, 2))
-# points[0, 1] = 1
-# points[1, 1] = 1
-
-# values = grid[:, :, 0, 5]
-# xi = np.array((mapteff, maplogg))
-
-# print(interpn(points, values, xi))
-
-# p2 = np.zeros((2, 2, 2))
-# p2[0,0,1] = 1
-# p2[0,1,1] = 1
-# p2[1,0,1] = 1
-# p2[1,1,1] = 1
-# v2 = grid[:, :, :, 5]
-# x2 = np.array((mapteff, maplogg, mapmetal))
-
-
-
-
-
-def main(models, out='out.atm'):
+def interpolator(models, teff, logg, feh, out='out.atm'):
     """The function to call from the main program (pymoog.py or main.py)
 
     :models: As generated from _get_models
     :out: The interpolated model saved in this file
     """
-    # TODO: Find a better name for main
-    # TODO: All the above code goes here later, but leave it up there for now.
-    # It's easier for testing.
+    # TODO: Need to be able to use e.g. 4 Teff models (16 models in total)
+    # NOTE: Run pymoog.py instead. Now this is only functions (more or less)
+
+    teff, nteff = teff
+    logg, nlogg = logg
+    feh, nfeh = feh
+
+    mapteff = (teff - nteff[1]) / (nteff[0] - nteff[1])
+    maplogg = (logg - nlogg[1]) / (nlogg[0] - nlogg[1])
+    mapmetal = (feh - nfeh[1]) / (nfeh[0] - nfeh[1])
+
+    tauross_all = []
+    model_all = []
+    for model in models:
+        read = _unpack_model(model)
+        columns = read_model(read)
+        tauross = columns[-1]
+        tauross_all.append(tauross)
+        model_all.append(columns[0:-1])
+
+    tauross = tauross_all[0]
+    layers = len(tauross)
+    columns = len(model_all[0])
+
+    tauross_min = min([v[-1] for v in tauross_all])
+    tauross_max = max([v[0] for v in tauross_all])
+
+    tauross_tmp = tauross[(tauross > tauross_max) & (tauross < tauross_min)]
+    f = interp1d(range(len(tauross_tmp)), tauross_tmp)
+    tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
+
+    # Do the interpolation over the models
+    grid = np.zeros((2, 2, 2, columns))
+    model_out = np.zeros((columns, layers))
+    points = np.array(([0, 1], [0, 1], [0, 1]))
+    # TODO: We need to be sure this is in the right order!
+    xi = np.array((mapteff, maplogg, mapmetal))
+    for layer in range(layers):
+        tau_layer = tauross_new[layer]
+        for column in range(columns):
+            grid[0, 0, 0, column] = interp_model(tauross_all[0], model_all[0][column], tau_layer)
+            grid[0, 0, 1, column] = interp_model(tauross_all[1], model_all[1][column], tau_layer)
+            grid[0, 1, 0, column] = interp_model(tauross_all[2], model_all[2][column], tau_layer)
+            grid[1, 0, 0, column] = interp_model(tauross_all[3], model_all[3][column], tau_layer)
+            grid[0, 1, 1, column] = interp_model(tauross_all[4], model_all[4][column], tau_layer)
+            grid[1, 1, 0, column] = interp_model(tauross_all[5], model_all[5][column], tau_layer)
+            grid[1, 0, 1, column] = interp_model(tauross_all[6], model_all[6][column], tau_layer)
+            grid[1, 1, 1, column] = interp_model(tauross_all[7], model_all[7][column], tau_layer)
+
+            model_out[column, layer] = interpn(points, grid[:, :, :, column], xi)
+
+    # TODO: Possible remove this below at some point
+    return model_all, model_out, column

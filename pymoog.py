@@ -5,7 +5,7 @@
 from __future__ import division
 import numpy as np
 from glob import glob
-# from clint.textui import puts, colored, indent
+from model_interpolation import interpolator, save_model
 
 
 # Why a single leading underscore? Because this is an internal function. See
@@ -103,16 +103,10 @@ def _transform_micro(teff, logg, feh):
     return v_micro
 
 
-def _interpolate_atm():
-    pass
-
-
-def minimize(teff, logg, feh):
-    pass
-
-
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
-    # from sys import argv
-    print np.sort(_get_model(teff=5777, logg=4.44, feh=0.00, type='kurucz95'))
-    # _transform_micro(3750, 4.40, -0.5)
+    teff, logg, feh = 5777, 4.44, -0.14
+    models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh, type='kurucz95')
+    m_all, m_out, _ = interpolator(models, teff=(teff, nt), logg=(logg, nl),
+                                   feh=(feh, nf))
+    save_model(m_out)
