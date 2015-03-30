@@ -190,6 +190,7 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
     points = np.array(([0, 1], [0, 1], [0, 1]))
     # TODO: We need to be sure this is in the right order!
     xi = np.array((mapteff, maplogg, mapmetal))
+    #Maybe the for loop over the layers is not necessary since the interp_model function does that?
     for layer in range(layers):
         tau_layer = tauross_new[layer]
         for column in range(columns):
