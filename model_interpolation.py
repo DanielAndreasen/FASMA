@@ -82,8 +82,8 @@ def save_model(model, type='kurucz95', fout='out.atm'):
              '         8.1    822.0     22.1' % (2.4e5, -0.2, 7.47-0.2)
 
     np.savetxt(fout, model.T, header=header, footer=footer, comments='',
-               delimiter='  ',
-               fmt=('%9.8E', '%3.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E'))
+               delimiter=' ',
+               fmt=('%15.8E', '%8.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E'))
 
 
 def tauross_scale(abross, rhox, num_layers):
