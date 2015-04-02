@@ -65,7 +65,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     idx_teff = []
     # Get the temperature closest and second closest to the teff selected. If
     # third closest is also needed, increace the loop by 1.
-    for i in range(2):
+    for i in range(4):
         idx = np.where(diff_teff == min(diff_teff))[0]
         diff_teff[idx] = 99999
         idx_teff += list(idx)
@@ -84,7 +84,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     nn_logg = tuple(set(logg_m[idx_logg]))
     nn_teff = tuple(set(np.array(teff_m)[idx_teff]))
 
-    models = models[idx_logg]
+    models = sorted(models[idx_logg])
     return models, nn_teff, nn_logg, nn_feh,
 
 
@@ -105,8 +105,12 @@ def _transform_micro(teff, logg, feh):
 
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
-    teff, logg, feh = 5777, 4.44, -0.14
+    teff, logg, feh = 5001, 4.01, 0.01
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh, type='kurucz95')
-    m_all, m_out, _ = interpolator(models, teff=(teff, nt), logg=(logg, nl),
+    # for model in models:
+    #     print(model)
+
+    # raise SystemExit
+    m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
                                    feh=(feh, nf))
-    save_model(m_out)
+    save_model(m_out, vt=2.4)
