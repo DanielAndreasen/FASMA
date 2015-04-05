@@ -8,8 +8,8 @@ from glob import glob
 from model_interpolation import interpolator, save_model
 
 
-# Why a single leading underscore? Because this is an internal function. See
-# pep8 for more information here:
+# Why a single leading underscore? Because this is an internal function.
+# See pep8 for more information here:
 # http://legacy.python.org/dev/peps/pep-0008/#naming-conventions
 def _run_moog():
     os.system('MOOGSILENT > tmp')
@@ -32,23 +32,21 @@ def _get_model(teff, logg, feh, type='kurucz95'):
                                    models to be implemented.' % type)
     else:
         raise NameError('Could not find %s models' % type)
-    assert (t_rng[0] <= teff and teff <= t_rng[1]), 'Teff out of range: %s to %s' % t_rng
-    assert (l_rng[0] <= logg and logg <= l_rng[1]), 'logg out of range: %s to %s' % l_rng
-    assert (f_rng[0] <= feh and feh <= f_rng[1]), '[Fe/H] out of range: %s to %s' % f_rng
+
+    assert (t_rng[0] <= teff <= t_rng[1]), 'Teff out of range: %s to %s' % t_rng
+    assert (l_rng[0] <= logg <= l_rng[1]), 'logg out of range: %s to %s' % l_rng
+    assert (f_rng[0] <= feh <= f_rng[1]), '[Fe/H] out of range: %s to %s' % f_rng
 
     # Make the slice in [Fe/H]
     folders = glob('kurucz95/m*') + glob('kurucz95/p*')
     feh_grid = [folder.replace('kurucz95/', '') for folder in folders]
     feh_grid = [v.replace('m', '-') if v.startswith('m') else
                 v.replace('p', '') for v in feh_grid]
-    feh_grid = np.sort(np.array(map(float, feh_grid)) / 10)
 
-    feh_m = []
-    for _ in range(2):
-        i = np.argmin(abs(feh_grid - feh))
-        feh_m.append(str(feh_grid[i]).replace('.', ''))
-        feh_grid[i] = 9
+    feh_grid = np.array(list(map(float, feh_grid))) / 10
 
+    feh_m = feh_grid[abs(feh_grid - feh).argsort()[:2]]
+    feh_m = [str(f).replace('.', '') for f in feh_m]
     paths = [f.replace('-', 'm') if f.startswith('-') else
              'p' + f for f in feh_m]
 
@@ -58,8 +56,8 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         models.extend(glob('kurucz95/%s/*.gz' % path))
     models = np.array(models)
 
-    # This is a bit complicated way to get the temp. from the path of all the
-    # models
+    # This is a bit complicated way to get the temp. from the path of
+    # all the models
     teff_m = [int(model.split('/')[-1].split('g')[0]) for model in models]
     diff_teff = abs(np.array(teff_m) - teff)
     idx_teff = []
@@ -72,7 +70,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     models = models[idx_teff]
 
     logg_m = [model.replace(path, '').split('g')[1].split('.')[0] for model in models]
-    logg_m = np.array([float(li)/10 for li in logg_m])
+    logg_m = np.array(map(float, logg_m)) / 10
     diff_logg = abs(logg_m - logg)
     idx_logg = []
     for i in range(2):
@@ -87,6 +85,122 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     models = sorted(models[idx_logg])
     return models, nn_teff, nn_logg, nn_feh,
 
+
+# TODO: This function will be merged with the one beneath
+def _update_par(infile='batch.par', out='batch.par'):
+    """Update the parameter file
+
+    :infile: The input file
+    :out: The output file
+    """
+
+    '''
+    Runs MOOG with the given input parameters and returns a numpy array of
+    the outputted smooth spectrum.
+
+    Inputs
+    -----
+
+    atmosphere_model    :   Location of your model atmosphere file
+    line_list           :   Location of your line list
+
+    Additional keyword arguments
+    ----------------------------
+
+    These additional keyword arguments allow the user to have full control
+    over what is put into the MOOG input file. The default values are:
+
+    terminal        'x11'
+    atmosphere      1
+    molecules       2
+    trudamp         1
+    lines           1
+    flux/int        1
+    damping         0
+    units           0
+    iraf            0
+    plot            2
+    obspectrum      1       Unless obspectrum is provided to the function.
+    opacit          0
+    freeform        0
+    strong          0       Unless a strong lines list is provided.
+    plotpars        1       0.75 Gaussian smoothing by default. Show full
+                            synthesized spectral range with y:[0, 1.2]
+    histogram       0
+    synlimits               Defaults to the wavelength range provided and
+                            the given wavelength step size, and the delta
+                            defaults to the wavelength step size.
+
+    Outputs
+    -------
+
+    A numpy two-dimensional spectrum which contains the wavelength in the
+    entire first column, and normalised smoothed flux in the second column
+    '''
+
+
+def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
+
+    # Path checks for input files
+    if not os.path.exists(atmosphere_model):
+        raise IOError('Atmosphere model file "%s" could not be found.' %
+                      (atmosphere_model))
+
+    if not os.path.exists(line_list):
+        raise IOError('Line list file "%s" could not be found.' %
+                      (line_list))
+
+    default_kwargs = {
+        'atmosphere': 1,
+        'molecules':  2,
+        'trudamp':    1,  # Sure, why not? It's a black art anyway!
+        'lines':      1,
+        'terminal':   'x11',
+        'flux/int':   1,
+        'damping':    0,
+        'units':      0,
+        'iraf':       0,
+        'plot':       2,
+        'obspectrum': 0,
+        'opacit':     0,
+        'freeform':   0,
+        'strong':     0,
+        }
+
+    # Fill the keyword arguments with the defaults if they don't exist already
+    for key, value in default_kwargs.iteritems():
+        if key not in kwargs.keys():
+            kwargs[key] = value
+
+    # Generate a MOOG-compatible run file
+    moog_filename = 'batch.par'
+
+    if os.path.exists(moog_filename):
+        logging.warn('Temporary MOOG file already exists (%s), over-writing...'
+                     % moog_filename)
+
+    moog_contents = """abfind
+                       terminal       '%s'
+                       model_in       '%s'
+                       summary_out    '%s'
+                       standard_out   '%s'
+                       lines_in       '%s'
+                    """ % (kwargs['terminal'], atmosphere_model, 'summary.out',
+                           'result.out', line_list)
+
+    settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
+               'units,iraf,plot,opacit,freeform,obspectrum,histogram,'\
+               'synlimits'.split(',')
+    if kwargs['plotpars'] != 0:
+        logging.warn('Plotting require SM')
+        settings.append('plotpars')
+
+    for setting in settings:
+        moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)),
+                                      kwargs[setting])
+
+    with open(moog_in, 'w') as moog:
+        moog.writelines(moog_contents)
 
 
 def _transform_micro(teff, logg, feh):
@@ -110,7 +224,7 @@ if __name__ == '__main__':
     # for model in models:
     #     print(model)
 
-    # raise SystemExit
+    raise SystemExit
     m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
                                    feh=(feh, nf))
     save_model(m_out, vt=2.4)
