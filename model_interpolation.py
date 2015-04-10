@@ -235,19 +235,13 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
 
             # TODO: Interpolate first temperature and then the other
             # Temperature should be cubic, while the others are linear
-            for i in range(2):
-                for j in range(2):
-                    model_out[column, layer] = interpn(pt, grid[:, i, j,  column],
-                                                   mapteff) #, method='splinef2d')
-            for i in range(4):
-                model_out[column, layer] = interpn(plm, grid[i, :, :, column],
-                        xi[1:])
-
-
-
-
-
-
+            # for i in range(2):
+            #     for j in range(2):
+            #         model_out[column, layer] = interpn(pt, grid[:, i, j,  column],
+            #                                        mapteff) #, method='splinef2d')
+            # for i in range(4):
+            #     model_out[column, layer] = interpn(plm, grid[i, :, :, column],
+            #             xi[1:])
 
     # TODO: Possible remove this below at some point
     return model_all, model_out, column

@@ -224,7 +224,7 @@ if __name__ == '__main__':
     # for model in models:
     #     print(model)
 
-    raise SystemExit
+    # raise SystemExit
     m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
                                    feh=(feh, nf))
     save_model(m_out, vt=2.4)
