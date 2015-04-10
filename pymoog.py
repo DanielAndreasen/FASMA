@@ -5,6 +5,8 @@
 from __future__ import division
 import numpy as np
 from glob import glob
+import os
+import logging
 from model_interpolation import interpolator, save_model
 
 
@@ -63,7 +65,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     idx_teff = []
     # Get the temperature closest and second closest to the teff selected. If
     # third closest is also needed, increace the loop by 1.
-    for i in range(4):
+    for i in range(2):
         idx = np.where(diff_teff == min(diff_teff))[0]
         diff_teff[idx] = 99999
         idx_teff += list(idx)
@@ -152,15 +154,15 @@ def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
 
     default_kwargs = {
         'atmosphere': 1,
-        'molecules':  2,
+        'molecules':  1,
         'trudamp':    1,  # Sure, why not? It's a black art anyway!
         'lines':      1,
         'terminal':   'x11',
-        'flux/int':   1,
-        'damping':    0,
+        'flux/int':   0,
+        'damping':    2,
         'units':      0,
         'iraf':       0,
-        'plot':       2,
+        'plot':       0,
         'obspectrum': 0,
         'opacit':     0,
         'freeform':   0,
@@ -179,27 +181,28 @@ def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
         logging.warn('Temporary MOOG file already exists (%s), over-writing...'
                      % moog_filename)
 
-    moog_contents = """abfind
-                       terminal       '%s'
-                       model_in       '%s'
-                       summary_out    '%s'
-                       standard_out   '%s'
-                       lines_in       '%s'
-                    """ % (kwargs['terminal'], atmosphere_model, 'summary.out',
+    moog_contents = "abfind\n"\
+                    "terminal       %s\n"\
+                    "model_in       '%s'\n"\
+                    "summary_out    '%s'\n"\
+                    "standard_out   '%s'\n"\
+                    "lines_in       '%s'\n"  % (kwargs['terminal'], atmosphere_model, 'summary.out',
                            'result.out', line_list)
 
     settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
                'units,iraf,plot,opacit,freeform,obspectrum,histogram,'\
                'synlimits'.split(',')
-    if kwargs['plotpars'] != 0:
-        logging.warn('Plotting require SM')
-        settings.append('plotpars')
+    if kwargs.has_key('plotpars'):
+        if kwargs['plotpars'] != 0:
+            logging.warn('Plotting require SM')
+            settings.append('plotpars')
 
     for setting in settings:
-        moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)),
-                                      kwargs[setting])
+        if kwargs.has_key(setting):
+            moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)),
+                                        kwargs[setting])
 
-    with open(moog_in, 'w') as moog:
+    with open(moog_filename, 'w') as moog:
         moog.writelines(moog_contents)
 
 
@@ -224,7 +227,12 @@ if __name__ == '__main__':
     # for model in models:
     #     print(model)
 
-    # raise SystemExit
-    m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
+    run()
+
+    raise SystemExit('Exiting...')
+    m_all, m_out, _ = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                                    feh=(feh, nf))
+
+    # m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
+    #                                feh=(feh, nf))
     save_model(m_out, vt=2.4)
