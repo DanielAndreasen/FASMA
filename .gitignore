@@ -2,6 +2,11 @@
 *~
 programs/
 kurucz95/
+*.par
+*.moog
+result.out
+summary.out
+out_fortran.atm
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
