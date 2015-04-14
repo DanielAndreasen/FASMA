@@ -5,7 +5,7 @@ from scipy.integrate import simps
 from scipy import integrate
 import scipy as sp
 import scipy
-from scipy.interpolate import interp1d, LinearNDInterpolator, griddata, interpn, InterpolatedUnivariateSpline
+from scipy.interpolate import interp1d, interpn, InterpolatedUnivariateSpline
 import gzip
 import matplotlib.pyplot as plt
 
@@ -23,6 +23,7 @@ of the target model. Other quantities included in the models (Rosseland
 opacities, radiative pressure, etc.) were also interpolated in the same
 way.
 """
+
 
 def _unpack_model(fname):
     """Unpack the compressed model and store it in a temporary file
@@ -99,41 +100,42 @@ def tauross_scale(abross, rhox, num_layers):
     tauross = sp.integrate.cumtrapz(rhox * abross, initial=rhox[0] * abross[0])
 
     # tauross = np.zeros(num_layers)
-    # This is supposed to be the first element
+    # # This is supposed to be the first element
     # tauross[0] = abross[0] * rhox[0]
     # for i in range(2, num_layers+1):
-        # tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i], even='last')
-        # tauross[i-1] = np.trapz(rhox[0:i], abross[0:i])
-
+    #     tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i],
+    #                                         even='last')
+    #     tauross[i-1] = np.trapz(rhox[0:i], abross[0:i])
     return tauross
 
-def int_newton_cotes(x,f,p=5):
+
+def int_newton_cotes(x, f, p=5):
     def newton_cotes(x, f):
         if x.shape[0] < 2:
             return 0
         rn = (x.shape[0]-1)*(x-x[0])/(x[-1]-x[0])
         # Just making sure ...
-        rn[0]= 0
-        rn[-1]= len(rn)-1
-        weights= integrate.newton_cotes(rn)[0]
-        return (x[-1]-x[0])/(x.shape[0]-1)*np.dot(weights,f)
+        rn[0] = 0
+        rn[-1] = len(rn)-1
+        weights = integrate.newton_cotes(rn)[0]
+        return (x[-1]-x[0])/(x.shape[0]-1)*np.dot(weights, f)
     ret = 0
-    for indx in range(0,x.shape[0],p-1):
-        ret+= newton_cotes(x[indx:indx+p],f[indx:indx+p])
+    for indx in range(0, x.shape[0], p-1):
+        ret += newton_cotes(x[indx:indx+p], f[indx:indx+p])
     return ret
 
-def rosslandtau(abross, rhox, num_layers, force=True):
-        """Calculate the Rossland mean optical depth"""
-        if force:
-            rtau= np.zeros(num_layers)
-            for ii in range(1,num_layers):
-                rtau[ii]= int_newton_cotes(rhox[:ii+1],
-                                           abross[:ii+1])
-            rtau+= rhox[0]*abross[0]
-        else:
-            rtau= 10.**(np.linspace(-6.875,2.,num_layers))
-        return rtau
 
+def rosslandtau(abross, rhox, num_layers, force=True):
+    """Calculate the Rossland mean optical depth"""
+    if force:
+        rtau = np.zeros(num_layers)
+        for ii in range(1, num_layers):
+            rtau[ii] = int_newton_cotes(rhox[:ii+1],
+                                        abross[:ii+1])
+        rtau += rhox[0]*abross[0]
+    else:
+        rtau = 10.**(np.linspace(-6.875, 2., num_layers))
+    return rtau
 
 
 def read_model(filename):
@@ -160,15 +162,13 @@ def read_model(filename):
     # TODO: We don't need this one. manual p. 17
     model_vturb = model['VTURB']
 
-    #tauross = tauross_scale(model_abross, model_rhox, num_layers)
-    #print (tauross)
-    #print (rosslandtau(model_abross, model_rhox, num_layers))
+    # tauross = tauross_scale(model_abross, model_rhox, num_layers)
+    # print (tauross)
+    # print (rosslandtau(model_abross, model_rhox, num_layers))
     tauross = rosslandtau(model_abross, model_rhox, num_layers)
     return (model_rhox, model_t, model_p, model_xne, model_abross,
             model_accrad, model_vturb, tauross)
 
-    #f = _unpack_model("/home/daniel/Documents/Uni/phdproject/programs/pymoog/kurucz95/p00/5000g40.p00.gz")
-    #read_model(f)
 
 def interp_model(tauross, model, tauross_new):
     """Interpolate a physical quantity from the model from the tauross scale to
@@ -181,7 +181,7 @@ def interp_model(tauross, model, tauross_new):
     """
     # Extra key-words speed up the function with a factor of 10!
     f = interp1d(tauross, model, assume_sorted=True, copy=False)
-    #f = InterpolatedUnivariateSpline(tauross,model,k=3)
+    # f = InterpolatedUnivariateSpline(tauross,model,k=3)
     return f(tauross_new)
 
 
@@ -202,8 +202,8 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
     maplogg = (logg - nlogg[1]) / (nlogg[0] - nlogg[1])
     mapmetal = (feh - nfeh[1]) / (nfeh[0] - nfeh[1])
 #    print(mapteff)
-#    print(maplogg) 
-#    print(mapmetal)   
+#    print(maplogg)
+#    print(mapmetal)
 
     tauross_all = []
     model_all = []
@@ -222,14 +222,15 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
     tauross_max = max([v[0] for v in tauross_all])
     tauross_tmp = tauross[(tauross >= tauross_max) & (tauross <= tauross_min)]
     f = interp1d(range(len(tauross_tmp)), tauross_tmp)
-    #ALTERNATIVE INTERPOLATION ITS MORE OR LESS EQUAL
-    #f = InterpolatedUnivariateSpline(range(len(tauross_tmp)), tauross_tmp,k=3)
+    # ALTERNATIVE INTERPOLATION ITS MORE OR LESS EQUAL
+    # N = len(tauross_tmp)
+    # f = InterpolatedUnivariateSpline(range(N), tauross_tmp,k=3)
     tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
-    
-   #Attempt to renormalize tau_ross
-   # tauross_new=tauross_new/np.max(tauross_tmp) 
-   # print(tauross_new)
-   #FAILED!
+
+    # Attempt to renormalize tau_ross
+    # tauross_new=tauross_new/np.max(tauross_tmp)
+    # print(tauross_new)
+    # FAILED!
 
     # Do the interpolation over the models
     grid = np.zeros((4, 2, 2, columns))
@@ -238,10 +239,11 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
     pt = np.array(([0, 0.33, 0.66, 1]))
     plx = np.array(([0, 0.33, 0.66, 1], [0, 1], [0, 1]))
     xi = np.array((mapteff, maplogg, mapmetal))
-    #Maybe the for loop over the layers is not necessary since the interp_model function does that?
+    # Maybe the for loop over the layers is not necessary since the
+    # interp_model function does that?
     for layer in range(layers):
         tau_layer = tauross_new[layer]
-        
+
         for column in range(columns):
 
             # For 2x2x2
@@ -278,31 +280,25 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
 
 
 ###########################
-#New attempt using ndimage#
-#####UNDER CONSTRUCTION####
+# New attempt using ndimage#
+# ####UNDER CONSTRUCTION####
 ###########################
-            
-           #input_map = grid.reshape(4,2,2
+
+            # input_map = grid.reshape(4,2,2
 
 ###########################
 ###########################
 
-            model_out[column,layer] = interpn(plx, grid[:,:,:,column], xi)
-    #print (model_out)
+            model_out[column, layer] = interpn(plx, grid[:, :, :, column], xi)
+    # print (model_out)
             # TODO: Interpolate first temperature and then the other
             # Temperature should be cubic, while the others are linear
-            #for i in range(2):
-            #    for j in range(2):
-            #        model_out[column, layer] = interpn(pt, grid[:, i, j,  column], mapteff) #, method='splinef2d')
-            #for i in range(4):
-            #    model_out[column, layer] = interpn(plm, grid[i, :, :, column],
-            #            xi[1:])
-
-
-
-
-
-
+            # for i in range(2):
+            #     for j in range(2):
+            #         model_out[column, layer] = interpn(pt, grid[:, i, j,  column], mapteff) #, method='splinef2d')
+            # for i in range(4):
+            #     model_out[column, layer] = interpn(plm, grid[i, :, :, column],
+            #             xi[1:])
 
     # TODO: Possible remove this below at some point
     return model_all, model_out, column
