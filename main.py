@@ -35,7 +35,7 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser(prog='pymoog',
-                                     description='Spectroscopy with MOOG made\
+                                     description='with MOOG made\
                                              easy',
                                      epilog='Happy spectroscopying (we know it\
                                              can be tough!) :)')
