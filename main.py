@@ -7,11 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 
-try:
-    import clint
-except ImportError, e:
-    print 'Please install clint with e.g. "pip install clint"'
-
 
 if __name__ == '__main__':
     # Here be dragons...
@@ -35,11 +30,9 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser(prog='pymoog',
-                                     description='MOOG made easy',
+                                     description='Spectroscopy with MOOG made easy',
                                      epilog='Happy spectroscopying (we know it\
                                              can be tough!) :)')
-
-
     parser.add_argument('-i', '--input',
                         help='An input file. This is just an example of how argparse\
                         works')
