@@ -35,9 +35,11 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser(prog='pymoog',
-                                     description='with MOOG made easy',
+                                     description='MOOG made easy',
                                      epilog='Happy spectroscopying (we know it\
                                              can be tough!) :)')
+
+
     parser.add_argument('-i', '--input',
                         help='An input file. This is just an example of how argparse\
                         works')
