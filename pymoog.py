@@ -7,7 +7,8 @@ import numpy as np
 from glob import glob
 import os
 import logging
-from model_interpolation import interpolator, save_model
+# from model_interpolation import interpolator, save_model
+from model_interpolation_new import interpolator, save_model
 
 
 # Why a single leading underscore? Because this is an internal function.
@@ -80,9 +81,9 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         diff_logg[idx] = 99
         idx_logg += list(idx)
 
-    nn_feh = tuple(float(f[0:-1]+'.'+f[-1]) for f in feh_m)
-    nn_logg = tuple(set(logg_m[idx_logg]))
-    nn_teff = tuple(set(np.array(teff_m)[idx_teff]))
+    nn_feh = sorted(tuple(float(f[0:-1]+'.'+f[-1]) for f in feh_m))
+    nn_logg = sorted(tuple(set(logg_m[idx_logg])))
+    nn_teff = sorted(tuple(set(np.array(teff_m)[idx_teff])))
 
     models = sorted(models[idx_logg])
     return models, nn_teff, nn_logg, nn_feh,
@@ -224,15 +225,16 @@ if __name__ == '__main__':
     # This is only for testing and should be removed later on...
     teff, logg, feh = 5001, 4.01, 0.01
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh, type='kurucz95')
-    # for model in models:
-    #     print(model)
 
-    run()
+    # TODO: First thing to vary should be Fe/H, then logg, then Teff (see
+    # around L450 in atlas9.py by jobovy)
+    # for m in models:
+        # print(m)
 
-    raise SystemExit('Exiting...')
+    # raise SystemExit('Exiting...')
     m_all, m_out, _ = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                                    feh=(feh, nf))
 
     # m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
     #                                feh=(feh, nf))
-    save_model(m_out, vt=2.4)
+    # save_model(m_out, vt=2.4)
