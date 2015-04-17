@@ -222,15 +222,8 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
     tauross_max = max([v[0] for v in tauross_all])
     tauross_tmp = tauross[(tauross >= tauross_max) & (tauross <= tauross_min)]
     f = interp1d(range(len(tauross_tmp)), tauross_tmp)
-    # ALTERNATIVE INTERPOLATION ITS MORE OR LESS EQUAL
-    # N = len(tauross_tmp)
-    # f = InterpolatedUnivariateSpline(range(N), tauross_tmp,k=3)
-    tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
 
-    # Attempt to renormalize tau_ross
-    # tauross_new=tauross_new/np.max(tauross_tmp)
-    # print(tauross_new)
-    # FAILED!
+    tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
 
     # Do the interpolation over the models
     grid = np.zeros((4, 2, 2, columns))
@@ -239,11 +232,8 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
     pt = np.array(([0, 0.33, 0.66, 1]))
     plx = np.array(([0, 0.33, 0.66, 1], [0, 1], [0, 1]))
     xi = np.array((mapteff, maplogg, mapmetal))
-    # Maybe the for loop over the layers is not necessary since the
-    # interp_model function does that?
     for layer in range(layers):
         tau_layer = tauross_new[layer]
-
         for column in range(columns):
 
             # For 2x2x2
@@ -278,19 +268,8 @@ def interpolator(models, teff, logg, feh, out='out.atm'):
             grid[3, 0, 1, column] = interp_model(tauross_all[10], model_all[10][column], tau_layer)
             grid[3, 1, 1, column] = interp_model(tauross_all[11], model_all[11][column], tau_layer)
 
-
-###########################
-# New attempt using ndimage#
-# ####UNDER CONSTRUCTION####
-###########################
-
-            # input_map = grid.reshape(4,2,2
-
-###########################
-###########################
-
             model_out[column, layer] = interpn(plx, grid[:, :, :, column], xi)
-    # print (model_out)
+
             # TODO: Interpolate first temperature and then the other
             # Temperature should be cubic, while the others are linear
             # for i in range(2):
