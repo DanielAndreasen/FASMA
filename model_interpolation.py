@@ -1,13 +1,11 @@
 #!/usr/bin/python
-from __future__ import division, print_function
+from __future__ import division
 import numpy as np
-from scipy.integrate import simps
-from scipy import integrate
-import scipy as sp
-import scipy
-from scipy.interpolate import interp1d, interpn, InterpolatedUnivariateSpline
+from scipy.integrate import cumtrapz
+from scipy.interpolate import interp1d
+from scipy import ndimage
 import gzip
-import matplotlib.pyplot as plt
+
 
 
 """
@@ -96,78 +94,23 @@ def tauross_scale(abross, rhox, num_layers):
     :num_layers: Number of layers in the model atmosphere
     :returns: the new tau-ross scale
     """
-
-    tauross = sp.integrate.cumtrapz(rhox * abross, initial=rhox[0] * abross[0])
-
-    # tauross = np.zeros(num_layers)
-    # # This is supposed to be the first element
-    # tauross[0] = abross[0] * rhox[0]
-    # for i in range(2, num_layers+1):
-    #     tauross[i-1] = sp.integrate.simps(rhox[0:i], abross[0:i],
-    #                                         even='last')
-    #     tauross[i-1] = np.trapz(rhox[0:i], abross[0:i])
+    tauross = cumtrapz(rhox * abross, initial=rhox[0] * abross[0])
     return tauross
 
 
-def int_newton_cotes(x, f, p=5):
-    def newton_cotes(x, f):
-        if x.shape[0] < 2:
-            return 0
-        rn = (x.shape[0]-1)*(x-x[0])/(x[-1]-x[0])
-        # Just making sure ...
-        rn[0] = 0
-        rn[-1] = len(rn)-1
-        weights = integrate.newton_cotes(rn)[0]
-        return (x[-1]-x[0])/(x.shape[0]-1)*np.dot(weights, f)
-    ret = 0
-    for indx in range(0, x.shape[0], p-1):
-        ret += newton_cotes(x[indx:indx+p], f[indx:indx+p])
-    return ret
-
-
-def rosslandtau(abross, rhox, num_layers, force=True):
-    """Calculate the Rossland mean optical depth"""
-    if force:
-        rtau = np.zeros(num_layers)
-        for ii in range(1, num_layers):
-            rtau[ii] = int_newton_cotes(rhox[:ii+1],
-                                        abross[:ii+1])
-        rtau += rhox[0]*abross[0]
-    else:
-        rtau = 10.**(np.linspace(-6.875, 2., num_layers))
-    return rtau
-
-
-def read_model(filename):
+def read_model(fname):
     """Read the model, return all the columns and tauross"""
+    data = _unpack_model(fname)
+    teff, num_layers = _read_header(data)
 
-    teff, num_layers = _read_header(filename)
-
-    # This are the thermodynamical quantities.
-    model = np.genfromtxt(filename, skiprows=23, skip_footer=2,
-                          usecols=(0, 1, 2, 3, 4, 5, 6),
+    # This are the thermodynamical quantities
+    model = np.genfromtxt(data, skiprows=23, skip_footer=2,
+                          usecols=(0, 1, 2, 3, 4, 5, 6, 7, 8),
                           names=['RHOX', 'T', 'P', 'XNE', 'ABROSS',
-                                 'ACCRAD', 'VTURB'])
+                                 'ACCRAD', 'VTURB', 'tab1', 'tab2'])
 
-    # TODO: Can this even happen? Any way, a better error would be helpful :)
-    if len(model) != num_layers:
-            raise Exception("FORMAT ERROR")
-
-    model_rhox = model['RHOX']
-    model_t = model['T']
-    model_p = model['P']
-    model_xne = model['XNE']
-    model_abross = model['ABROSS']
-    model_accrad = model['ACCRAD']
-    # TODO: We don't need this one. manual p. 17
-    model_vturb = model['VTURB']
-
-    # tauross = tauross_scale(model_abross, model_rhox, num_layers)
-    # print (tauross)
-    # print (rosslandtau(model_abross, model_rhox, num_layers))
-    tauross = rosslandtau(model_abross, model_rhox, num_layers)
-    return (model_rhox, model_t, model_p, model_xne, model_abross,
-            model_accrad, model_vturb, tauross)
+    tauross = tauross_scale(model['ABROSS'], model['RHOX'], num_layers)
+    return (model, tauross)
 
 
 def interp_model(tauross, model, tauross_new):
@@ -181,103 +124,55 @@ def interp_model(tauross, model, tauross_new):
     """
     # Extra key-words speed up the function with a factor of 10!
     f = interp1d(tauross, model, assume_sorted=True, copy=False)
-    # f = InterpolatedUnivariateSpline(tauross,model,k=3)
     return f(tauross_new)
 
 
-def interpolator(models, teff, logg, feh, out='out.atm'):
+def interpolator(mnames, teff, logg, feh, out='out.atm'):
     """The function to call from the main program (pymoog.py or main.py)
 
-    :models: As generated from _get_models
+    :mnames: As generated from _get_models
+    :teff: Requested Effective Temperature and the two closest models in the gridpoints
+    :logg: Requested Surface gravity and the two closest models
+    :feh: Requested metallicity and the two closest models
     :out: The interpolated model saved in this file
     """
-    # TODO: Need to be able to use e.g. 4 Teff models (16 models in total)
-    # NOTE: Run pymoog.py instead. Now this is only functions (more or less)
 
-    teff, nteff = teff
-    logg, nlogg = logg
-    feh, nfeh = feh
+    teff, tefflow, teffhigh = teff[0], teff[1][0], teff[1][1]
+    logg, logglow, logghigh = logg[0], logg[1][0], logg[1][1]
+    feh, fehlow, fehhigh = feh[0], feh[1][0], feh[1][1]
 
-    mapteff = (teff - nteff[1]) / (nteff[0] - nteff[1])
-    maplogg = (logg - nlogg[1]) / (nlogg[0] - nlogg[1])
-    mapmetal = (feh - nfeh[1]) / (nfeh[0] - nfeh[1])
-#    print(mapteff)
-#    print(maplogg)
-#    print(mapmetal)
+    # Change this if we need e.g. 4x2x2
+    interGridShape = (2, 2, 2)
 
-    tauross_all = []
-    model_all = []
-    for model in models:
-        read = _unpack_model(model)
-        columns = read_model(read)
-        tauross = columns[-1]
-        tauross_all.append(tauross)
-        model_all.append(columns[0:-1])
+    # Reading the models and defining the opacity intervals
+    models = []
+    opmin, opmax = [], []
+    for mname in mnames:
+        tatm = read_model(mname)
+        models.append(np.array(tatm[0].tolist()))
+        opmin.append(np.amin(tatm[1]))
+        opmax.append(np.amax(tatm[1]))
 
-    tauross = tauross_all[0]
-    layers = len(tauross)
-    columns = len(model_all[0])
+    # Define the grid coordinates for the interpolation
+    coord = []
+    coord.append([(teff-tefflow)/(teffhigh-tefflow)])
+    coord.append([(logg-logglow)/(logghigh-logglow)])
+    coord.append([(feh-fehlow)/(fehhigh-fehlow)])
 
-    tauross_min = min([v[-1] for v in tauross_all])
-    tauross_max = max([v[0] for v in tauross_all])
-    tauross_tmp = tauross[(tauross >= tauross_max) & (tauross <= tauross_min)]
-    f = interp1d(range(len(tauross_tmp)), tauross_tmp)
+    # Interpolate the models using the Force
+    # Look at Jobovy code.
+    newdeck = np.zeros_like(models[0])
+    newdeck[:, 7:] = models[0][:, 7:]
+    for layer in range(newdeck.shape[0]):
+        for column in range(newdeck.shape[1]):
+            tlayer = np.zeros(interGridShape)
+            cntr = 0
+            while cntr < np.prod(interGridShape):
+                idx = np.unravel_index(cntr, interGridShape)
+                tlayer[idx] = models[cntr][layer, column]
+                cntr += 1
+            newdeck[layer, column] =\
+            ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
 
-    tauross_new = f(np.linspace(0, len(tauross_tmp) - 1, layers))
-
-    # Do the interpolation over the models
-    grid = np.zeros((4, 2, 2, columns))
-    model_out = np.zeros((columns, layers))
-    plm = np.array(([0, 1], [0, 1]))
-    pt = np.array(([0, 0.33, 0.66, 1]))
-    plx = np.array(([0, 0.33, 0.66, 1], [0, 1], [0, 1]))
-    xi = np.array((mapteff, maplogg, mapmetal))
-    for layer in range(layers):
-        tau_layer = tauross_new[layer]
-        for column in range(columns):
-
-            # For 2x2x2
-            # grid[0, 0, 0, column] = interp_model(tauross_all[0], model_all[0][column], tau_layer)
-            # grid[0, 1, 0, column] = interp_model(tauross_all[1], model_all[1][column], tau_layer)
-            # grid[1, 0, 0, column] = interp_model(tauross_all[2], model_all[2][column], tau_layer)
-            # grid[1, 1, 0, column] = interp_model(tauross_all[3], model_all[3][column], tau_layer)
-
-            # grid[0, 0, 1, column] = interp_model(tauross_all[4], model_all[4][column], tau_layer)
-            # grid[0, 1, 1, column] = interp_model(tauross_all[5], model_all[5][column], tau_layer)
-            # grid[1, 0, 1, column] = interp_model(tauross_all[6], model_all[6][column], tau_layer)
-            # grid[1, 1, 1, column] = interp_model(tauross_all[7], model_all[7][column], tau_layer)
-
-            # For 4x2x2
-            grid[0, 0, 0, column] = interp_model(tauross_all[0], model_all[0][column], tau_layer)
-            grid[0, 1, 0, column] = interp_model(tauross_all[1], model_all[1][column], tau_layer)
-            grid[1, 0, 0, column] = interp_model(tauross_all[2], model_all[2][column], tau_layer)
-            grid[1, 1, 0, column] = interp_model(tauross_all[3], model_all[3][column], tau_layer)
-
-            grid[2, 0, 0, column] = interp_model(tauross_all[4], model_all[4][column], tau_layer)
-            grid[2, 1, 0, column] = interp_model(tauross_all[5], model_all[5][column], tau_layer)
-            grid[3, 0, 0, column] = interp_model(tauross_all[6], model_all[6][column], tau_layer)
-            grid[3, 1, 0, column] = interp_model(tauross_all[7], model_all[7][column], tau_layer)
-
-            grid[0, 0, 1, column] = interp_model(tauross_all[12], model_all[12][column], tau_layer)
-            grid[0, 1, 1, column] = interp_model(tauross_all[13], model_all[13][column], tau_layer)
-            grid[1, 0, 1, column] = interp_model(tauross_all[14], model_all[14][column], tau_layer)
-            grid[1, 1, 1, column] = interp_model(tauross_all[15], model_all[15][column], tau_layer)
-
-            grid[2, 0, 1, column] = interp_model(tauross_all[8], model_all[8][column], tau_layer)
-            grid[2, 1, 1, column] = interp_model(tauross_all[9], model_all[9][column], tau_layer)
-            grid[3, 0, 1, column] = interp_model(tauross_all[10], model_all[10][column], tau_layer)
-            grid[3, 1, 1, column] = interp_model(tauross_all[11], model_all[11][column], tau_layer)
-
-            model_out[column, layer] = interpn(plx, grid[:, :, :, column], xi)
-
-            # TODO: Interpolate first temperature and then the other
-            # Temperature should be cubic, while the others are linear
-            # for i in range(2):
-            #     for j in range(2):
-            #         model_out[column, layer] = interpn(pt, grid[:, i, j,  column], mapteff) #, method='splinef2d')
-            # for i in range(4):
-            #     model_out[column, layer] = interpn(plm, grid[i, :, :, column],
-            #             xi[1:])
-
-    # TODO: Possible remove this below at some point
-    return model_all, model_out, column
+    # ADD OUTPUT TO FILE
+    return newdeck
