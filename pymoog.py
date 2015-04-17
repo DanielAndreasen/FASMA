@@ -232,9 +232,11 @@ if __name__ == '__main__':
         # print(m)
 
     # raise SystemExit('Exiting...')
-    m_all, m_out, _ = interpolator(models, teff=(teff, nt), logg=(logg, nl),
+    n = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                                    feh=(feh, nf))
 
+    print n.shape
+    np.savetxt('jobovy_5001g4.01p001.atm', n)
     # m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
     #                                feh=(feh, nf))
-    # save_model(m_out, vt=2.4)
+    # save_model(n, vt=2.4)
