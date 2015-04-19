@@ -8,7 +8,7 @@ from glob import glob
 import os
 import logging
 # from model_interpolation import interpolator, save_model
-from model_interpolation_new import interpolator, save_model
+from model_interpolation import interpolator, save_model
 
 
 # Why a single leading underscore? Because this is an internal function.
@@ -235,7 +235,6 @@ if __name__ == '__main__':
     n = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                                    feh=(feh, nf))
 
-    print n.shape
     np.savetxt('jobovy_5001g4.01p001.atm', n)
     # m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
     #                                feh=(feh, nf))
