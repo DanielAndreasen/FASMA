@@ -12,13 +12,15 @@ from model_interpolation import _unpack_model, read_model
 import sys
 
 
-def plot_absolute(d1, d2, col, title=False):
+def plot_absolute(d1, d2, d3, d4, col, title=False):
     plt.figure()
-    plt.plot(d1[:, 0], d1[:, col], '-o', label='Python')
-    plt.plot(d2[:, 0], d2[:, col], '-o', label='FORTRAN')
+    plt.plot(d1[:, 1], d1[:, col], '-o', label='FORTRAN')
+    plt.plot(d2[:, 1], d2[:, col], '-o', label='GDM')
+    plt.plot(d3[:, 1], d3[:, col], '-o', label='0 force')
+    plt.plot(d4[:, 1], d4[:, col], '-o', label='1 force')
     if title:
         plt.title(title)
-    plt.legend()
+    plt.legend(loc='best')
 
 
 def plot_relative(d1, d2, col, title=False):
@@ -28,18 +30,17 @@ def plot_relative(d1, d2, col, title=False):
     if title:
         plt.title(title)
 
+fo = sys.argv[1]
 
-py = sys.argv[1]
-fo = sys.argv[2]
-
-
-d1 = np.loadtxt(py)
-d2 = np.genfromtxt(fo, skip_header=3, skip_footer=7)
+d1 = np.genfromtxt(fo, skip_header=3, skip_footer=7)
+d2 = np.loadtxt(sys.argv[2])
+d3 = np.loadtxt(sys.argv[3])
+d4 = np.loadtxt(sys.argv[4])
 # d2 = np.genfromtxt(fo, skip_header=3, skip_footer=7)
 
 titles = 'Temperature,Presssure,Number of electrons, Rossland absorption,Accrad'.split(',')
 
 for col, title in enumerate(titles):
-    # plot_absolute(d1, d2, col+1, title)
-    plot_relative(d1, d2, col+1, title)
+    plot_absolute(d1, d2, d3, d4, col+1, title)
+    # plot_relative(d1, d2, col+1, title)
 plt.show()
