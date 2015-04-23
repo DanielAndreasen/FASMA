@@ -15,6 +15,7 @@ TODO
    - [ ] Change atmospheric models (only Kurucz95 available).
    - [ ] Freeze parameters.
    - [ ] Nice graphics.
+   - [ ] Package like a real python package (pypi).
 
 
 
