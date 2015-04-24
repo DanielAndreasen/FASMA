@@ -4,7 +4,7 @@ programs/
 kurucz95/
 *.par
 *.moog
-result.out
+results.out
 summary.out
 out_fortran.atm
 
