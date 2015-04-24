@@ -3,6 +3,9 @@
 
 # My imports
 import os
+import numpy as np
+from model_interpolation import save_model, interpolator
+from pymoog import _get_model
 
 
 def _run_moog(par='batch.par'):
@@ -11,15 +14,17 @@ def _run_moog(par='batch.par'):
     Raise an IOError if the parameter file does not exists
     """
 
-    if not os.path.exists(par):
-        raise IOError('The parameter file %s does not exists' % par)
+    # if not os.path.exists(par):
+        # raise IOError('The parameter file %s does not exists' % par)
 
-    if par != 'batch.par':
-        os.system('cp %s batch.par' % par)
-        os.system('MOOGSILENT %s' % par)
-        os.system('rm -f batch.par')
-    else:
-        os.system('MOOGSILENT %s' % par)
+    os.system('MOOGSILENT')
+
+    # if par != 'batch.par':
+    #     os.system('cp %s batch.par' % par)
+    #     os.system('MOOGSILENT')
+    #     os.system('rm -f batch.par')
+    # else:
+    #     os.system('MOOGSILENT %s' % par)
 
 
 def _read_moog(fname='summary.out'):
@@ -46,20 +51,34 @@ def _read_moog(fname='summary.out'):
             elif line.startswith('average abundance'):
                 line = filter(None, line.split('abundance =')[1].split(' '))
                 abundances.append(float(line[0]))
-
     return EP_slopes, RW_slopes, abundances
 
 
-def fun_moog(par='batch.par', results='summary.out'):
+def fun_moog(x, par='batch.par', results='summary.out'):
     """The 'function' that we should minimize
 
+    :x: A tuple/list with values (teff, logg, [Fe/H], vt)
     :par: The parameter file (batch.par)
     :results: The summary file
     :returns: The slopes and abundances for the different elements
-
     """
+
+    # Create an atmosphere model from input parameters
+    teff, logg, feh, vt = x
+    models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
+    model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
+                         feh=(feh, nf))
+    save_model(model, x)
+
+    # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
-    return _read_moog(fname=results)
+    EPs, RWs, abundances = _read_moog(fname=results)
+    if len(abundances) == 2:
+        # Return sum of squares, so we don't use a vector function, but
+        # a scalar function.
+        res = np.sum(np.array(EPs + RWs + [np.diff(abundances)])**2)
+        return res
+
 
 if __name__ == '__main__':
     print fun_moog()
