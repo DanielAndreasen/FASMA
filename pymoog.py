@@ -7,18 +7,12 @@ import numpy as np
 from glob import glob
 import os
 import logging
-# from model_interpolation import interpolator, save_model
 from model_interpolation import interpolator, save_model
 
 
 # Why a single leading underscore? Because this is an internal function.
 # See pep8 for more information here:
 # http://legacy.python.org/dev/peps/pep-0008/#naming-conventions
-def _run_moog():
-    os.system('MOOGSILENT > tmp')
-    return 0
-
-
 def _get_model(teff, logg, feh, type='kurucz95'):
     """
     Get the path to the model with the given effective temperature, logg and
@@ -207,35 +201,14 @@ def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
         moog.writelines(moog_contents)
 
 
-def _transform_micro(teff, logg, feh):
-    """
-    This is the python equivalent to transform.f
-    """
-    # puts('Please type in the new ' + colored.yellow('micro turbulence'))
-    v_micro = raw_input('> ')
-    try:
-        v_mico = float(v_micro)
-    except ValueError:
-        # puts(colored.red('Please provide a number...'))
-        v_micro = _transform_micro(teff, logg, feh)
-    return v_micro
-
-
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
-    teff, logg, feh = 5001, 4.01, 0.01
-    models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh, type='kurucz95')
+    teff, logg, feh = 4435, 3.54, 0.10
+    models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
+    n = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
+    save_model(n, params=(teff, logg, feh, 2.4))
 
-    # TODO: First thing to vary should be Fe/H, then logg, then Teff (see
-    # around L450 in atlas9.py by jobovy)
     # for m in models:
         # print(m)
 
     # raise SystemExit('Exiting...')
-    n = interpolator(models, teff=(teff, nt), logg=(logg, nl),
-                                   feh=(feh, nf))
-
-    np.savetxt('jobovy_5001g4.01p001.atm', n)
-    # m_all, m_out, _ = interpolator(models, teff=(teff, sorted(nt)[1:3]), logg=(logg, nl),
-    #                                feh=(feh, nf))
-    # save_model(n, vt=2.4)
