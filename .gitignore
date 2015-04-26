@@ -6,7 +6,7 @@ kurucz95/
 *.moog
 results.out
 summary.out
-out_fortran.atm
+*.atm
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
