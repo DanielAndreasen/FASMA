@@ -65,6 +65,9 @@ def fun_moog(x, par='batch.par', results='summary.out'):
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
+    teff *= 1e3
+    x = teff, logg, feh, vt
+    # print teff, logg, feh, vt
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                          feh=(feh, nf))
