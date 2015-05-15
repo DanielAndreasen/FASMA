@@ -22,7 +22,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     # Let's stay in range of the models available and do some checks
     if type.lower() == 'kurucz95':
         t_rng = 3500, 35000
-        l_rng = 2.5, 5.0
+        l_rng = 2.0, 5.0
         f_rng = -3.0, 1.0
     elif type.lower() == 'marcz':  # How to spell this?
         raise NotImplementedError('Patience is the key. Wait a bit more for %s\
@@ -30,9 +30,12 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     else:
         raise NameError('Could not find %s models' % type)
 
-    assert (t_rng[0] <= teff <= t_rng[1]), 'Teff out of range: %s to %s' % t_rng
-    assert (l_rng[0] <= logg <= l_rng[1]), 'logg out of range: %s to %s' % l_rng
-    assert (f_rng[0] <= feh <= f_rng[1]), '[Fe/H] out of range: %s to %s' % f_rng
+    if t_rng[0] >= teff or teff >= t_rng[1]:
+        raise ValueError('Out of range (Teff: %i)' % teff)
+    if l_rng[0] >= logg or logg >= l_rng[1]:
+        raise ValueError('Out of range (logg: %i)' % logg)
+    if f_rng[0] >= feh or feh >= f_rng[1]:
+        raise ValueError('Out of range ([Fe/H]: %i)' % feh)
 
     # Make the slice in [Fe/H]
     folders = glob('kurucz95/m*') + glob('kurucz95/p*')
