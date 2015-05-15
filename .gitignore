@@ -3,6 +3,7 @@
 programs/
 kurucz95/
 *.par
+!batch.par
 *.moog
 results.out
 summary.out
