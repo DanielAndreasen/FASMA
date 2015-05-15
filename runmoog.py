@@ -17,7 +17,7 @@ def _run_moog(par='batch.par'):
     # if not os.path.exists(par):
         # raise IOError('The parameter file %s does not exists' % par)
 
-    os.system('MOOGSILENT')
+    os.system('MOOGSILENT > zzz')
 
     # if par != 'batch.par':
     #     os.system('cp %s batch.par' % par)
@@ -54,7 +54,7 @@ def _read_moog(fname='summary.out'):
     return EP_slopes, RW_slopes, abundances
 
 
-def fun_moog(x, par='batch.par', results='summary.out'):
+def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
     """The 'function' that we should minimize
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
@@ -65,7 +65,7 @@ def fun_moog(x, par='batch.par', results='summary.out'):
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
-    teff *= 1e3
+    teff *= 1000
     x = teff, logg, feh, vt
     # print teff, logg, feh, vt
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
@@ -79,7 +79,12 @@ def fun_moog(x, par='batch.par', results='summary.out'):
     if len(abundances) == 2:
         # Return sum of squares, so we don't use a vector function, but
         # a scalar function.
-        res = np.sum(np.array(EPs + RWs + [np.diff(abundances)])**2)
+        # return np.sum(np.array(EPs)**2)
+        # res = np.sum(np.array(EPs + RWs + [np.diff(abundances)])**2)
+        if fix_logg:
+            res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2) ** 2
+        else:
+            res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2+np.diff(abundances))**2
         return res
 
 
