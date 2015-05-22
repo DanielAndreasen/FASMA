@@ -9,81 +9,64 @@ import os
 import logging
 from model_interpolation import interpolator, save_model
 
+K95_teff = (3750,4000,4250,4500,4750,5000,5250,5500,5750,6000,
+        6250,6500,6750,7000,7250,7500,7750,8000,8250,8500,8750,9000,9250,9500,
+        9750,10000,10250,10500,10750,11000,11250,11500,11750,12000,12250,12500,
+        12750,13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,23000,
+        24000,25000,26000,27000,28000,29000,30000,31000,32000,33000,34000,
+        35000,3500,36000,37000,38000,39000)
+K95_feh = (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2,
+        0.3, 0.5, 1.0)
+K95_logg = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)
 
-# Why a single leading underscore? Because this is an internal function.
-# See pep8 for more information here:
-# http://legacy.python.org/dev/peps/pep-0008/#naming-conventions
+
 def _get_model(teff, logg, feh, type='kurucz95'):
-    """
-    Get the path to the model with the given effective temperature, logg and
-    metallicity
-    """
+    if (teff < K95_teff[0]) or (teff > K95_teff[-1]):
+        raise ValueError('Teff out of bounds: %s' % teff)
+    if (logg < K95_logg[0]) or (logg > K95_logg[-1]):
+        raise ValueError('logg out of bounds: %s' % logg)
+    if (feh < K95_feh[0]) or (feh > K95_feh[-1]):
+        raise ValueError('[Fe/H] out of bounds: %s' % feh)
 
-    # Let's stay in range of the models available and do some checks
-    if type.lower() == 'kurucz95':
-        t_rng = 3500, 35000
-        l_rng = 2.0, 5.0
-        f_rng = -3.0, 1.0
-    elif type.lower() == 'marcz':  # How to spell this?
-        raise NotImplementedError('Patience is the key. Wait a bit more for %s\
-                                   models to be implemented.' % type)
+    if teff in K95_teff:
+        teff_model = [teff, teff]
     else:
-        raise NameError('Could not find %s models' % type)
+        for i, K95T in enumerate(K95_teff):
+            if K95T - teff > 0:
+                break
+        teff_model = [K95_teff[i-1], K95_teff[i]]
 
-    if t_rng[0] >= teff or teff >= t_rng[1]:
-        raise ValueError('Out of range (Teff: %i)' % teff)
-    if l_rng[0] >= logg or logg >= l_rng[1]:
-        raise ValueError('Out of range (logg: %i)' % logg)
-    if f_rng[0] >= feh or feh >= f_rng[1]:
-        raise ValueError('Out of range ([Fe/H]: %i)' % feh)
+    if logg in K95_logg:
+        logg_model = [logg, logg]
+    else:
+        for i, K95L in enumerate(K95_logg):
+            if K95L - logg > 0:
+                break
+        logg_model = [K95_logg[i-1], K95_logg[i]]
 
-    # Make the slice in [Fe/H]
-    folders = glob('kurucz95/m*') + glob('kurucz95/p*')
-    feh_grid = [folder.replace('kurucz95/', '') for folder in folders]
-    feh_grid = [v.replace('m', '-') if v.startswith('m') else
-                v.replace('p', '') for v in feh_grid]
+    if feh in K95_feh:
+        feh_model = [feh, feh]
+    else:
+        for i, K95F in enumerate(K95_feh):
+            if K95F - feh > 0:
+                break
+        feh_model = [K95_feh[i-1], K95_feh[i]]
 
-    feh_grid = np.array(list(map(float, feh_grid))) / 10
-
-    feh_m = feh_grid[abs(feh_grid - feh).argsort()[:2]]
-    feh_m = [str(f).replace('.', '') for f in feh_m]
-    paths = [f.replace('-', 'm') if f.startswith('-') else
-             'p' + f for f in feh_m]
-
-    # All the models in the [Fe/H]-space
+    name = lambda t, g, s, f: 'kurucz95/%s%s/%sg%i.%s%s.gz' % (s, f, t, g*10, s, f)
     models = []
-    for path in paths:
-        models.extend(glob('kurucz95/%s/*.gz' % path))
-    models = np.array(models)
+    for teff_m in teff_model:
+        for logg_m in logg_model:
+            for feh_m in feh_model:
+                if feh_m >= 0:
+                    feh_m = str(feh_m).replace('.', '')
+                    fout = name(teff_m, logg_m, 'p', feh_m)
+                else:
+                    feh_m = str(feh_m).replace('.', '').replace('-', '')
+                    fout = name(teff_m, logg_m, 'm', feh_m)
+                models.append(fout)
 
-    # This is a bit complicated way to get the temp. from the path of
-    # all the models
-    teff_m = [int(model.split('/')[-1].split('g')[0]) for model in models]
-    diff_teff = abs(np.array(teff_m) - teff)
-    idx_teff = []
-    # Get the temperature closest and second closest to the teff selected. If
-    # third closest is also needed, increace the loop by 1.
-    for i in range(2):
-        idx = np.where(diff_teff == min(diff_teff))[0]
-        diff_teff[idx] = 99999
-        idx_teff += list(idx)
-    models = models[idx_teff]
-
-    logg_m = [model.replace(path, '').split('g')[1].split('.')[0] for model in models]
-    logg_m = np.array(map(float, logg_m)) / 10
-    diff_logg = abs(logg_m - logg)
-    idx_logg = []
-    for i in range(2):
-        idx = np.where(diff_logg == min(diff_logg))[0]
-        diff_logg[idx] = 99
-        idx_logg += list(idx)
-
-    nn_feh = sorted(tuple(float(f[0:-1]+'.'+f[-1]) for f in feh_m))
-    nn_logg = sorted(tuple(set(logg_m[idx_logg])))
-    nn_teff = sorted(tuple(set(np.array(teff_m)[idx_teff])))
-
-    models = sorted(models[idx_logg])
-    return models, nn_teff, nn_logg, nn_feh,
+    # print models
+    return models, teff_model, logg_model, feh_model
 
 
 # TODO: This function will be merged with the one beneath
@@ -206,12 +189,7 @@ def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
 
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
-    teff, logg, feh = 4435, 3.54, 0.10
+    teff, logg, feh = 4250, 3.50, -0.02
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
     n = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
     save_model(n, params=(teff, logg, feh, 2.4))
-
-    # for m in models:
-        # print(m)
-
-    # raise SystemExit('Exiting...')
