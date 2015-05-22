@@ -130,10 +130,19 @@ def interpolator(mnames, teff, logg, feh, out='out.atm'):
         opmax.append(np.amax(tatm[1]))
 
     # Define the grid coordinates for the interpolation
-    c1 = [(teff-tefflow)/(teffhigh-tefflow)]
-    c2 = [(logg-logglow)/(logghigh-logglow)]
-    c3 = [(feh-fehlow)/(fehhigh-fehlow)]
-    coord = [c1, c2, c3]
+    try:
+        c1 = [(teff-tefflow)/(teffhigh-tefflow)]
+    except ZeroDivisionError:
+        c1 = [0.5]
+    try:
+        c2 = [(logg-logglow)/(logghigh-logglow)]
+    except ZeroDivisionError:
+        c2 = [0.5]
+    try:
+        c3 = [(feh-fehlow)/(fehhigh-fehlow)]
+    except ZeroDivisionError:
+        c3 = [0.5]
+    coord = np.array([c1, c2, c3])
 
     # Interpolate the models using the Force
     # Look at Jobovy code.
@@ -147,8 +156,7 @@ def interpolator(mnames, teff, logg, feh, out='out.atm'):
                 idx = np.unravel_index(cntr, interGridShape)
                 tlayer[idx] = models[cntr][layer, column]
                 cntr += 1
-            newdeck[layer, column] =\
-                ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
+            newdeck[layer, column] = ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
     return newdeck
 
 
