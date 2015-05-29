@@ -52,7 +52,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
                 break
         feh_model = [K95_feh[i-1], K95_feh[i]]
 
-    name = lambda t, g, s, f: 'kurucz95/%s%s/%sg%i.%s%s.gz' % (s, f, t, g*10, s, f)
+    name = lambda t, g, s, f: 'kurucz95/%s%s/%ig%i.%s%s.gz' % (s, f, t, g*10, s, f)
     models = []
     for teff_m in teff_model:
         for logg_m in logg_model:

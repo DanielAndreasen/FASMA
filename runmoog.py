@@ -18,6 +18,7 @@ def _run_moog(par='batch.par'):
         # raise IOError('The parameter file %s does not exists' % par)
 
     os.system('MOOGSILENT > zzz')
+    os.system('rm -f zzz')
 
     # if par != 'batch.par':
     #     os.system('cp %s batch.par' % par)
@@ -65,7 +66,7 @@ def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
-    teff *= 1000
+    teff *= 10
     x = teff, logg, feh, vt
     # print teff, logg, feh, vt
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
@@ -88,5 +89,37 @@ def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
         return res
 
 
-if __name__ == '__main__':
-    print fun_moog()
+def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
+    """The 'function' that we should minimize
+
+    :x: A tuple/list with values (teff, logg, [Fe/H], vt)
+    :par: The parameter file (batch.par)
+    :results: The summary file
+    :returns: The slopes and abundances for the different elements
+    """
+
+    import os
+    # Create an atmosphere model from input parameters
+    teff, logg, feh, vt = x
+    teff *= 100
+    x = teff, logg, feh, vt
+    p = '/home/daniel/Software/SPECPAR/interpol_models/'
+    os.system('echo %i %s %s | %sintermod.e' % (teff, logg, feh, p))
+    os.system('echo %s | %stransform.e' % (vt, p))
+
+    # Run MOOG and get the slopes and abundaces
+    _run_moog(par=par)
+    EPs, RWs, abundances = _read_moog(fname=results)
+    if len(abundances) == 2:
+        # Return sum of squares, so we don't use a vector function, but
+        # a scalar function.
+        # return np.sum(np.array(EPs)**2)
+
+        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)**2
+
+        # res = np.sum(np.array(EPs + RWs + [np.diff(abundances)])**2)
+        # if fix_logg:
+        #     res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2) ** 2
+        # else:
+        #     res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2+abs(np.diff(abundances)))**2
+        return res
