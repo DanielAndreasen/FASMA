@@ -1,0 +1,68 @@
+Timer unit: 1e-06 s
+
+Total time: 0.069238 s
+File: model_interpolation.py
+Function: interpolator at line 107
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   107                                           def interpolator(mnames, teff, logg, feh, out='out.atm'):
+   108                                               """The function to call from the main program (pymoog.py or main.py)
+   109                                           
+   110                                               :mnames: As generated from _get_models
+   111                                               :teff: Requested Effective Temperature and the two closest models in
+   112                                                      the gridpoints
+   113                                               :logg: Requested Surface gravity and the two closest models
+   114                                               :feh: Requested metallicity and the two closest models
+   115                                               :out: The interpolated model saved in this file
+   116                                               """
+   117                                           
+   118                                               # TODO: This is super ugly way of doing stuff!
+   119         1            9      9.0      0.0      teff, tefflow, teffhigh = teff[0], teff[1][0], teff[1][1]
+   120         1            5      5.0      0.0      logg, logglow, logghigh = logg[0], logg[1][0], logg[1][1]
+   121         1            5      5.0      0.0      feh, fehlow, fehhigh = feh[0], feh[1][0], feh[1][1]
+   122                                           
+   123                                               # Some black magic we need later
+   124         1            3      3.0      0.0      interGridShape = (2, 2, 2)
+   125         1          168    168.0      0.2      N = np.prod(interGridShape)
+   126         1           23     23.0      0.0      idxs = [0] * N
+   127         9           52      5.8      0.1      for cntr in range(N):
+   128         8          443     55.4      0.6          idxs[cntr] = np.unravel_index(cntr, interGridShape)
+   129                                           
+   130                                               # Reading the models and defining the opacity intervals
+   131         1            4      4.0      0.0      models = []
+   132         1            5      5.0      0.0      opmin, opmax = [], []
+   133         9           16      1.8      0.0      for mname in mnames:
+   134         8        32365   4045.6     46.7          tatm = read_model(mname)
+   135         8           24      3.0      0.0          models.append(tatm[0])
+   136         8          141     17.6      0.2          opmin.append(np.amin(tatm[1]))
+   137         8          101     12.6      0.1          opmax.append(np.amax(tatm[1]))
+   138                                           
+   139                                               # Define the grid coordinates for the interpolation
+   140         1            1      1.0      0.0      try:
+   141         1            5      5.0      0.0          c1 = [(teff-tefflow)/(teffhigh-tefflow)]
+   142         1            3      3.0      0.0      except ZeroDivisionError:
+   143         1            2      2.0      0.0          c1 = [0.5]
+   144         1            1      1.0      0.0      try:
+   145         1            3      3.0      0.0          c2 = [(logg-logglow)/(logghigh-logglow)]
+   146         1            1      1.0      0.0      except ZeroDivisionError:
+   147         1            2      2.0      0.0          c2 = [0.5]
+   148         1            1      1.0      0.0      try:
+   149         1            2      2.0      0.0          c3 = [(feh-fehlow)/(fehhigh-fehlow)]
+   150                                               except ZeroDivisionError:
+   151                                                   c3 = [0.5]
+   152         1            7      7.0      0.0      coord = np.array([c1, c2, c3])
+   153                                           
+   154                                               # Interpolate the models using the Force
+   155                                               # Look at Jobovy code.
+   156         1           22     22.0      0.0      newdeck = np.zeros_like(models[0])
+   157         1            9      9.0      0.0      newdeck[:, 7:] = models[0][:, 7:]
+   158         1            2      2.0      0.0      layers, columns = newdeck.shape
+   159        73           93      1.3      0.1      for layer in range(layers):
+   160       720         1071      1.5      1.5          for column in range(columns):
+   161       648         1571      2.4      2.3              tlayer = np.zeros(interGridShape)
+   162      5832         7771      1.3     11.2              for cntr in range(N):
+   163      5184         6926      1.3     10.0                  idx, model = idxs[cntr], models[cntr]
+   164      5184         9453      1.8     13.7                  tlayer[idx] = model[layer, column]
+   165       648         8927     13.8     12.9              newdeck[layer, column] = map_coordinates(tlayer, coord)
+   166         1            1      1.0      0.0      return newdeck
