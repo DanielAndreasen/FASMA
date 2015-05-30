@@ -4,7 +4,6 @@
 # My imports
 from __future__ import division
 import numpy as np
-from glob import glob
 import os
 import logging
 from model_interpolation import interpolator, save_model
@@ -187,9 +186,13 @@ def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
         moog.writelines(moog_contents)
 
 
-if __name__ == '__main__':
-    # This is only for testing and should be removed later on...
-    teff, logg, feh = 4250, 3.50, -0.02
+def main(teff, logg, feh):
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
     n = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
     save_model(n, params=(teff, logg, feh, 2.4))
+
+
+if __name__ == '__main__':
+    # This is only for testing and should be removed later on...
+    teff, logg, feh = 4250, 3.50, -0.02
+    main(teff, logg, feh)
