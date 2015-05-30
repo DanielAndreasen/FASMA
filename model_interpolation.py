@@ -1,9 +1,9 @@
 #!/usr/bin/python
 from __future__ import division
 import numpy as np
-from scipy.integrate import cumtrapz
-from scipy.interpolate import interp1d
+# from scipy.integrate import cumtrapz
 from scipy import ndimage
+from scipy.ndimage import _nd_image
 import gzip
 
 
@@ -22,51 +22,72 @@ way.
 """
 
 
+def map_coordinates(input, coordinates, output=None, order=1,
+                    mode='constant', cval=0.0):
+    """
+    This is a copy of the original code, however all checks are removed.
+    The code is 15x faster!
+
+    See documentation for
+        scipy.ndimage.map_coordinates
+    """
+
+    mode_dir = {'nearest': 0,
+                'wrap': 1,
+                'reflect': 2,
+                'mirror': 3,
+                'constant': 4}
+
+    output_shape = coordinates.shape[1:]
+    mode = mode_dir[mode]
+    output = np.zeros(output_shape, dtype=input.dtype.name)
+    return_value = output
+    _nd_image.geometric_transform(input, None, coordinates, None, None,
+                                  output, order, mode, cval, None, None)
+    return return_value
+
+
 def _unpack_model(fname):
     """Unpack the compressed model and store it in a temporary file
 
     :fname: File name of the compressed atmosphere model
     :returns: String of the uncompressed atmosphere model
     """
-    f = gzip.open(fname)
+    f = gzip.open(fname, compresslevel=0)
     return f.readlines()
 
 
-def _read_header(lines):
-    """Read the header of the model atmosphere
-
-    :lines: The lines from the atmosphere model (already a string at this
-            point)
-    :returns: Teff and number of layers
-
-    """
-    # Get information from the header
-    teff, num_layers = None, None
-    # with open(fname) as lines:
-    for line in lines:
-        vline = line.split()
-        param = vline[0]
-        if param == 'TEFF':
-            teff = float(vline[1])
-            # logg = float(vline[3])
-        elif param == "READ":
-            num_layers = int(vline[2])
-        # Exit the loop when we have what we need
-        if teff and num_layers:
-            return teff, num_layers
+def tupleset(t, i, value):
+    l = list(t)
+    l[i] = value
+    return tuple(l)
 
 
-def tauross_scale(abross, rhox, num_layers):
+def tauross_scale(abross, rhox, dx=1, axis=-1):
     """Build the tau-ross scale
 
     :abross: absorption
     :rhox: density
-    :num_layers: Number of layers in the model atmosphere
     :returns: the new tau-ross scale
     """
-    # x8 times faster than Jo Bovy's solution with int_newton_cotes
-    tauross = cumtrapz(rhox * abross, initial=rhox[0] * abross[0])
-    return tauross
+
+    y = rhox * abross
+    d = dx
+    initial = rhox[0] * abross[0]
+
+    nd = len(y.shape)
+    slice1 = tupleset((slice(None),)*nd, axis, slice(1, None))
+    slice2 = tupleset((slice(None),)*nd, axis, slice(None, -1))
+    res = np.add.accumulate(d * (y[slice1] + y[slice2]) / 2.0, axis)
+
+    shape = list(res.shape)
+    shape[axis] = 1
+    res = np.concatenate([np.ones(shape, dtype=res.dtype) * initial, res],
+                         axis=axis)
+
+    # tauross = cumtrapz(rhox * abross, initial=rhox[0] * abross[0])
+    # return tauross
+    return res
 
 
 def read_model(fname):
@@ -74,32 +95,11 @@ def read_model(fname):
 
     :fname: The gz file of the model atmosphere
     :returns: The columns and tauross in a tuple
-
     """
     data = _unpack_model(fname)
-    teff, num_layers = _read_header(data)
-    # These are the thermodynamical quantities
-    model = np.genfromtxt(data, skiprows=23, skip_footer=2,
-                          usecols=(0, 1, 2, 3, 4, 5, 6, 7, 8),
-                          names=['RHOX', 'T', 'P', 'XNE', 'ABROSS',
-                                 'ACCRAD', 'VTURB', 'tab1', 'tab2'])
-
-    tauross = tauross_scale(model['ABROSS'], model['RHOX'], num_layers)
+    model = np.loadtxt(data[23:-2], comments=None)
+    tauross = tauross_scale(model[:, 4], model[:, 0])
     return (model, tauross)
-
-
-def interp_model(tauross, model, tauross_new):
-    """Interpolate a physical quantity from the model from the tauross scale to
-    1 value of the new tauross scale
-
-    :tauross: Old tauross scale
-    :model: Column in the atmospheric model to be interpolated
-    :tauross_new: New tauross scale
-    :returns: The interpolated atmospheric model to the new scale
-    """
-    # Extra key-words speed up the function with a factor of 10!
-    f = interp1d(tauross, model, assume_sorted=True, copy=False)
-    return f(tauross_new)
 
 
 def interpolator(mnames, teff, logg, feh, out='out.atm'):
@@ -118,14 +118,19 @@ def interpolator(mnames, teff, logg, feh, out='out.atm'):
     logg, logglow, logghigh = logg[0], logg[1][0], logg[1][1]
     feh, fehlow, fehhigh = feh[0], feh[1][0], feh[1][1]
 
+    # Some black magic we need later
     interGridShape = (2, 2, 2)
+    N = np.prod(interGridShape)
+    idxs = [0] * N
+    for cntr in range(N):
+        idxs[cntr] = np.unravel_index(cntr, interGridShape)
 
     # Reading the models and defining the opacity intervals
     models = []
     opmin, opmax = [], []
     for mname in mnames:
         tatm = read_model(mname)
-        models.append(np.array(tatm[0].tolist()))
+        models.append(tatm[0])
         opmin.append(np.amin(tatm[1]))
         opmax.append(np.amax(tatm[1]))
 
@@ -148,15 +153,14 @@ def interpolator(mnames, teff, logg, feh, out='out.atm'):
     # Look at Jobovy code.
     newdeck = np.zeros_like(models[0])
     newdeck[:, 7:] = models[0][:, 7:]
-    for layer in range(newdeck.shape[0]):
-        for column in range(newdeck.shape[1]):
+    layers, columns = newdeck.shape
+    for layer in range(layers):
+        for column in range(columns):
             tlayer = np.zeros(interGridShape)
-            cntr = 0
-            while cntr < np.prod(interGridShape):
-                idx = np.unravel_index(cntr, interGridShape)
-                tlayer[idx] = models[cntr][layer, column]
-                cntr += 1
-            newdeck[layer, column] = ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
+            for cntr in range(N):
+                idx, model = idxs[cntr], models[cntr]
+                tlayer[idx] = model[layer, column]
+            newdeck[layer, column] = map_coordinates(tlayer, coord)
     return newdeck
 
 
@@ -167,7 +171,7 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     :type: Type of model atmosphere (onyl kurucz95 at the moment)
     :fout: Which place to save to
     """
-    model = model[:,0:7]
+    model = model[:, 0:7]
     teff, logg, feh, vt = params
     if type == 'kurucz95':
         header = 'KURUCZ\n'\
