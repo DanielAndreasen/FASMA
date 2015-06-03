@@ -8,48 +8,53 @@ import os
 import logging
 from model_interpolation import interpolator, save_model
 
-K95_teff = (3750,4000,4250,4500,4750,5000,5250,5500,5750,6000,
+K95 = {'teff': (3750,4000,4250,4500,4750,5000,5250,5500,5750,6000,
         6250,6500,6750,7000,7250,7500,7750,8000,8250,8500,8750,9000,9250,9500,
         9750,10000,10250,10500,10750,11000,11250,11500,11750,12000,12250,12500,
         12750,13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,23000,
         24000,25000,26000,27000,28000,29000,30000,31000,32000,33000,34000,
-        35000,3500,36000,37000,38000,39000)
-K95_feh = (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2,
-        0.3, 0.5, 1.0)
-K95_logg = (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)
+        35000,3500,36000,37000,38000,39000),
+       'feh': (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
+           0.1, 0.2, 0.3, 0.5, 1.0),
+        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 
 def _get_model(teff, logg, feh, type='kurucz95'):
-    if (teff < K95_teff[0]) or (teff > K95_teff[-1]):
+    if type == 'kurucz95':
+        grid = K95
+    else:
+        raise NotImplementedError('You request for type: %s is not available' %
+                type)
+    if (teff < grid['teff'][0]) or (teff > grid['teff'][-1]):
         raise ValueError('Teff out of bounds: %s' % teff)
-    if (logg < K95_logg[0]) or (logg > K95_logg[-1]):
+    if (logg < grid['logg'][0]) or (logg > grid['logg'][-1]):
         raise ValueError('logg out of bounds: %s' % logg)
-    if (feh < K95_feh[0]) or (feh > K95_feh[-1]):
+    if (feh < grid['feh'][0]) or (feh > grid['feh'][-1]):
         raise ValueError('[Fe/H] out of bounds: %s' % feh)
 
-    if teff in K95_teff:
+    if teff in grid['teff']:
         teff_model = [teff, teff]
     else:
-        for i, K95T in enumerate(K95_teff):
-            if K95T - teff > 0:
+        for i, Ti in enumerate(grid['teff']):
+            if Ti - teff > 0:
                 break
-        teff_model = [K95_teff[i-1], K95_teff[i]]
+        teff_model = [grid['teff'][i-1], grid['teff'][i]]
 
-    if logg in K95_logg:
+    if logg in grid['logg']:
         logg_model = [logg, logg]
     else:
-        for i, K95L in enumerate(K95_logg):
-            if K95L - logg > 0:
+        for i, li in enumerate(grid['logg']):
+            if li - logg > 0:
                 break
-        logg_model = [K95_logg[i-1], K95_logg[i]]
+        logg_model = [grid['logg'][i-1], grid['logg'][i]]
 
-    if feh in K95_feh:
+    if feh in grid['feh']:
         feh_model = [feh, feh]
     else:
-        for i, K95F in enumerate(K95_feh):
-            if K95F - feh > 0:
+        for i, fi in enumerate(grid['feh']):
+            if fi - feh > 0:
                 break
-        feh_model = [K95_feh[i-1], K95_feh[i]]
+        feh_model = [grid['feh'][i-1], grid['feh'][i]]
 
     name = lambda t, g, s, f: 'kurucz95/%s%s/%ig%i.%s%s.gz' % (s, f, t, g*10, s, f)
     models = []
@@ -64,7 +69,6 @@ def _get_model(teff, logg, feh, type='kurucz95'):
                     fout = name(teff_m, logg_m, 'm', feh_m)
                 models.append(fout)
 
-    # print models
     return models, teff_model, logg_model, feh_model
 
 
@@ -194,5 +198,5 @@ def main(teff, logg, feh):
 
 if __name__ == '__main__':
     # This is only for testing and should be removed later on...
-    teff, logg, feh = 4250, 3.50, -0.02
+    teff, logg, feh = 4252, 3.52, -0.02
     main(teff, logg, feh)
