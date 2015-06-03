@@ -1,8 +1,7 @@
 #!/usr/bin/python
 from __future__ import division
 import numpy as np
-# from scipy.integrate import cumtrapz
-from scipy import ndimage
+from operator import mul
 from scipy.ndimage import _nd_image
 import gzip
 
@@ -26,7 +25,8 @@ def map_coordinates(input, coordinates, output=None, order=1,
                     mode='constant', cval=0.0):
     """
     This is a copy of the original code, however all checks are removed.
-    The code is 15x faster!
+    That is okay, since we know what we are doing, and want a speedup.
+    The code is 3x faster than standard scipy!
 
     See documentation for
         scipy.ndimage.map_coordinates
@@ -53,11 +53,14 @@ def _unpack_model(fname):
     :fname: File name of the compressed atmosphere model
     :returns: String of the uncompressed atmosphere model
     """
-    f = gzip.open(fname, compresslevel=0)
+    f = gzip.open(fname, compresslevel=1)
     return f.readlines()
 
 
-def tupleset(t, i, value):
+def _tupleset(t, i, value):
+    """
+    This is used in tauross_scale
+    """
     l = list(t)
     l[i] = value
     return tuple(l)
@@ -65,6 +68,9 @@ def tupleset(t, i, value):
 
 def tauross_scale(abross, rhox, dx=1, axis=-1):
     """Build the tau-ross scale
+
+    Note that this is the source of scipy.integrate.cumtrapz
+    in a more raw format to speed things up.
 
     :abross: absorption
     :rhox: density
@@ -76,8 +82,8 @@ def tauross_scale(abross, rhox, dx=1, axis=-1):
     initial = rhox[0] * abross[0]
 
     nd = len(y.shape)
-    slice1 = tupleset((slice(None),)*nd, axis, slice(1, None))
-    slice2 = tupleset((slice(None),)*nd, axis, slice(None, -1))
+    slice1 = _tupleset((slice(None),)*nd, axis, slice(1, None))
+    slice2 = _tupleset((slice(None),)*nd, axis, slice(None, -1))
     res = np.add.accumulate(d * (y[slice1] + y[slice2]) / 2.0, axis)
 
     shape = list(res.shape)
@@ -85,9 +91,24 @@ def tauross_scale(abross, rhox, dx=1, axis=-1):
     res = np.concatenate([np.ones(shape, dtype=res.dtype) * initial, res],
                          axis=axis)
 
+    # Original piece of code below. More elegant, but slower
     # tauross = cumtrapz(rhox * abross, initial=rhox[0] * abross[0])
     # return tauross
     return res
+
+
+def _loadtxt(lines):
+    """
+    Super efficient 'loadtxt' that works exactly for our data.
+    25x speed-up compared to fully np.loadtxt (which does a lot of checking)
+
+    :return: numpy array of atmospheric quantities
+    """
+    row, col = len(lines), len(lines[0].split())
+    data = np.empty((row, col))
+    for rowi, line in enumerate(lines):
+        data[rowi, :] = line.split()
+    return data
 
 
 def read_model(fname):
@@ -97,7 +118,7 @@ def read_model(fname):
     :returns: The columns and tauross in a tuple
     """
     data = _unpack_model(fname)
-    model = np.loadtxt(data[23:-2], comments=None)
+    model = _loadtxt(data[23:-2])
     tauross = tauross_scale(model[:, 4], model[:, 0])
     return (model, tauross)
 
@@ -120,7 +141,7 @@ def interpolator(mnames, teff, logg, feh, out='out.atm'):
 
     # Some black magic we need later
     interGridShape = (2, 2, 2)
-    N = np.prod(interGridShape)
+    N = reduce(mul, interGridShape)  # Multiply all values in tuple above
     idxs = [0] * N
     for cntr in range(N):
         idxs[cntr] = np.unravel_index(cntr, interGridShape)
@@ -135,6 +156,7 @@ def interpolator(mnames, teff, logg, feh, out='out.atm'):
         opmax.append(np.amax(tatm[1]))
 
     # Define the grid coordinates for the interpolation
+    # TODO: Put this in a function, if it is this ugly!
     try:
         c1 = [(teff-tefflow)/(teffhigh-tefflow)]
     except ZeroDivisionError:
@@ -147,19 +169,20 @@ def interpolator(mnames, teff, logg, feh, out='out.atm'):
         c3 = [(feh-fehlow)/(fehhigh-fehlow)]
     except ZeroDivisionError:
         c3 = [0.5]
+    # Need to be like this for map_coordinates! Do not touch the line below.
     coord = np.array([c1, c2, c3])
 
     # Interpolate the models using the Force
     # Look at Jobovy code.
-    newdeck = np.zeros_like(models[0])
+    # More optimized/clean version compared to his
+    newdeck = np.zeros(models[0].shape)
     newdeck[:, 7:] = models[0][:, 7:]
     layers, columns = newdeck.shape
     for layer in range(layers):
         for column in range(columns):
             tlayer = np.zeros(interGridShape)
             for cntr in range(N):
-                idx, model = idxs[cntr], models[cntr]
-                tlayer[idx] = model[layer, column]
+                tlayer[idxs[cntr]] = models[cntr][layer, column]
             newdeck[layer, column] = map_coordinates(tlayer, coord)
     return newdeck
 
