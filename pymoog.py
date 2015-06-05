@@ -35,8 +35,8 @@ def _get_model(teff, logg, feh, type='kurucz95'):
 
     output
     ------
-    models      : List with path to 8 models the two closest in each parameter space
-                  (2x2x2)
+    models      : List with path to 8 models the two closest in each parameter
+                  space (2x2x2)
     teff_model  : The two closest effective temperatures in the grid
     logg_model  : The two closest surface gravities in the grid
     feh_model   : The two closest metallicities in the grid
@@ -46,7 +46,6 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     to them.
 
     """
-
 
     if type == 'kurucz95':
         grid = K95
