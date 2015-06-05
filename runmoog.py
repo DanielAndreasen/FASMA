@@ -101,11 +101,12 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
     import os
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
-    teff *= 100
-    x = teff, logg, feh, vt
+    # teff *= 100
+    # x = teff, logg, feh, vt
     p = '/home/daniel/Software/SPECPAR/interpol_models/'
-    os.system('echo %i %s %s | %sintermod.e' % (teff, logg, feh, p))
-    os.system('echo %s | %stransform.e' % (vt, p))
+    os.system('echo %i %s %s | %sintermod.e > z1' % (teff, logg, feh, p))
+    os.system('echo %s | %stransform.e > z2' % (vt, p))
+    os.system('rm -f z1 z2')
 
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
@@ -122,4 +123,4 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
         #     res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2) ** 2
         # else:
         #     res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2+abs(np.diff(abundances)))**2
-        return res
+        return res, EPs[0], RWs[0], abundances
