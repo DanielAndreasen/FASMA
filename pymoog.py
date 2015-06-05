@@ -5,26 +5,54 @@
 from __future__ import division
 import numpy as np
 import os
-import logging
 from model_interpolation import interpolator, save_model
 
-K95 = {'teff': (3750,4000,4250,4500,4750,5000,5250,5500,5750,6000,
-        6250,6500,6750,7000,7250,7500,7750,8000,8250,8500,8750,9000,9250,9500,
-        9750,10000,10250,10500,10750,11000,11250,11500,11750,12000,12250,12500,
-        12750,13000,14000,15000,16000,17000,18000,19000,20000,21000,22000,23000,
-        24000,25000,26000,27000,28000,29000,30000,31000,32000,33000,34000,
-        35000,3500,36000,37000,38000,39000),
+K95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
+                6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
+                8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
+                11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
+                14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
+                23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000,
+                32000, 33000, 34000, 35000, 3500, 36000, 37000, 38000, 39000),
        'feh': (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
-           0.1, 0.2, 0.3, 0.5, 1.0),
-        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+               0.1, 0.2, 0.3, 0.5, 1.0),
+       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 
 def _get_model(teff, logg, feh, type='kurucz95'):
+    """
+    Find the names of the closest grid points for a given effective
+    temperature, surface gravity, and iron abundance (proxy for metallicity).
+
+    Inputs
+    -----
+
+    teff  :   The effective temperature(K) for the model atmosphere
+    logg  :   The surface gravity (logarithmic in cgs) for the model atmosphere
+    feh   :   The metallicity for the model atmosphere
+    type  :   The type of atmosphere models to use. Currently only Kurucz from
+              '95 is supported.
+
+    output
+    ------
+    models      : List with path to 8 models the two closest in each parameter space
+                  (2x2x2)
+    teff_model  : The two closest effective temperatures in the grid
+    logg_model  : The two closest surface gravities in the grid
+    feh_model   : The two closest metallicities in the grid
+
+    The last three return values are used for the interpolation to do some
+    mapping. If only the paths to the models are needed, do not pay attention
+    to them.
+
+    """
+
+
     if type == 'kurucz95':
         grid = K95
     else:
         raise NotImplementedError('You request for type: %s is not available' %
-                type)
+                                  type)
     if (teff < grid['teff'][0]) or (teff > grid['teff'][-1]):
         raise ValueError('Teff out of bounds: %s' % teff)
     if (logg < grid['logg'][0]) or (logg > grid['logg'][-1]):
@@ -72,16 +100,9 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     return models, teff_model, logg_model, feh_model
 
 
-# TODO: This function will be merged with the one beneath
-def _update_par(infile='batch.par', out='batch.par'):
-    """Update the parameter file
-
-    :infile: The input file
-    :out: The output file
-    """
-
-    '''
-    Runs MOOG with the given input parameters and returns a numpy array of
+def _update_par(atmosphere_model='out.atm', line_list='linelist.moog',
+                infile='batch.par', **kwargs):
+    """Runs MOOG with the given input parameters and returns a numpy array of
     the outputted smooth spectrum.
 
     Inputs
@@ -89,6 +110,7 @@ def _update_par(infile='batch.par', out='batch.par'):
 
     atmosphere_model    :   Location of your model atmosphere file
     line_list           :   Location of your line list
+    infile              :   Name of the parameter file
 
     Additional keyword arguments
     ----------------------------
@@ -120,12 +142,8 @@ def _update_par(infile='batch.par', out='batch.par'):
     Outputs
     -------
 
-    A numpy two-dimensional spectrum which contains the wavelength in the
-    entire first column, and normalised smoothed flux in the second column
-    '''
-
-
-def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
+    And updated parameter file
+    """
 
     # Path checks for input files
     if not os.path.exists(atmosphere_model):
@@ -161,30 +179,26 @@ def run(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
     # Generate a MOOG-compatible run file
     moog_filename = 'batch.par'
 
-    if os.path.exists(moog_filename):
-        logging.warn('Temporary MOOG file already exists (%s), over-writing...'
-                     % moog_filename)
-
     moog_contents = "abfind\n"\
                     "terminal       %s\n"\
                     "model_in       '%s'\n"\
                     "summary_out    '%s'\n"\
                     "standard_out   '%s'\n"\
-                    "lines_in       '%s'\n"  % (kwargs['terminal'], atmosphere_model, 'summary.out',
-                           'result.out', line_list)
+                    "lines_in       '%s'\n" % (kwargs['terminal'],
+                                               atmosphere_model, 'summary.out',
+                                               'result.out', line_list)
 
     settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
                'units,iraf,plot,opacit,freeform,obspectrum,histogram,'\
                'synlimits'.split(',')
-    if kwargs.has_key('plotpars'):
+    if 'plotpars' in kwargs:
         if kwargs['plotpars'] != 0:
-            logging.warn('Plotting require SM')
             settings.append('plotpars')
 
     for setting in settings:
-        if kwargs.has_key(setting):
+        if setting in kwargs:
             moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)),
-                                        kwargs[setting])
+                                          kwargs[setting])
 
     with open(moog_filename, 'w') as moog:
         moog.writelines(moog_contents)
