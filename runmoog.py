@@ -116,7 +116,7 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
         # a scalar function.
         # return np.sum(np.array(EPs)**2)
 
-        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)**2
+        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
 
         # res = np.sum(np.array(EPs + RWs + [np.diff(abundances)])**2)
         # if fix_logg:

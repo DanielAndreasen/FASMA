@@ -181,8 +181,8 @@ if __name__ == '__main__':
         print('Temperature is found %i' % args.temperature)
     raw_input('Press RETURN to exit > ')
 
-    # if args.plot:
-    #     plt.ion()
-    #     for d in data:
-    #         plot_data(d)
-    #     raw_input('Press RETURN to exit > ')
+    if args.plot:
+        plt.ion()
+        for d in data:
+            plot_data(d)
+        raw_input('Press RETURN to exit > ')
