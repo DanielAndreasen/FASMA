@@ -42,7 +42,7 @@ def _update_batch(linelist):
         file.write(''.join(lines_tmp))
 
 
-def _data_structure(out='summary.log'):
+def _data_structure(out='summary.out'):
     """Black magic here"""
     structure = []
     with open(out, 'r') as lines:
@@ -61,7 +61,7 @@ def _data_structure(out='summary.log'):
     return structure
 
 
-def read_output(out='summary.log'):
+def read_output(out='summary.out'):
     """
     Read the summary file and extract the elements and return a numpy structure
     of the data.
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     p.add_argument('vmicro', type=float, help='The micro turbulence')
     p.add_argument('-l', '--linelist', help='The linelist to be used')
     p.add_argument('-o', '--output', help='The output file with abundances',
-                   default='summary.log')
+                   default='summary.out')
     p.add_argument('-p', '--plot', help='Enable plotting', default=True,
                    type=bool)
 
