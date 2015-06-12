@@ -66,8 +66,6 @@ def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
-    teff *= 10
-    x = teff, logg, feh, vt
     # print teff, logg, feh, vt
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
@@ -118,9 +116,4 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
 
         res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
 
-        # res = np.sum(np.array(EPs + RWs + [np.diff(abundances)])**2)
-        # if fix_logg:
-        #     res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2) ** 2
-        # else:
-        #     res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2+abs(np.diff(abundances)))**2
         return res, EPs[0], RWs[0], abundances
