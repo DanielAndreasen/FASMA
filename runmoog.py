@@ -66,7 +66,6 @@ def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
-    # print teff, logg, feh, vt
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                          feh=(feh, nf))
@@ -76,15 +75,8 @@ def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
     _run_moog(par=par)
     EPs, RWs, abundances = _read_moog(fname=results)
     if len(abundances) == 2:
-        # Return sum of squares, so we don't use a vector function, but
-        # a scalar function.
-        # return np.sum(np.array(EPs)**2)
-        # res = np.sum(np.array(EPs + RWs + [np.diff(abundances)])**2)
-        if fix_logg:
-            res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2) ** 2
-        else:
-            res = 5*((3.5*EPs[0])**2 + (1.3*RWs[0])**2+np.diff(abundances))**2
-        return res
+        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
+        return res, EPs[0], RWs[0], abundances
 
 
 def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
@@ -99,8 +91,6 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
     import os
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
-    # teff *= 100
-    # x = teff, logg, feh, vt
     p = '/home/daniel/Software/SPECPAR/interpol_models/'
     os.system('echo %i %s %s | %sintermod.e > z1' % (teff, logg, feh, p))
     os.system('echo %s | %stransform.e > z2' % (vt, p))
@@ -110,10 +100,5 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
     _run_moog(par=par)
     EPs, RWs, abundances = _read_moog(fname=results)
     if len(abundances) == 2:
-        # Return sum of squares, so we don't use a vector function, but
-        # a scalar function.
-        # return np.sum(np.array(EPs)**2)
-
         res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
-
         return res, EPs[0], RWs[0], abundances
