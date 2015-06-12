@@ -123,7 +123,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog',
     trudamp         1
     lines           1
     flux/int        1
-    damping         0
+    damping         2
     units           0
     iraf            0
     plot            2
