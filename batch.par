@@ -5,7 +5,7 @@ molecules   1
 lines       1
 flux/int    0
 plot        0
-damping     0
+damping     2
 units       0
 standard_out  'results.out'
 summary_out   'summary.out'
