@@ -12,10 +12,15 @@ def print_format(x):
     print '%i, %.2f, %.2f, %.2f' % (x[0], x[1], x[2], x[3])
 
 
-def minimize(x0, func, bounds=None, fix_logg=False, eps=1e-7, iteration=100):
+def minimize(x0, func, bounds=None,
+             fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
+             eps=1e-7, iteration=100):
     """
     Some doc
     """
+
+    # TODO: Implement the bound. e.g. if we hit upper Teff, raise a flag and
+    # set the Teff=upper bound
 
     # Step size
     # Teff, logg, vt
@@ -27,7 +32,7 @@ def minimize(x0, func, bounds=None, fix_logg=False, eps=1e-7, iteration=100):
 
     N = 0
     while (res > eps) and (N < iteration):
-        while (abs(slopeEP) > 0.001):
+        while (abs(slopeEP) > 0.001) and not fix_teff:
             # For Teff
             s = np.sign(slopeEP)
             step_i = s * step[0]/abs(np.log(abs(slopeEP)+0.0005))**3
@@ -49,17 +54,15 @@ def minimize(x0, func, bounds=None, fix_logg=False, eps=1e-7, iteration=100):
             Abdiff = np.diff(abundances)[0]
         N += 1
 
-
         #       Input metal...   FeI abund.
-        while parameters[2] != abundances[0]-7.47:
+        while (parameters[2] != abundances[0]-7.47) and not fix_feh:
             # For metalicity
             parameters[2] = abundances[0]-7.47
             res, slopeEP, slopeRW, abundances = func(parameters)
             print_format(parameters)
         N += 1
 
-
-        while (abs(slopeRW) > 0.001):
+        while (abs(slopeRW) > 0.001) and not fix_vt:
             # For micro turbulence
             s = np.sign(slopeRW)
             step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
