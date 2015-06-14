@@ -77,6 +77,6 @@ def minimize(x0, func, bounds=None,
     return parameters
 
 
-x0 = (5777, 4.44, 0.0, 1.00)
+# x0 = (5777, 4.44, 0.0, 1.00)
 # minimize(x0, fun_moog_fortran)
-minimize(x0, fun_moog)
+# minimize(x0, fun_moog)
