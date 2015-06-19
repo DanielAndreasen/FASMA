@@ -11,7 +11,7 @@ sns.set_style('dark')
 sns.set_context('talk')
 import matplotlib.pyplot as plt
 
-from pymoog import _get_model
+from pymoog import _get_model, _update_par
 from model_interpolation import interpolator
 from model_interpolation import save_model
 from moog_minimization import minimize
@@ -63,7 +63,7 @@ def _parser():
     return args
 
 
-def moogme(linelist, parfile='batch.par', model='Kurucz95',
+def moogme(starLines, parfile='batch.par', model='Kurucz95',
            initial=False, fix_params=(0, 0, 0, 0),
            plot=False, outlier=False, spt=False):
     """
@@ -92,8 +92,6 @@ def moogme(linelist, parfile='batch.par', model='Kurucz95',
         # Set initial parameters to solar value
         initial = (5777, 4.44, 0.00, 1.00)
 
-    print(initial)
-
     # Preparing the batch file for MOOGSILENT
     if not os.path.isfile(parfile):
         # TODO: Maybe we can create one. The function is in pymoog.py for that
@@ -103,38 +101,68 @@ def moogme(linelist, parfile='batch.par', model='Kurucz95',
         rm_batch = True
 
 
-    # Setting the models to use
-    if model != 'Kurucz95':
-        raise NotImplementedError('Your request for type: %s is not available' % model)
+    with open(starLines, 'r') as lines:
+        for line in lines:
+            fix_teff = False
+            fix_logg = False
+            fix_feh = False
+            fix_vt = False
+            line = line.split(' ')
+            print(line, len(line))
+            if len(line) == 1:
+                initial = (5777, 4.44, 0.00, 1.00)
+                # Update batch.par
+                _update_par(line_list=line[0])
+            elif len(line) == 2:
+                spt = line[1]
+                Teff = spectralType_T[spt[0:2]]
+                logg = spectralType_g[spt[2:-1]]
+                initial = (Teff, logg, 0.00, 1.00)
+                _update_par(line_list=line[0])
+            elif len(line) == 5:
+                initial = map(float, line[1::])
+                _update_par(line_list=line[0])
+            elif len(line) == 6:
+                initial = map(float, line[1:-1])
+                fix = line[-1].lower()
+                fix_teff = True if 'teff' in fix else False
+                fix_logg = True if 'logg' in fix else False
+                fix_feh  = True if 'feh' in fix else False
+                fix_vt   = True if 'vt' in fix else False
+                _update_par(line_list=line[0])
+            else:
+                print('You are a fool! Try again')
+                continue
 
-    # Setting which parameters to fix
-    fix_teff = True if fix_params[0] else False
-    fix_logg = True if fix_params[1] else False
-    fix_feh  = True if fix_params[2] else False
-    fix_vt   = True if fix_params[3] else False
+            # Setting the models to use
+            if model != 'Kurucz95':
+                raise NotImplementedError('Your request for type: %s is not available' % model)
+
+
+            # Get the initial grid models
+            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2])
+            inter_model = interpolator(models,
+                                    teff=(initial[0], nt),
+                                    logg=(initial[1], nl),
+                                    feh=(initial[2], nf))
+            save_model(inter_model, params=initial)
+
+            parameters = minimize(initial, fun_moog_fortran, bounds=model,
+                                 fix_teff=fix_teff, fix_logg=fix_logg,
+                                 fix_feh=fix_feh, fix_vt=fix_vt)
+
+            print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
+            raw_input('\nPress RETURN to continue: ')
 
 
 
-    # Get the initial grid models
-    # models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2])
-    # inter_model = interpolator(models,
-    #                            teff=(initial[0], nt),
-    #                            logg=(initial[1], nl),
-    #                            feh=(initial[2], nf))
-    # save_model(inter_model, params=initial)
 
-    # parameters = minimize(initial, fun_moog_fortran, bounds=model,
-    #                       fix_teff=fix_teff, fix_logg=fix_logg,
-    #                       fix_feh=fix_feh, fix_vt=fix_vt)
 
-    # print('Congratulation, you have won! Your final parameters are\n' + parameters)
-    return 0
     # return parameters
 
 
 if __name__ == '__main__':
     args = _parser()
-    # print(args)
     parameters = moogme(args.linelist, args.parfile, args.model,
                         args.initial, args.fix, args.plot,
                         args.outliers, args.spectralType)
