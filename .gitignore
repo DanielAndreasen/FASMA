@@ -3,11 +3,16 @@
 programs/
 kurucz95/
 *.par
+*.dat
+*.ares
 !batch.par
 *.moog
 results.out
+result.out
 summary.out
 *.atm
+mod?
+fort.8
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
