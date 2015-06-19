@@ -146,12 +146,9 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog',
 
     # Path checks for input files
     if not os.path.exists(atmosphere_model):
-        raise IOError('Atmosphere model file "%s" could not be found.' %
-                      (atmosphere_model))
-
+        raise IOError('Atmosphere model file "%s" could not be found.' % (atmosphere_model))
     if not os.path.exists(line_list):
-        raise IOError('Line list file "%s" could not be found.' %
-                      (line_list))
+        raise IOError('Line list file "%s" could not be found.' % (line_list))
 
     default_kwargs = {
         'atmosphere': 1,
