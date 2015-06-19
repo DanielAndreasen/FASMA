@@ -17,8 +17,8 @@ def _run_moog(par='batch.par'):
     # if not os.path.exists(par):
         # raise IOError('The parameter file %s does not exists' % par)
 
-    os.system('MOOGSILENT > zzz')
-    os.system('rm -f zzz')
+    os.system('MOOGSILENT > /dev/null')
+    os.system('rm -f /dev/null')
 
     # if par != 'batch.par':
     #     os.system('cp %s batch.par' % par)
@@ -92,9 +92,8 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
     p = '/home/daniel/Software/SPECPAR/interpol_models/'
-    os.system('echo %i %s %s | %sintermod.e > z1' % (teff, logg, feh, p))
-    os.system('echo %s | %stransform.e > z2' % (vt, p))
-    os.system('rm -f z1 z2')
+    os.system('echo %i %s %s | %sintermod.e > /dev/null' % (teff, logg, feh, p))
+    os.system('echo %s | %stransform.e > /dev/null' % (vt, p))
 
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
