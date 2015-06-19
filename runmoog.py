@@ -18,7 +18,6 @@ def _run_moog(par='batch.par'):
         # raise IOError('The parameter file %s does not exists' % par)
 
     os.system('MOOGSILENT > /dev/null')
-    os.system('rm -f /dev/null')
 
     # if par != 'batch.par':
     #     os.system('cp %s batch.par' % par)
