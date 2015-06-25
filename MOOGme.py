@@ -10,6 +10,7 @@ import seaborn as sns
 sns.set_style('dark')
 sns.set_context('talk')
 import matplotlib.pyplot as plt
+import yaml
 
 from pymoog import _get_model, _update_par
 from model_interpolation import interpolator
@@ -61,6 +62,43 @@ def _parser():
             default=False)
     args = parser.parse_args()
     return args
+
+
+def _getSpt(spt):
+    """Get the spectral type from a string like 'F5V'."""
+
+    if not isinstance(spt, str):
+        raise ValueError('Spectral type must be a string')
+    if len(spt) > 4:
+        raise ValueError('Spectral type most be of the form: F8V')
+    if '.' in spt:
+        raise ValueError('Do not use half spectral types as F8.5V')
+    with open('SpectralTypes.yml', 'r') as f:
+        d = yaml.safe_load(f)
+    temp = spt[0]
+    subtemp = spt[1]
+    lum = spt[2:]
+    try:
+        teff = d[lum][temp][subtemp]
+    except KeyError:
+        print('Was not able to find the spectral type: %s' % spt)
+        print('Setting the effective temperature to 5777')
+        teff = 5777
+    return teff
+
+
+def _getMic(teff, logg):
+    """Calculate micro and macro turbulence. REF?"""
+    if logg >= 3.95:   #Dwarfs
+        mic = 6.932*teff*(10**-4)-0.348*logg-1.437
+        mac = 3.21 + (2.33*(10**-3)*(teff-5777)) + (2.0*(10**-6)*(teff-5777)*(teff-5777)) - (2.0*(logg-4.44)) #Doyle 2014
+        return mic, mac
+    else:  #Giants
+        mic=3.7-(5.1*teff*(10**-4))
+        mac = 3.21 + (2.33*(10**-3)*(teff-5777)) + (2.0*(10**-6)*(teff-5777)*(teff-5777)) - (2.0*(logg-4.44)) #Doyle 2014
+        return mic, mac
+
+
 
 
 def moogme(starLines, parfile='batch.par', model='Kurucz95',
