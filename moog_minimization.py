@@ -30,7 +30,11 @@ def minimize(x0, func, bounds=None,
     res, slopeEP, slopeRW, abundances = func(x0)
     Abdiff = np.diff(abundances)[0]
     parameters = list(x0)
-    os.remove('minimization_profile.dat')
+    try:
+        os.remove('minimization_profile.dat')
+    except OSError:
+        # Nothing to remove
+        pass
 
     N = 0
     while (res > eps) and (N < iteration):
