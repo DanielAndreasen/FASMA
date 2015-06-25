@@ -19,7 +19,6 @@ from moog_minimization import minimize
 from runmoog import fun_moog, fun_moog_fortran
 
 
-
 def _parser():
     """Take care of all the argparse stuff.
 
@@ -28,38 +27,37 @@ def _parser():
     parser = argparse.ArgumentParser(description='Plot fits file for ARES. Be'
                                      ' careful with large files')
 
-
     parser.add_argument('linelist', help='Input line list')
     parser.add_argument('-p', '--parfile',
-            help='The parameter file (default: batch.par)',
-            default='batch.par')
+                        help='The parameter file (default: batch.par)',
+                        default='batch.par')
     parser.add_argument('-m', '--model',
-            help='Model atmosphere',
-            default='Kurucz95',
-            choices=['Kurucz95', 'Kn', 'Marcs', 'PHOENIX'])
+                        help='Model atmosphere',
+                        default='Kurucz95',
+                        choices=['Kurucz95', 'Kn', 'Marcs', 'PHOENIX'])
     parser.add_argument('-i', '--initial',
-            help='Initial conditions (Teff, logg, [Fe/H], vt)',
-            nargs='+',
-            type=float,
-            default=False)
+                        help='Initial conditions (Teff, logg, [Fe/H], vt)',
+                        nargs='+',
+                        type=float,
+                        default=False)
     parser.add_argument('-f', '--fix',
-            help='Parameters to fix',
-            nargs='+',
-            type=int,
-            default=[0, 0, 0, 0])
+                        help='Parameters to fix',
+                        nargs='+',
+                        type=int,
+                        default=[0, 0, 0, 0])
     parser.add_argument('-pl', '--plot',
-            help='Plot the slopes',
-            default=False)
+                        help='Plot the slopes',
+                        default=False)
     parser.add_argument('-ol', '--outliers',
-            help='Remove n*sigma outliers',
-            type=float,
-            default=False)
+                        help='Remove n*sigma outliers',
+                        type=float,
+                        default=False)
     parser.add_argument('-spt', '--spectralType',
-            help='Input spectral type (e.g. F4V) and get initial parameters',
-            default=False)
+                        help='Input spectral type (e.g. F4V) and get initial parameters',
+                        default=False)
     parser.add_argument('-v', '--verbose',
-            help='Print information to the screen along the way',
-            default=False)
+                        help='Print information to the screen along the way',
+                        default=False)
     args = parser.parse_args()
     return args
 
@@ -99,8 +97,6 @@ def _getMic(teff, logg):
         return mic, mac
 
 
-
-
 def moogme(starLines, parfile='batch.par', model='Kurucz95',
            initial=False, fix_params=(0, 0, 0, 0),
            plot=False, outlier=False, spt=False):
@@ -138,24 +134,25 @@ def moogme(starLines, parfile='batch.par', model='Kurucz95',
         os.system('cp %s batch.par' % parfile)
         rm_batch = True
 
-
     with open(starLines, 'r') as lines:
         for line in lines:
             fix_teff = False
             fix_logg = False
             fix_feh = False
             fix_vt = False
+            line = line.strip()
             line = line.split(' ')
-            print(line, len(line))
             if len(line) == 1:
                 initial = (5777, 4.44, 0.00, 1.00)
                 # Update batch.par
                 _update_par(line_list=line[0])
             elif len(line) == 2:
                 spt = line[1]
+                print(spt)
                 Teff = spectralType_T[spt[0:2]]
-                logg = spectralType_g[spt[2:-1]]
-                initial = (Teff, logg, 0.00, 1.00)
+                logg = spectralType_g[spt[2::]]
+                mic, _ = _getMic(Teff, logg)
+                initial = (Teff, logg, 0.00, mic)
                 _update_par(line_list=line[0])
             elif len(line) == 5:
                 initial = map(float, line[1::])
@@ -165,8 +162,8 @@ def moogme(starLines, parfile='batch.par', model='Kurucz95',
                 fix = line[-1].lower()
                 fix_teff = True if 'teff' in fix else False
                 fix_logg = True if 'logg' in fix else False
-                fix_feh  = True if 'feh' in fix else False
-                fix_vt   = True if 'vt' in fix else False
+                fix_feh  = True if 'feh'  in fix else False
+                fix_vt   = True if 'vt'   in fix else False
                 _update_par(line_list=line[0])
             else:
                 print('You are a fool! Try again')
@@ -176,26 +173,21 @@ def moogme(starLines, parfile='batch.par', model='Kurucz95',
             if model != 'Kurucz95':
                 raise NotImplementedError('Your request for type: %s is not available' % model)
 
-
             # Get the initial grid models
             models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2])
             inter_model = interpolator(models,
-                                    teff=(initial[0], nt),
-                                    logg=(initial[1], nl),
-                                    feh=(initial[2], nf))
+                                       teff=(initial[0], nt),
+                                       logg=(initial[1], nl),
+                                       feh=(initial[2], nf))
             save_model(inter_model, params=initial)
 
             parameters = minimize(initial, fun_moog_fortran, bounds=model,
-                                 fix_teff=fix_teff, fix_logg=fix_logg,
-                                 fix_feh=fix_feh, fix_vt=fix_vt)
+                                  fix_teff=fix_teff, fix_logg=fix_logg,
+                                  fix_feh=fix_feh, fix_vt=fix_vt)
 
             print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
+            print(line[0])
             raw_input('\nPress RETURN to continue: ')
-
-
-
-
-
     # return parameters
 
 
