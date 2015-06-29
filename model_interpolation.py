@@ -123,7 +123,7 @@ def read_model(fname):
     return (model, tauross)
 
 
-def interpolator(mnames, teff, logg, feh, out='out.atm'):
+def interpolator(mnames, teff, logg, feh):
     """The function to call from the main program (pymoog.py or main.py)
 
     :mnames: As generated from _get_models
