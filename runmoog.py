@@ -15,7 +15,7 @@ def _run_moog(par='batch.par'):
     """
 
     # if not os.path.exists(par):
-        # raise IOError('The parameter file %s does not exists' % par)
+    #    raise IOError('The parameter file %s does not exists' % par)
 
     os.system('MOOGSILENT > /dev/null')
 
@@ -54,7 +54,7 @@ def _read_moog(fname='summary.out'):
     return EP_slopes, RW_slopes, abundances
 
 
-def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
+def fun_moog(x, par='batch.par', results='summary.out'):
     """The 'function' that we should minimize
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
@@ -64,7 +64,7 @@ def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
     """
 
     # Create an atmosphere model from input parameters
-    teff, logg, feh, vt = x
+    teff, logg, feh, _ = x
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                          feh=(feh, nf))
@@ -78,7 +78,7 @@ def fun_moog(x, par='batch.par', results='summary.out', fix_logg=False):
         return res, EPs[0], RWs[0], abundances
 
 
-def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
+def fun_moog_fortran(x, par='batch.par', results='summary.out'):
     """The 'function' that we should minimize
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
@@ -87,7 +87,6 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', fix_logg=False):
     :returns: The slopes and abundances for the different elements
     """
 
-    import os
     # Create an atmosphere model from input parameters
     teff, logg, feh, vt = x
     p = '/home/daniel/Software/SPECPAR/interpol_models/'
