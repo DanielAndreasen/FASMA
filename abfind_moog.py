@@ -38,8 +38,8 @@ def _update_batch(linelist):
                 line = '      '.join(line)
             lines_tmp.append(line)
 
-    with open('batch.par', 'w') as file:
-        file.write(''.join(lines_tmp))
+    with open('batch.par', 'w') as lines:
+        lines.write(''.join(lines_tmp))
 
 
 def _data_structure(out='summary.out'):
@@ -51,7 +51,7 @@ def _data_structure(out='summary.out'):
             line = filter(None, line.strip().split())
             try:
                 line = map(float, line)
-            except ValueError, e:
+            except ValueError:
                 if s > 0:
                     structure.append(s)
                 line = []
@@ -87,7 +87,7 @@ def read_output(out='summary.out'):
             line = filter(None, line.strip().split())
             try:
                 line = map(float, line)
-            except ValueError, e:
+            except ValueError:
                 line = []
                 s = -1
 
