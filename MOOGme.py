@@ -3,13 +3,11 @@
 
 # My imports
 from __future__ import division, print_function
-import numpy as np
 import os
 import argparse
 import seaborn as sns
 sns.set_style('dark')
 sns.set_context('talk')
-import matplotlib.pyplot as plt
 import yaml
 
 from pymoog import _get_model, _update_par
@@ -40,11 +38,6 @@ def _parser():
                         nargs='+',
                         type=float,
                         default=False)
-    parser.add_argument('-f', '--fix',
-                        help='Parameters to fix',
-                        nargs='+',
-                        type=int,
-                        default=[0, 0, 0, 0])
     parser.add_argument('-pl', '--plot',
                         help='Plot the slopes',
                         default=False)
@@ -58,8 +51,7 @@ def _parser():
     parser.add_argument('-v', '--verbose',
                         help='Print information to the screen along the way',
                         default=False)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def _getSpt(spt):
@@ -70,7 +62,7 @@ def _getSpt(spt):
     if len(spt) > 4:
         raise ValueError('Spectral type most be of the form: F8V')
     if '.' in spt:
-        raise ValueError('Do not use half spectral types as F8.5V')
+        raise ValueError('Do not use half spectral types as %s' % spt)
     with open('SpectralTypes.yml', 'r') as f:
         d = yaml.safe_load(f)
     temp = spt[0]
@@ -86,20 +78,17 @@ def _getSpt(spt):
 
 
 def _getMic(teff, logg):
-    """Calculate micro and macro turbulence. REF?"""
+    """Calculate micro turbulence. REF? Doyle 2014"""
     if logg >= 3.95:   #Dwarfs
         mic = 6.932*teff*(10**-4)-0.348*logg-1.437
-        mac = 3.21 + (2.33*(10**-3)*(teff-5777)) + (2.0*(10**-6)*(teff-5777)*(teff-5777)) - (2.0*(logg-4.44)) #Doyle 2014
-        return mic, mac
+        return mic
     else:  #Giants
         mic=3.7-(5.1*teff*(10**-4))
-        mac = 3.21 + (2.33*(10**-3)*(teff-5777)) + (2.0*(10**-6)*(teff-5777)*(teff-5777)) - (2.0*(logg-4.44)) #Doyle 2014
-        return mic, mac
+        return mic
 
 
 def moogme(starLines, parfile='batch.par', model='Kurucz95',
-           initial=False, fix_params=(0, 0, 0, 0),
-           plot=False, outlier=False, spt=False):
+           initial=False, plot=False, outlier=False, spt=False):
     """
     Some doc
     """
@@ -188,11 +177,11 @@ def moogme(starLines, parfile='batch.par', model='Kurucz95',
             print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
             print(line[0])
             raw_input('\nPress RETURN to continue: ')
-    # return parameters
+    return parameters
 
 
 if __name__ == '__main__':
     args = _parser()
     parameters = moogme(args.linelist, args.parfile, args.model,
-                        args.initial, args.fix, args.plot,
+                        args.initial, args.plot,
                         args.outliers, args.spectralType)
