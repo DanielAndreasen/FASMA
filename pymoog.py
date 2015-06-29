@@ -3,7 +3,6 @@
 
 # My imports
 from __future__ import division
-import numpy as np
 import os
 from model_interpolation import interpolator, save_model
 
@@ -99,8 +98,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     return models, teff_model, logg_model, feh_model
 
 
-def _update_par(atmosphere_model='out.atm', line_list='linelist.moog',
-                infile='batch.par', **kwargs):
+def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
     """Runs MOOG with the given input parameters and returns a numpy array of
     the outputted smooth spectrum.
 
@@ -145,8 +143,6 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog',
     """
 
     # Path checks for input files
-    if not os.path.exists(atmosphere_model):
-        raise IOError('Atmosphere model file "%s" could not be found.' % (atmosphere_model))
     if not os.path.exists(line_list):
         raise IOError('Line list file "%s" could not be found.' % (line_list))
 
