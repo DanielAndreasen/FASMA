@@ -4,13 +4,18 @@
 # My imports
 from __future__ import division
 import numpy as np
-import matplotlib.pyplot as plt
-from runmoog import fun_moog_fortran, fun_moog
 import os
 
 
 def print_format(x):
+    """Print the stellar atmospheric parameters in a nice format"""
     print '%i, %.2f, %.2f, %.2f' % (x[0], x[1], x[2], x[3])
+
+
+def save_iteration(parameters):
+    """Save the current iteration"""
+    data = ','.join(map(str, parameters))
+    os.system('echo %s >> minimization_profile.dat' % data)
 
 
 def minimize(x0, func, bounds=None,
@@ -33,7 +38,6 @@ def minimize(x0, func, bounds=None,
     try:
         os.remove('minimization_profile.dat')
     except OSError:
-        # Nothing to remove
         pass
 
     N = 0
@@ -49,7 +53,7 @@ def minimize(x0, func, bounds=None,
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
             N1 += 1
-            os.system('echo %s >> minimization_profile.dat' % ','.join(map(str, parameters)))
+            save_iteration(parameters)
         N += 1
 
         N2 = 0
@@ -63,7 +67,7 @@ def minimize(x0, func, bounds=None,
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
             N2 += 1
-            os.system('echo %s >> minimization_profile.dat' % ','.join(map(str, parameters)))
+            save_iteration(parameters)
         N += 1
 
         #       Input metal...   FeI abund.
@@ -74,7 +78,7 @@ def minimize(x0, func, bounds=None,
             res, slopeEP, slopeRW, abundances = func(parameters)
             print_format(parameters)
             N3 += 1
-            os.system('echo %s >> minimization_profile.dat' % ','.join(map(str, parameters)))
+            save_iteration(parameters)
         N += 1
 
         N4 = 0
@@ -89,7 +93,7 @@ def minimize(x0, func, bounds=None,
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
             N4 += 1
-            os.system('echo %s >> minimization_profile.dat' % ','.join(map(str, parameters)))
+            save_iteration(parameters)
         N += 1
 
     return parameters
