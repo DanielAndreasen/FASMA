@@ -10,7 +10,7 @@ sns.set_style('dark')
 sns.set_context('talk')
 import yaml
 
-from pymoog import _get_model, _update_par
+from utils import _get_model, _update_par
 from model_interpolation import interpolator
 from model_interpolation import save_model
 from moog_minimization import minimize
@@ -87,7 +87,17 @@ def _getMic(teff, logg):
         return mic
 
 
-def moogme(starLines, parfile='batch.par', model='Kurucz95',
+def _renaming(linelist, converged):
+    if converged:
+        cmd = 'cp summary.out %s.out' % linelist
+    else:
+        cmd = 'cp summary.out %s.NC.out' % linelist
+        os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
+
+    os.system(cmd)
+
+
+def moogme(starLines, parfile='batch.par', model='kurucz95',
            initial=False, plot=False, outlier=False, spt=False):
     """
     Some doc
@@ -125,6 +135,8 @@ def moogme(starLines, parfile='batch.par', model='Kurucz95',
 
     with open(starLines, 'r') as lines:
         for line in lines:
+            if not line[0].isalpha():
+                continue
             fix_teff = False
             fix_logg = False
             fix_feh = False
@@ -170,13 +182,14 @@ def moogme(starLines, parfile='batch.par', model='Kurucz95',
                                        feh=(initial[2], nf))
             save_model(inter_model, params=initial)
 
-            parameters = minimize(initial, fun_moog_fortran, bounds=model,
+            parameters, converged = minimize(initial, fun_moog, bounds=model,
                                   fix_teff=fix_teff, fix_logg=fix_logg,
                                   fix_feh=fix_feh, fix_vt=fix_vt)
 
+            _renaming(line[0], converged)
+
             print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
             print(line[0])
-            raw_input('\nPress RETURN to continue: ')
     return parameters
 
 
