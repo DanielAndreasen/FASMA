@@ -17,8 +17,18 @@ def save_iteration(parameters):
     data = ','.join(map(str, parameters))
     os.system('echo %s >> minimization_profile.dat' % data)
 
+def check_bounds(parameter, bounds, i):
+    """
+    Function which checks if parameters are within bounds.
+    Input - parameter: what we want to check; bounds: ze bounds;
+    i: the index of the bounds we want to check"""
+    if parameter < bounds[i-1]:
+        parameter = bounds[i-1]
+    elif parameter > bounds[i]:
+        parameter = bounds[i]
+    return parameter
 
-def minimize(x0, func, bounds=None,
+def minimize(x0, func, bounds="kurucz95",
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
              eps=1e-7, iteration=25):
     """
@@ -31,6 +41,8 @@ def minimize(x0, func, bounds=None,
     # Step size
     # Teff, logg, vt
     step = (500, 0.50, 0.50)
+    if bounds.lower() == "kurucz95":
+        bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 100]
 
     res, slopeEP, slopeRW, abundances = func(x0)
     Abdiff = np.diff(abundances)[0]
@@ -49,6 +61,7 @@ def minimize(x0, func, bounds=None,
             step_i = s * step[0]/abs(np.log(abs(slopeEP)+0.0005))**3
             step_i = s*1 if abs(step_i) < 1 else step_i
             parameters[0] += step_i
+            parameters[0] = check_bounds(parameters[0],bounds,1)
             print_format(parameters)
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
@@ -63,6 +76,8 @@ def minimize(x0, func, bounds=None,
             step_i = s * step[1]/abs(np.log(abs(Abdiff)+0.0005))**3
             step_i = s*0.01 if abs(step_i) < 0.01 else step_i
             parameters[1] += step_i
+            #checks bounds of logg
+            parameters[1] = check_bounds(parameters[1],bounds,3)
             print_format(parameters)
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
@@ -75,6 +90,7 @@ def minimize(x0, func, bounds=None,
         while (parameters[2] != abundances[0]-7.47) and not fix_feh and N3 < 5:
             # For metalicity
             parameters[2] = abundances[0]-7.47
+            parameters[2] = check_bounds(parameters[2],bounds,5)
             res, slopeEP, slopeRW, abundances = func(parameters)
             print_format(parameters)
             N3 += 1
@@ -89,6 +105,7 @@ def minimize(x0, func, bounds=None,
             step_i = s*0.01 if abs(step_i) < 0.01 else step_i
             parameters[3] += step_i
             parameters[3] = 0.00 if parameters[3] < 0 else parameters[3]
+            parameters[3] = check_bounds(parameters[3],bounds,7)
             print_format(parameters)
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
@@ -96,4 +113,6 @@ def minimize(x0, func, bounds=None,
             save_iteration(parameters)
         N += 1
 
-    return parameters
+    converged = False if N==iteration else True
+
+    return parameters, converged
