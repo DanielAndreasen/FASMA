@@ -5,6 +5,7 @@
 from __future__ import division
 import os
 from model_interpolation import interpolator, save_model
+import numpy as np
 
 K95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
@@ -46,11 +47,13 @@ def _get_model(teff, logg, feh, type='kurucz95'):
 
     """
 
+    # Using the correct model atmosphere
     if type == 'kurucz95':
         grid = K95
     else:
-        raise NotImplementedError('You request for type: %s is not available' %
-                                  type)
+        raise NotImplementedError('You request for type: %s is not available' % type)
+
+    # Checking for bounds in Teff, logg, and [Fe/H]
     if (teff < grid['teff'][0]) or (teff > grid['teff'][-1]):
         raise ValueError('Teff out of bounds: %s' % teff)
     if (logg < grid['logg'][0]) or (logg > grid['logg'][-1]):
@@ -59,7 +62,10 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         raise ValueError('[Fe/H] out of bounds: %s' % feh)
 
     if teff in grid['teff']:
-        teff_model = [teff, teff]
+        for i, Ti in enumerate(grid['teff']):
+            if Ti - teff == 0:
+                break
+        teff_model = [grid['teff'][i-1], grid['teff'][i+1]]
     else:
         for i, Ti in enumerate(grid['teff']):
             if Ti - teff > 0:
@@ -67,7 +73,10 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         teff_model = [grid['teff'][i-1], grid['teff'][i]]
 
     if logg in grid['logg']:
-        logg_model = [logg, logg]
+        for i, li in enumerate(grid['logg']):
+            if li - logg == 0:
+                break
+        logg_model = [grid['logg'][i-1], grid['logg'][i+1]]
     else:
         for i, li in enumerate(grid['logg']):
             if li - logg > 0:
@@ -75,7 +84,10 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         logg_model = [grid['logg'][i-1], grid['logg'][i]]
 
     if feh in grid['feh']:
-        feh_model = [feh, feh]
+        for i, fi in enumerate(grid['feh']):
+            if fi - feh == 0:
+                break
+        feh_model = [grid['feh'][i-1], grid['feh'][i+1]]
     else:
         for i, fi in enumerate(grid['feh']):
             if fi - feh > 0:
@@ -196,13 +208,81 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         moog.writelines(moog_contents)
 
 
-def main(teff, logg, feh):
+def _run_moog(par='batch.par'):
+    """Run MOOGSILENT with the given parameter file
+    """
+    os.system('MOOGSILENT > /dev/null')
+
+
+def _read_moog(fname='summary.out'):
+    """Read the slopes from the summary.out and return them
+
+    :fname: From the summary_out
+    :returns: A tuple of the slopes and the average abundances for
+    different elements
+    """
+    EP_slopes = []
+    RW_slopes = []
+    abundances = []
+    with open(fname, 'r') as lines:
+        for line in lines:
+            # Get the EP slope
+            if line.startswith('E.P'):
+                line = filter(None, line.split('slope =')[1].split(' '))
+                EP_slopes.append(float(line[0]))
+            # Get the reduced EW slope
+            elif line.startswith('R.W'):
+                line = filter(None, line.split('slope =')[1].split(' '))
+                RW_slopes.append(float(line[0]))
+            # Get the average abundance
+            elif line.startswith('average abundance'):
+                line = filter(None, line.split('abundance =')[1].split(' '))
+                abundances.append(float(line[0]))
+    return EP_slopes, RW_slopes, abundances
+
+
+def fun_moog(x, par='batch.par', results='summary.out'):
+    """The 'function' that we should minimize
+
+    :x: A tuple/list with values (teff, logg, [Fe/H], vt)
+    :par: The parameter file (batch.par)
+    :results: The summary file
+    :returns: The slopes and abundances for the different elements
+    """
+
+    # Create an atmosphere model from input parameters
+    teff, logg, feh, _ = x
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
-    n = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
-    save_model(n, params=(teff, logg, feh, 2.4))
+    model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
+                         feh=(feh, nf))
+    save_model(model, x)
+
+    # Run MOOG and get the slopes and abundaces
+    _run_moog(par=par)
+    EPs, RWs, abundances = _read_moog(fname=results)
+    if len(abundances) == 2:
+        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
+        return res, EPs[0], RWs[0], abundances
 
 
-if __name__ == '__main__':
-    # This is only for testing and should be removed later on...
-    teff, logg, feh = 4252, 3.52, -0.02
-    main(teff, logg, feh)
+def fun_moog_fortran(x, par='batch.par', results='summary.out'):
+    """The 'function' that we should minimize
+
+    :x: A tuple/list with values (teff, logg, [Fe/H], vt)
+    :par: The parameter file (batch.par)
+    :results: The summary file
+    :returns: The slopes and abundances for the different elements
+    """
+
+    # Create an atmosphere model from input parameters
+    teff, logg, feh, vt = x
+    p = '/home/daniel/Software/SPECPAR/interpol_models/'
+    os.system('echo %i %s %s | %sintermod.e > /dev/null' % (teff, logg, feh, p))
+    os.system('echo %s | %stransform.e > /dev/null' % (vt, p))
+
+    # Run MOOG and get the slopes and abundaces
+    _run_moog(par=par)
+    EPs, RWs, abundances = _read_moog(fname=results)
+    if len(abundances) == 2:
+        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
+        return res, EPs[0], RWs[0], abundances
