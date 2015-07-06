@@ -38,7 +38,7 @@ zf = zf.T
 zf /= zf.max()
 
 res = abs(z-zf)
-res /= max(res)
+res /= res.max()
 
 
 plt.figure()
@@ -52,12 +52,12 @@ plt.figure()
 plt.contourf(Teffs, loggs, zf, levels=np.linspace(0, 1, 100), cmap=plt.cm.spectral)
 plt.colorbar()
 plt.title('Fortran')
-plt.plot(4.44, 0.0, 'or')
+plt.plot(5834, 4.28, 'or')
 
 plt.figure()
 plt.contourf(Teffs, loggs, res, levels=np.linspace(0, 1, 100), cmap=plt.cm.spectral)
 plt.colorbar()
 plt.title('Difference')
-plt.plot(4.44, 0.0, 'or')
+plt.plot(5834, 4.28, 'or')
 
 plt.show()
