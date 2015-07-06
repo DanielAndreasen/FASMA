@@ -113,6 +113,6 @@ def minimize(x0, func, bounds="kurucz95",
             save_iteration(parameters)
         N += 1
 
-    converged = False if N==iteration else True
+    converged = False if N>iteration else True
 
     return parameters, converged
