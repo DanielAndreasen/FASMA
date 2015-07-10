@@ -65,7 +65,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         for i, Ti in enumerate(grid['teff']):
             if Ti - teff == 0:
                 break
-        teff_model = [grid['teff'][i-1], grid['teff'][i+1]]
+        teff_model = [grid['teff'][i], grid['teff'][i+1]]
     else:
         for i, Ti in enumerate(grid['teff']):
             if Ti - teff > 0:
@@ -76,7 +76,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         for i, li in enumerate(grid['logg']):
             if li - logg == 0:
                 break
-        logg_model = [grid['logg'][i-1], grid['logg'][i+1]]
+        logg_model = [grid['logg'][i], grid['logg'][i+1]]
     else:
         for i, li in enumerate(grid['logg']):
             if li - logg > 0:
@@ -87,7 +87,7 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         for i, fi in enumerate(grid['feh']):
             if fi - feh == 0:
                 break
-        feh_model = [grid['feh'][i-1], grid['feh'][i+1]]
+        feh_model = [grid['feh'][i], grid['feh'][i+1]]
     else:
         for i, fi in enumerate(grid['feh']):
             if fi - feh > 0:
