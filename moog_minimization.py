@@ -28,9 +28,22 @@ def check_bounds(parameter, bounds, i):
         parameter = bounds[i]
     return parameter
 
+def check_convergence(RW, EP, Abdiff, fe_input, fe, fix_teff, fix_logg, fix_vt, fix_feh):
+   """
+   Check convergence criteria
+   """
+   EP = 0.00 if fix_teff else EP
+   RW = 0.00 if fix_vt else RW
+   Abdiff = 0.00 if fix_logg else Abdiff
+   fe = fe_input if fix_feh else fe 
+   if (abs(RW) <= 0.001) and ((abs(Abdiff) <= 0.001)) and (abs(EP) <= 0.001) and (fe_input == fe-7.47): 
+      return True
+   else:
+      return  False
+
 def minimize(x0, func, bounds="kurucz95",
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             eps=1e-7, iteration=25):
+             eps=1e-8, iteration=25):
     """
     Some doc
     """
@@ -53,7 +66,7 @@ def minimize(x0, func, bounds="kurucz95",
         pass
 
     N = 0
-    while (res > eps) and (N < iteration):
+    while N < iteration:
         N1 = 0
         while (abs(slopeEP) > 0.001) and not fix_teff and N1 < 15:
             # For Teff
@@ -113,6 +126,10 @@ def minimize(x0, func, bounds="kurucz95",
             save_iteration(parameters)
         N += 1
 
-    converged = False if N==iteration else True
+	if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+	   break
+
+    print 'Stopped at ', N, ' iterations'
+    converged = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh)
 
     return parameters, converged
