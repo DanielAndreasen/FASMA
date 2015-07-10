@@ -6,9 +6,12 @@ from __future__ import division, print_function
 import logging
 import os
 import argparse
-import seaborn as sns
-sns.set_style('dark')
-sns.set_context('talk')
+try:
+    import seaborn as sns
+    sns.set_style('dark')
+    sns.set_context('talk')
+except ImportError:
+    print('install seaborn for nice plots (pip install seaborn)')
 import yaml
 
 from utils import _get_model, _update_par
@@ -54,10 +57,9 @@ def _parser():
                         default=False)
     return parser.parse_args()
 
-
+# TODO: We don't use this function yet. Use it!
 def _getSpt(spt):
     """Get the spectral type from a string like 'F5V'."""
-
     if not isinstance(spt, str):
         raise ValueError('Spectral type must be a string')
     if len(spt) > 4:
@@ -80,20 +82,21 @@ def _getSpt(spt):
 
 def _getMic(teff, logg):
     """Calculate micro turbulence. REF? Doyle 2014"""
-    if logg >= 3.95:   #Dwarfs
+    if logg >= 3.95:  # Dwarfs
         mic = 6.932*teff*(10**-4)-0.348*logg-1.437
         return mic
-    else:  #Giants
+    else:  # Giants
         mic=3.7-(5.1*teff*(10**-4))
         return mic
 
 
 def _renaming(linelist, converged):
+    """Save the output in a file related to the linelist"""
     if converged:
         cmd = 'cp summary.out %s.out' % linelist
     else:
         cmd = 'cp summary.out %s.NC.out' % linelist
-        #os.system('cp  minimization_profile.dat %s.profile.dat' % linelist)
+        #os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
 
     os.system(cmd)
 
@@ -104,7 +107,6 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
     Some doc
     """
 
-    # TODO: Someone put the right temperatures and logg below. Please
     # keep the structure even though the lines are longer than 80 chars.
     # Temperatures for V from http://www.uni.edu/morgans/astro/course/Notes/section2/spectraltemps.html
     spectralType_T = {                                                                'O5': 54000, 'O6': 45000, 'O7': 43300, 'O8': 40600, 'O9': 37800,
@@ -136,9 +138,9 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
         # Set initial parameters to solar value
         initial = (5777, 4.44, 0.00, 1.00)
 
+    # TODO: Let us just insist on having a batch.par in the directory. Create one if necessary
     # Preparing the batch file for MOOGSILENT
     if not os.path.isfile(parfile):
-        # TODO: Maybe we can create one. The function is in pymoog.py for that
         raise IOError('%s does not exist' % parfile)
     if parfile != 'batch.par':
         os.system('cp %s batch.par' % parfile)
@@ -213,11 +215,11 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             save_model(inter_model, params=initial)
             logger.info('Interpolation successful.')
 
-            logger.info('Starting the minization procedure...')
+            logger.info('Starting the minimization procedure...')
             parameters, converged = minimize(initial, fun_moog, bounds=model,
                                   fix_teff=fix_teff, fix_logg=fix_logg,
                                   fix_feh=fix_feh, fix_vt=fix_vt)
-            logger.info('Finished minization procedure')
+            logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
 
             #print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
