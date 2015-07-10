@@ -60,24 +60,28 @@ def _parser():
 # TODO: We don't use this function yet. Use it!
 def _getSpt(spt):
     """Get the spectral type from a string like 'F5V'."""
-    if not isinstance(spt, str):
-        raise ValueError('Spectral type must be a string')
     if len(spt) > 4:
         raise ValueError('Spectral type most be of the form: F8V')
     if '.' in spt:
         raise ValueError('Do not use half spectral types as %s' % spt)
     with open('SpectralTypes.yml', 'r') as f:
         d = yaml.safe_load(f)
-    temp = spt[0]
-    subtemp = spt[1]
+    temp = spt[0:2]
     lum = spt[2:]
     try:
-        teff = d[lum][temp][subtemp]
+        line = d[lum][temp]
     except KeyError:
         print('Was not able to find the spectral type: %s' % spt)
-        print('Setting the effective temperature to 5777')
-        teff = 5777
-    return teff
+        print('Teff=5777 and logg=4.44')
+        return 5777, 4.44
+    try:
+        line = line.split()
+        teff = int(line[0])
+        logg = float(line[1])
+    except AttributeError:
+        teff = line
+        logg = 4.44
+    return teff, logg
 
 
 def _getMic(teff, logg):
@@ -104,36 +108,13 @@ def _renaming(linelist, converged):
 def moogme(starLines, parfile='batch.par', model='kurucz95',
            initial=False, plot=False, outlier=False, spt=False):
     """Some doc"""
-    # keep the structure even though the lines are longer than 80 chars.
-    # Temperatures for V from http://www.uni.edu/morgans/astro/course/Notes/section2/spectraltemps.html
-    spectralType_T = {                                                                'O5': 54000, 'O6': 45000, 'O7': 43300, 'O8': 40600, 'O9': 37800,
-                      'B0': 29200, 'B1': 23000, 'B2': 21000, 'B3': 17600,             'B5': 15200, 'B6': 14300, 'B7': 13500, 'B8': 12300, 'B9': 11400,
-                      'A0': 9600,  'A1': 9330,  'A2': 9040,  'A3': 8750,  'A4': 8480, 'A5': 8310,               'A7': 7920,
-                      'F0': 7350,               'F2': 7050,  'F3': 6850,              'F5': 6700,  'F6': 6550,  'F7': 6400,  'F8': 6300,
-                      'G0': 6050,  'G1': 5930,  'G2': 5800,                           'G5': 5660,                            'G8': 5440,
-                      'K0': 5240,  'K1': 5110,  'K2': 4960,  'K3': 4800,  'K4': 4600, 'K5': 4400,               'K7': 4000,
-                      'M0': 3750,  'M1': 3700,  'M2': 3600,  'M3': 3500,  'M4': 3400, 'M5': 3200,  'M6': 3100,  'M7': 2900,  'M8': 2700}
-    # Daniel's late-night loggs. Maybe this should be changed. It is 02:12 AM saturday, and I'm tired...
-    spectralType_g = {'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4.5}
-
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-
     handler = logging.FileHandler('captain.log')
     handler.setLevel(logging.DEBUG)
-
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-
-    # Setting the initial parameters
-    if spt and not initial:
-        Teff = spectralType_T[spt[0:2]]
-        logg = spectralType_g[spt[2::]]
-        initial = (Teff, logg, 0.00, 1.00)
-    elif not initial and not spt:
-        # Set initial parameters to solar value
-        initial = (5777, 4.44, 0.00, 1.00)
 
     # TODO: Let us just insist on having a batch.par in the directory. Create one if necessary
     # Preparing the batch file for MOOGSILENT
@@ -163,9 +144,8 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             elif len(line) == 2:
                 logger.info('Spectral type given: %s' % line[1])
                 spt = line[1]
-                Teff = spectralType_T[spt[0:2]]
-                logg = spectralType_g[spt[2::]]
-                mic, _ = _getMic(Teff, logg)
+                Teff, logg = _getSpt(spt)
+                mic = _getMic(Teff, logg)
                 initial = (Teff, logg, 0.00, mic)
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 _update_par(line_list=line[0])
