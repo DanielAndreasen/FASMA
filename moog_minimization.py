@@ -17,6 +17,7 @@ def save_iteration(parameters):
     data = ','.join(map(str, parameters))
     os.system('echo %s >> minimization_profile.dat' % data)
 
+
 def check_bounds(parameter, bounds, i):
     """
     Function which checks if parameters are within bounds.
@@ -48,10 +49,6 @@ def minimize(x0, func, bounds="kurucz95",
     Some doc
     """
 
-    # TODO: Implement the bound. e.g. if we hit upper Teff, raise a flag and
-    # set the Teff=upper bound
-
-    # Step size
     # Teff, logg, vt
     step = (500, 0.50, 0.50)
     if bounds.lower() == "kurucz95":
