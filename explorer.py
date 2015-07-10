@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 
 
 
-Teff_rng = np.arange(4000, 8000, 50)
-logg_rng = np.arange(3.5, 5.0, 0.1)
+Teff_rng = np.arange(4000, 5000, 50)
+logg_rng = np.arange(3.4, 4.3, 0.1)
 
 
 ## Python version
@@ -23,6 +23,7 @@ for i, Teff in enumerate(Teffs[0, :]):
         z[i, j] = fun_moog((Teff, logg, 0.0, 1.0))[0]
 
 z = z.T
+z1 = z.copy()
 z /= z.max()
 
 ## FORTRAN version
@@ -35,29 +36,28 @@ for i, Teff in enumerate(Teffs[0, :]):
         zf[i, j] = fun_moog_fortran((Teff, logg, 0.0, 1.0))[0]
 
 zf = zf.T
+z2 = zf.copy()
 zf /= zf.max()
 
-res = abs(z-zf)
-res /= res.max()
-
+res = abs(z1-z2)
 
 plt.figure()
 plt.contourf(Teffs, loggs, z, levels=np.linspace(0, 1, 100), cmap=plt.cm.spectral)
 plt.colorbar()
 plt.title('Python')
-plt.plot(5834, 4.28, 'or')
+# plt.plot(5834, 4.28, 'or')
 
 
 plt.figure()
 plt.contourf(Teffs, loggs, zf, levels=np.linspace(0, 1, 100), cmap=plt.cm.spectral)
 plt.colorbar()
 plt.title('Fortran')
-plt.plot(5834, 4.28, 'or')
+# plt.plot(5834, 4.28, 'or')
 
 plt.figure()
 plt.contourf(Teffs, loggs, res, levels=np.linspace(0, 1, 100), cmap=plt.cm.spectral)
 plt.colorbar()
 plt.title('Difference')
-plt.plot(5834, 4.28, 'or')
+# plt.plot(5834, 4.28, 'or')
 
 plt.show()
