@@ -83,10 +83,10 @@ def _getSpt(spt):
 def _getMic(teff, logg):
     """Calculate micro turbulence. REF? Doyle 2014"""
     if logg >= 3.95:  # Dwarfs
-        mic = 6.932*teff*(10**-4)-0.348*logg-1.437
+        mic = 6.932 * teff * (10 ** (-4)) - 0.348 * logg - 1.437
         return mic
     else:  # Giants
-        mic=3.7-(5.1*teff*(10**-4))
+        mic = 3.7 - (5.1 * teff * (10 ** (-4)))
         return mic
 
 
@@ -96,17 +96,14 @@ def _renaming(linelist, converged):
         cmd = 'cp summary.out %s.out' % linelist
     else:
         cmd = 'cp summary.out %s.NC.out' % linelist
-        #os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
+        # os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
 
     os.system(cmd)
 
 
 def moogme(starLines, parfile='batch.par', model='kurucz95',
            initial=False, plot=False, outlier=False, spt=False):
-    """
-    Some doc
-    """
-
+    """Some doc"""
     # keep the structure even though the lines are longer than 80 chars.
     # Temperatures for V from http://www.uni.edu/morgans/astro/course/Notes/section2/spectraltemps.html
     spectralType_T = {                                                                'O5': 54000, 'O6': 45000, 'O7': 43300, 'O8': 40600, 'O9': 37800,
@@ -145,7 +142,6 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
     if parfile != 'batch.par':
         os.system('cp %s batch.par' % parfile)
         rm_batch = True
-
 
     with open(starLines, 'r') as lines:
         for line in lines:
@@ -217,13 +213,16 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
 
             logger.info('Starting the minimization procedure...')
             parameters, converged = minimize(initial, fun_moog, bounds=model,
-                                  fix_teff=fix_teff, fix_logg=fix_logg,
-                                  fix_feh=fix_feh, fix_vt=fix_vt)
+                                             fix_teff=fix_teff, fix_logg=fix_logg,
+                                             fix_feh=fix_feh, fix_vt=fix_vt)
+            # parameters, converged = minimize(initial, fun_moog_fortran, bounds=model,
+            #                                  fix_teff=fix_teff, fix_logg=fix_logg,
+            #                                  fix_feh=fix_feh, fix_vt=fix_vt)
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
 
-            #print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
-            #print(line[0])
+            # print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
+            # print(line[0])
     return parameters
 
 
