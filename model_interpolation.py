@@ -156,19 +156,10 @@ def interpolator(mnames, teff, logg, feh):
         opmax.append(np.amax(tatm[1]))
 
     # Define the grid coordinates for the interpolation
-    # TODO: Put this in a function, if it is this ugly!
-    try:
-        c1 = [(teff-tefflow)/(teffhigh-tefflow)]
-    except ZeroDivisionError:
-        c1 = [0.5]
-    try:
-        c2 = [(logg-logglow)/(logghigh-logglow)]
-    except ZeroDivisionError:
-        c2 = [0.5]
-    try:
-        c3 = [(feh-fehlow)/(fehhigh-fehlow)]
-    except ZeroDivisionError:
-        c3 = [0.5]
+    c1 = [(teff-tefflow)/(teffhigh-tefflow)]
+    c2 = [(logg-logglow)/(logghigh-logglow)]
+    c3 = [(feh-fehlow)/(fehhigh-fehlow)]
+
     # Need to be like this for map_coordinates! Do not touch the line below.
     coord = np.array([c1, c2, c3])
 
