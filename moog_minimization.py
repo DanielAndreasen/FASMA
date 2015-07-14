@@ -37,13 +37,13 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe, fix_teff, fix_logg, fix_vt, 
     EP = 0.00 if fix_teff else EP
     RW = 0.00 if fix_vt else RW
     Abdiff = 0.00 if fix_logg else Abdiff
-    fe = fe_input if fix_feh else fe
+    fe = fe_input+7.47 if fix_feh else fe
     return (abs(RW) <= 0.001) and ((abs(Abdiff) <= 0.001)) and (abs(EP) <= 0.001) and (fe_input == fe-7.47)
 
 
 def minimize(x0, func, bounds="kurucz95",
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             eps=1e-8, iteration=25):
+             iteration=25):
     """
     Some doc
     """
@@ -77,6 +77,8 @@ def minimize(x0, func, bounds="kurucz95",
             N1 += 1
             save_iteration(parameters)
         N += 1
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+            break
 
         N2 = 0
         while (abs(Abdiff) > 0.001) and not fix_logg and N2 < 15:
@@ -93,6 +95,8 @@ def minimize(x0, func, bounds="kurucz95",
             N2 += 1
             save_iteration(parameters)
         N += 1
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+            break
 
         #       Input metal...   FeI abund.
         N3 = 0
@@ -105,6 +109,8 @@ def minimize(x0, func, bounds="kurucz95",
             N3 += 1
             save_iteration(parameters)
         N += 1
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+            break
 
         N4 = 0
         while (abs(slopeRW) > 0.001) and not fix_vt and N4 < 15:
@@ -121,9 +127,8 @@ def minimize(x0, func, bounds="kurucz95",
             N4 += 1
             save_iteration(parameters)
         N += 1
-
-	if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
-	   break
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+            break
 
     print 'Stopped at %i iterations' % N
     converged = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh)
