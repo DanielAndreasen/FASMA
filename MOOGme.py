@@ -192,12 +192,12 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             logger.info('Interpolation successful.')
 
             logger.info('Starting the minimization procedure...')
-            parameters, converged = minimize(initial, fun_moog, bounds=model,
-                                             fix_teff=fix_teff, fix_logg=fix_logg,
-                                             fix_feh=fix_feh, fix_vt=fix_vt)
-            # parameters, converged = minimize(initial, fun_moog_fortran, bounds=model,
+            # parameters, converged = minimize(initial, fun_moog, bounds=model,
             #                                  fix_teff=fix_teff, fix_logg=fix_logg,
             #                                  fix_feh=fix_feh, fix_vt=fix_vt)
+            parameters, converged = minimize(initial, fun_moog_fortran, bounds=model,
+                                             fix_teff=fix_teff, fix_logg=fix_logg,
+                                             fix_feh=fix_feh, fix_vt=fix_vt)
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
 
