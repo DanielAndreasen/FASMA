@@ -51,7 +51,7 @@ def minimize(x0, func, bounds="kurucz95",
     # Teff, logg, vt
     step = (500, 0.50, 0.50)
     if bounds.lower() == "kurucz95":
-        bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 100]
+        bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
     res, slopeEP, slopeRW, abundances = func(x0)
     Abdiff = np.diff(abundances)[0]
@@ -64,6 +64,7 @@ def minimize(x0, func, bounds="kurucz95",
     N = 0
     while N < iteration:
         N1 = 0
+        cycle = [parameters[0]]
         while (abs(slopeEP) > 0.001) and not fix_teff and N1 < 15:
             # For Teff
             s = np.sign(slopeEP)
@@ -71,6 +72,10 @@ def minimize(x0, func, bounds="kurucz95",
             step_i = s*1 if abs(step_i) < 1 else step_i
             parameters[0] += step_i
             parameters[0] = check_bounds(parameters[0],bounds,1)
+            if parameters[0] in cycle:
+                break
+            else:
+                cycle.append(parameters[0])
             print_format(parameters)
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
@@ -81,6 +86,7 @@ def minimize(x0, func, bounds="kurucz95",
             break
 
         N2 = 0
+        cycle = [parameters[1]]
         while (abs(Abdiff) > 0.001) and not fix_logg and N2 < 15:
             # For logg
             s = -np.sign(Abdiff)
@@ -89,6 +95,10 @@ def minimize(x0, func, bounds="kurucz95",
             parameters[1] += step_i
             #checks bounds of logg
             parameters[1] = check_bounds(parameters[1],bounds,3)
+            if parameters[1] in cycle:
+                break
+            else:
+                cycle.append(parameters[1])
             print_format(parameters)
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
@@ -113,6 +123,7 @@ def minimize(x0, func, bounds="kurucz95",
             break
 
         N4 = 0
+        cycle = [parameters[3]]
         while (abs(slopeRW) > 0.001) and not fix_vt and N4 < 15:
             # For micro turbulence
             s = np.sign(slopeRW)
@@ -120,12 +131,19 @@ def minimize(x0, func, bounds="kurucz95",
             step_i = s*0.01 if abs(step_i) < 0.01 else step_i
             parameters[3] += step_i
             parameters[3] = 0.00 if parameters[3] < 0 else parameters[3]
-            parameters[3] = check_bounds(parameters[3],bounds,7)
+            parameters[3] = check_bounds(parameters[3], bounds, 7)
+            if parameters[3] in cycle:
+                break
+            else:
+                cycle.append(parameters[3])
             print_format(parameters)
+            tmp = slopeRW
             res, slopeEP, slopeRW, abundances = func(parameters)
             Abdiff = np.diff(abundances)[0]
             N4 += 1
             save_iteration(parameters)
+            if tmp == slopeRW:
+                break
         N += 1
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
             break
