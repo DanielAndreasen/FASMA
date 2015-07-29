@@ -30,7 +30,8 @@ def check_bounds(parameter, bounds, i):
     return parameter
 
 
-def check_convergence(RW, EP, Abdiff, fe_input, fe, fix_teff, fix_logg, fix_vt, fix_feh):
+def check_convergence(RW, EP, Abdiff, fe_input, fe,
+                      fix_teff, fix_logg, fix_vt, fix_feh):
     """
     Check convergence criteria
     """
@@ -38,7 +39,12 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe, fix_teff, fix_logg, fix_vt, 
     RW = 0.00 if fix_vt else RW
     Abdiff = 0.00 if fix_logg else Abdiff
     fe = fe_input+7.47 if fix_feh else fe
-    return (abs(RW) <= 0.001) and ((abs(Abdiff) <= 0.001)) and (abs(EP) <= 0.001) and (fe_input == fe-7.47)
+
+    cond1 = abs(RW) <= 0.001
+    cond2 = abs(Abdiff) <= 0.001
+    cond3 = abs(EP) <= 0.001
+    cond4 = fe_input == fe-7.47
+    return cond1 and cond2 and cond3 and cond4
 
 
 def minimize(x0, func, bounds="kurucz95",
@@ -69,9 +75,12 @@ def minimize(x0, func, bounds="kurucz95",
             # For Teff
             s = np.sign(slopeEP)
             step_i = s * step[0]/abs(np.log(abs(slopeEP)+0.0005))**3
-            step_i = s*1 if abs(step_i) < 1 else step_i
+            if abs(step_i) < 1:
+                step_i = s*1  # Minimum 1K
+            elif abs(step_i) > 17625:
+                step_i = s*17625  # Maximum 17625K (half the interval?)
             parameters[0] += step_i
-            parameters[0] = check_bounds(parameters[0],bounds,1)
+            parameters[0] = check_bounds(parameters[0], bounds, 1)
             if parameters[0] in cycle:
                 break
             else:
@@ -91,10 +100,13 @@ def minimize(x0, func, bounds="kurucz95",
             # For logg
             s = -np.sign(Abdiff)
             step_i = s * step[1]/abs(np.log(abs(Abdiff)+0.0005))**3
-            step_i = s*0.01 if abs(step_i) < 0.01 else step_i
+            if abs(step_i) < 0.01:
+                step_i = s*0.01  # Minimum logg step
+            elif abs(step_i) > 2.5:
+                step_i = s*2.5  # Maximum logg step
             parameters[1] += step_i
-            #checks bounds of logg
-            parameters[1] = check_bounds(parameters[1],bounds,3)
+            # checks bounds of logg
+            parameters[1] = check_bounds(parameters[1], bounds, 3)
             if parameters[1] in cycle:
                 break
             else:
@@ -113,7 +125,7 @@ def minimize(x0, func, bounds="kurucz95",
         while (parameters[2] != abundances[0]-7.47) and not fix_feh and N3 < 5:
             # For metalicity
             parameters[2] = abundances[0]-7.47
-            parameters[2] = check_bounds(parameters[2],bounds,5)
+            parameters[2] = check_bounds(parameters[2], bounds, 5)
             res, slopeEP, slopeRW, abundances = func(parameters)
             print_format(parameters)
             N3 += 1
@@ -128,7 +140,12 @@ def minimize(x0, func, bounds="kurucz95",
             # For micro turbulence
             s = np.sign(slopeRW)
             step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
-            step_i = s*0.01 if abs(step_i) < 0.01 else step_i
+            if abs(step_i) < 0.01:
+                step_i = s*0.01  # Minimum vt step
+            elif abs(step_i) > 2.5:
+                step_i = s*2.5  # Maximum vt step
+            else:
+                step_i = step_i
             parameters[3] += step_i
             parameters[3] = 0.00 if parameters[3] < 0 else parameters[3]
             parameters[3] = check_bounds(parameters[3], bounds, 7)
