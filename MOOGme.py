@@ -57,7 +57,7 @@ def _parser():
                         default=False)
     return parser.parse_args()
 
-# TODO: We don't use this function yet. Use it!
+
 def _getSpt(spt):
     """Get the spectral type from a string like 'F5V'."""
     if len(spt) > 4:
@@ -88,10 +88,10 @@ def _getMic(teff, logg):
     """Calculate micro turbulence. REF? Doyle 2014"""
     if logg >= 3.95:  # Dwarfs
         mic = 6.932 * teff * (10 ** (-4)) - 0.348 * logg - 1.437
-        return mic
+        return round(mic, 2)
     else:  # Giants
         mic = 3.7 - (5.1 * teff * (10 ** (-4)))
-        return mic
+        return round(mic, 2)
 
 
 def _renaming(linelist, converged):
@@ -116,7 +116,8 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    # TODO: Let us just insist on having a batch.par in the directory. Create one if necessary
+    # TODO: Let us just insist on having a batch.par in the directory.
+    # Create one if necessary
     # Preparing the batch file for MOOGSILENT
     if not os.path.isfile(parfile):
         raise IOError('%s does not exist' % parfile)
@@ -201,8 +202,8 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
 
-            # print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
-            # print(line[0])
+            print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
+            print(line[0])
     return parameters
 
 
