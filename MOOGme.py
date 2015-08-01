@@ -142,6 +142,10 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
     if outlier:
         logger.debug('outlier keyword not implemented yet')
 
+    with open('results.csv', 'w') as output:
+        tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
+        output.write('\t'.join(tmp)+'\n')
+
     with open(starLines, 'r') as lines:
         for line in lines:
             if not line[0].isalpha():
@@ -219,6 +223,11 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
 
+            with open('results.csv', 'a') as output:
+                tmp = [line[0], parameters[0], 0, parameters[1], 0.00, parameters[2], 0.00, parameters[3], 0.00, converged]
+                output.write('\t'.join(map(str, tmp))+'\n')
+                logger.info('Saved results to: results.csv')
+
             print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
             print(line[0])
     return parameters
@@ -227,5 +236,4 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
 if __name__ == '__main__':
     args = _parser()
     parameters = moogme(args.configfile, args.parfile, args.model,
-                        args.initial, args.plot,
-                        args.outliers)
+                        args.plot, args.outliers)
