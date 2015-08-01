@@ -29,7 +29,9 @@ def _parser():
     parser = argparse.ArgumentParser(description='Plot fits file for ARES. Be'
                                      ' careful with large files')
 
-    parser.add_argument('linelist', help='Input line list')
+    parser.add_argument('-i', '--configfile',
+                        help='Input config file',
+                        default='StarMe.cfg')
     parser.add_argument('-p', '--parfile',
                         help='The parameter file (default: batch.par)',
                         default='batch.par')
@@ -37,20 +39,12 @@ def _parser():
                         help='Model atmosphere',
                         default='Kurucz95',
                         choices=['Kurucz95', 'Kn', 'Marcs', 'PHOENIX'])
-    parser.add_argument('-i', '--initial',
-                        help='Initial conditions (Teff, logg, [Fe/H], vt)',
-                        nargs='+',
-                        type=float,
-                        default=False)
     parser.add_argument('-pl', '--plot',
                         help='Plot the slopes',
                         default=False)
     parser.add_argument('-ol', '--outliers',
                         help='Remove n*sigma outliers',
                         type=float,
-                        default=False)
-    parser.add_argument('-spt', '--spectralType',
-                        help='Input spectral type (e.g. F4V) and get initial parameters',
                         default=False)
     parser.add_argument('-v', '--verbose',
                         help='Print information to the screen along the way',
