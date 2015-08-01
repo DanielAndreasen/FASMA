@@ -1,19 +1,20 @@
 pymoog
 ======
 
-A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html), the stellar spectra code
+A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html),
+the stellar spectra code.
 
-Probably this will also be integrated
-[ARES](http://www.astro.up.pt/~sousasag/ares/) in the future.
+Probably [ARES](http://www.astro.up.pt/~sousasag/ares/) will also be
+integrated in the future.
 
 
 TODO
 ----
 
    - [x] Interpolate the atmospheric models.
-   - [ ] Minimization for MOOG to determine parameters.
+   - [x] Minimization for MOOG to determine parameters.
    - [ ] Change atmospheric models (only Kurucz95 available).
-   - [ ] Freeze parameters.
+   - [x] Freeze parameters.
    - [ ] Nice graphics.
    - [ ] Package like a real python package (pypi).
 
@@ -29,7 +30,7 @@ AUTHORS
 LICENCE
 -------
 
-pymoog use the MIT licence.
+MOOGme use the MIT licence.
 Copyright © 2015 Daniel Andreasen, Guilherme Teixeira, and Maria Tsantaki.
 
 Permission is hereby granted, free of charge, to any person obtaining
