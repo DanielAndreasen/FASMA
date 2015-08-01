@@ -81,10 +81,10 @@ def _getSpt(spt):
 def _getMic(teff, logg):
     """Calculate micro turbulence. REF? Doyle 2014"""
     if logg >= 3.95:  # Dwarfs
-        mic = 6.932 * teff * (10 ** (-4)) - 0.348 * logg - 1.437
+        mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
         return round(mic, 2)
     else:  # Giants
-        mic = 3.7 - (5.1 * teff * (10 ** (-4)))
+        mic = 3.7 - (5.1 * teff * (10**(-4)))
         return round(mic, 2)
 
 
@@ -100,8 +100,24 @@ def _renaming(linelist, converged):
 
 
 def moogme(starLines, parfile='batch.par', model='kurucz95',
-           initial=False, plot=False, outlier=False, spt=False):
-    """Some doc"""
+           plot=False, outlier=False):
+    """The function that glues everything together
+
+    Input:
+    starLines   -   Configuration file (default: StarMe.cfg)
+    parfile     -   The configuration file for MOOG
+    model       -   Type of model atmospheres
+    plot        -   Plot results (currently not implemented)
+    outlier     -   Remove outliers (currently not implemented)
+
+    Output:
+    <linelist>.(NC).out     -   NC=not converget.
+    results.csv             -   Easy readable table with results from many linelists
+    """
+    try:  # Cleaning from previous runs
+        os.remove('captain.log')
+    except IOError:
+        pass
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler('captain.log')
@@ -114,10 +130,17 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
     # Create one if necessary
     # Preparing the batch file for MOOGSILENT
     if not os.path.isfile(parfile):
+        logger.error('%s does not exist' % parfile)
         raise IOError('%s does not exist' % parfile)
     if parfile != 'batch.par':
+        logger.info('Copying %s to batch.par' % parfile)
         os.system('cp %s batch.par' % parfile)
         rm_batch = True
+
+    if plot:
+        logger.debug('plot keyword not implemented yet')
+    if outlier:
+        logger.debug('outlier keyword not implemented yet')
 
     with open(starLines, 'r') as lines:
         for line in lines:
@@ -168,7 +191,7 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                     logger.info('Micro turbulence fixed at: %s' % initial[3])
                 _update_par(line_list=line[0])
             else:
-                logger.error('Could not process information for this line list.')
+                logger.error('Could not process information for this line list: %s' % line)
                 continue
 
             # Setting the models to use
@@ -203,6 +226,6 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
 
 if __name__ == '__main__':
     args = _parser()
-    parameters = moogme(args.linelist, args.parfile, args.model,
+    parameters = moogme(args.configfile, args.parfile, args.model,
                         args.initial, args.plot,
-                        args.outliers, args.spectralType)
+                        args.outliers)
