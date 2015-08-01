@@ -51,7 +51,7 @@ def minimize(x0, func, bounds="kurucz95",
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
              iteration=25):
     """
-    Some doc
+    Sane minimization like a normal human being would do it.
     """
 
     # Teff, logg, vt
@@ -167,5 +167,9 @@ def minimize(x0, func, bounds="kurucz95",
 
     print 'Stopped at %i iterations' % N
     converged = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh)
+    parameters[0] = int(parameters[0])
+    parameters[1] = round(parameters[1], 2)
+    parameters[2] = round(parameters[2], 2)
+    parameters[3] = round(parameters[3], 2)
 
     return parameters, converged
