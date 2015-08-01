@@ -226,7 +226,7 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             with open('results.csv', 'a') as output:
                 tmp = [line[0], parameters[0], 0, parameters[1], 0.00, parameters[2], 0.00, parameters[3], 0.00, converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
-                logger.info('Saved results to: results.csv')
+            logger.info('Saved results to: results.csv')
 
             print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
             print(line[0])
