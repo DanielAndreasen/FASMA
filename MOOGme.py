@@ -18,7 +18,7 @@ from utils import _get_model, _update_par
 from model_interpolation import interpolator
 from model_interpolation import save_model
 from utils import fun_moog, fun_moog_fortran
-from moog_minimization import minimize
+from minimization import minimize
 
 
 def _parser():
