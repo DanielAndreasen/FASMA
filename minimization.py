@@ -94,9 +94,37 @@ def minimize(x0, func, bounds="kurucz95",
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
             break
 
+        N4 = 0
+        cycle = [parameters[3]]
+        while (abs(slopeRW) > 0.001) and not fix_vt and N4 < 15:
+            # For micro turbulence
+            s = np.sign(slopeRW)
+            step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
+            if abs(step_i) < 0.01:
+                step_i = s*0.01  # Minimum vt step
+            elif abs(step_i) > 2.5:
+                step_i = s*2.5  # Maximum vt step
+            else:
+                step_i = step_i
+            parameters[3] += step_i
+            parameters[3] = 0.00 if parameters[3] < 0 else parameters[3]
+            parameters[3] = check_bounds(parameters[3], bounds, 7)
+            if parameters[3] in cycle:
+                break
+            else:
+                cycle.append(parameters[3])
+            print_format(parameters)
+            tmp = slopeRW
+            res, slopeEP, slopeRW, abundances = func(parameters)
+            Abdiff = np.diff(abundances)[0]
+            N4 += 1
+            save_iteration(parameters)
+            if tmp == slopeRW:
+                break
+
         N2 = 0
         cycle = [parameters[1]]
-        while (abs(Abdiff) > 0.001) and not fix_logg and N2 < 15:
+        while (abs(Abdiff) > 0.01) and not fix_logg and N2 < 15:
             # For logg
             s = -np.sign(Abdiff)
             step_i = s * step[1]/abs(np.log(abs(Abdiff)+0.0005))**3
@@ -134,33 +162,6 @@ def minimize(x0, func, bounds="kurucz95",
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
             break
 
-        N4 = 0
-        cycle = [parameters[3]]
-        while (abs(slopeRW) > 0.001) and not fix_vt and N4 < 15:
-            # For micro turbulence
-            s = np.sign(slopeRW)
-            step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
-            if abs(step_i) < 0.01:
-                step_i = s*0.01  # Minimum vt step
-            elif abs(step_i) > 2.5:
-                step_i = s*2.5  # Maximum vt step
-            else:
-                step_i = step_i
-            parameters[3] += step_i
-            parameters[3] = 0.00 if parameters[3] < 0 else parameters[3]
-            parameters[3] = check_bounds(parameters[3], bounds, 7)
-            if parameters[3] in cycle:
-                break
-            else:
-                cycle.append(parameters[3])
-            print_format(parameters)
-            tmp = slopeRW
-            res, slopeEP, slopeRW, abundances = func(parameters)
-            Abdiff = np.diff(abundances)[0]
-            N4 += 1
-            save_iteration(parameters)
-            if tmp == slopeRW:
-                break
         N += 1
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
             break
