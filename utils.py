@@ -6,6 +6,7 @@ from __future__ import division
 import os
 from model_interpolation import interpolator, save_model
 import numpy as np
+from glob import glob
 
 K95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
@@ -286,3 +287,45 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out'):
     if len(abundances) == 2:
         res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
         return res, EPs[0], RWs[0], abundances
+
+
+def readmoog(output):
+    """Read the output file from MOOG"""
+
+    nelements = 1
+    with open(output, 'r') as lines:
+        for line in lines:
+            if 'Teff' in line:  # Get the atmospheric parameters
+                line = line.split()
+                teff = int(line[1])
+                logg = float(line[4])
+                vt = float(line[6])
+                feh = float(line[-1].split('=')[-1])
+            elif '#lines' in line and nelements == 1:  # Statistics on FeI
+                nelements += 1
+                line = line.split()
+                nfe1 = int(line[-1])
+                fe1 = float(line[3])
+                sigfe1 = float(line[7])
+            elif '#lines' in line and nelements == 2:  # Statistics on FeII
+                line = line.split()
+                nfe2 = int(line[-1])
+                fe2 = float(line[3])
+                sigfe2 = float(line[7])
+            elif 'E.P.' in line:
+                line = line.split()
+                slopeEP = float(line[4])
+            elif 'R.W.' in line:
+                line = line.split()
+                slopeRW = float(line[4])
+
+
+
+def error(linelist):
+    '''linelist to give error estimation on'''
+
+    # Find the output file
+    if os.path.isfile('%s.out' % linelist):
+        readmoog('%s.out' % linelist)
+    else:
+        readmoog('%s.NC.out' % linelist)
