@@ -41,7 +41,7 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe,
     fe = fe_input+7.47 if fix_feh else fe
 
     cond1 = abs(RW) <= 0.001
-    cond2 = abs(Abdiff) <= 0.001
+    cond2 = abs(Abdiff) <= 0.01
     cond3 = abs(EP) <= 0.001
     cond4 = fe_input == fe-7.47
     return cond1 and cond2 and cond3 and cond4
