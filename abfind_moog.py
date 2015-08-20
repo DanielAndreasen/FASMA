@@ -123,10 +123,10 @@ def plot_data(data, outlier=False):
     plt.hlines(m - 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
     plt.hlines(m + 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
     if z1[0] < -0.001:
-        plt.plot(EP, p1(EP), color=c[2])
+        plt.plot(EP, p1(EP), color=c[2], lw=3)
         print('EW slope: %.3f. Lower Teff' % z1[0])
     elif z1[0] > 0.001:
-        plt.plot(EP, p1(EP), color=c[2])
+        plt.plot(EP, p1(EP), color=c[2], lw=3)
         print('EW slope: %.3f. Higher Teff' % z1[0])
     else:
         plt.plot(EP, p1(EP), color=c[1])
@@ -141,10 +141,10 @@ def plot_data(data, outlier=False):
     plt.hlines(m - 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
     plt.hlines(m + 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
     if z2[0] < -0.003:
-        plt.plot(logRW, p2(logRW), color=c[2])
+        plt.plot(logRW, p2(logRW), color=c[2], lw=3)
         print('RW slope: %.3f. Lower vt' % z2[0])
-    if z2[0] > 0.003:
-        plt.plot(logRW, p2(logRW), color=c[2])
+    elif z2[0] > 0.003:
+        plt.plot(logRW, p2(logRW), color=c[2], lw=3)
         print('RW slope: %.3f. Higher vt' % z2[0])
     else:
         plt.plot(logRW, p2(logRW), color=c[1])
@@ -162,9 +162,7 @@ def plot_data(data, outlier=False):
 
 
 if __name__ == '__main__':
-    p = argparse.ArgumentParser(description='Force fit abundances with MOOG',
-                                epilog='Happy spectroscopying :)')
-
+    p = argparse.ArgumentParser(description='Force fit abundances with MOOG', epilog='Happy spectroscopying :)')
     p.add_argument('teff', type=int, help='The effective temperature')
     p.add_argument('logg', type=float, help='The surface gravity')
     p.add_argument('feh', type=float, help='The metallicity')
@@ -173,7 +171,6 @@ if __name__ == '__main__':
     p.add_argument('-o', '--output', help='The output file with abundances', default='summary.out')
     p.add_argument('-p', '--plot', help='Enable plotting', default=True, type=bool)
     p.add_argument('-u', '--outlier', help='print 3 sigma outliers', default=False, action='store_true')
-
     args = p.parse_args()
 
     # Interpolate and transform models
