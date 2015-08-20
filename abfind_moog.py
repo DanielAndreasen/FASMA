@@ -7,6 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import argparse
+import seaborn as sns
+sns.set_style('dark')
+sns.set_context('notebook', font_scale=1.5)
+c = sns.color_palette()
 
 # Path to the interpolation code
 path = '/home/daniel/Software/SPECPAR/interpol_models/'
@@ -97,7 +101,8 @@ def read_output(out='summary.out'):
     return element
 
 
-def plot_data(data):
+def plot_data(data, outlier=False):
+    c = sns.color_palette()
     EP = data[:, 1]
     logRW = data[:, 4]
     abund = data[:, 5]
@@ -114,30 +119,45 @@ def plot_data(data):
     plt.subplot(211)
     plt.plot(EP, abund, '.w', label='Temperature')
     plt.plot(EP, abund, '.k')
-    plt.hlines(m, min(EP), max(EP), colors='b', linestyles='--',
-               linewidth=3)
-    plt.hlines(m - s, min(EP), max(EP), colors='b', linestyles='--',
-               linewidth=3)
-    plt.hlines(m + s, min(EP), max(EP), colors='b', linestyles='--',
-               linewidth=3)
-    plt.plot(EP, p1(EP), '-r')
+    plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m - 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m + 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
+    if z1[0] < -0.001:
+        plt.plot(EP, p1(EP), color=c[2])
+        print('EW slope: %.3f. Lower Teff' % z1[0])
+    elif z1[0] > 0.001:
+        plt.plot(EP, p1(EP), color=c[2])
+        print('EW slope: %.3f. Higher Teff' % z1[0])
+    else:
+        plt.plot(EP, p1(EP), color=c[1])
     plt.legend(loc=2, frameon=False)
     plt.xlabel(r'Excitation potential: $\chi$ [eV]')
     plt.ylabel('Abundance')
 
     plt.subplot(212)
-    plt.plot(logRW, abund, '.w', label='Surface gravity')
+    plt.plot(logRW, abund, '.w', label='Micro turbulence')
     plt.plot(logRW, abund, '.k')
-    plt.hlines(m, min(logRW), max(logRW), colors='b', linestyles='--',
-               linewidth=3)
-    plt.hlines(m - s, min(logRW), max(logRW), colors='b', linestyles='--',
-               linewidth=3)
-    plt.hlines(m + s, min(logRW), max(logRW), colors='b', linestyles='--',
-               linewidth=3)
-    plt.plot(logRW, p2(logRW), '-r')
+    plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m - 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m + 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
+    if z2[0] < -0.003:
+        plt.plot(logRW, p2(logRW), color=c[2])
+        print('RW slope: %.3f. Lower vt' % z2[0])
+    if z2[0] > 0.003:
+        plt.plot(logRW, p2(logRW), color=c[2])
+        print('RW slope: %.3f. Higher vt' % z2[0])
+    else:
+        plt.plot(logRW, p2(logRW), color=c[1])
     plt.legend(loc=2, frameon=False)
     plt.xlabel(r'Reduced EW: $\log RW$')
     plt.ylabel('Abundance')
+    if outlier:
+        idx = abs(data[:, 6]) > 3*s  # deviation larger than 3 sigma
+        if True in idx:
+            for i, w in enumerate(data[idx, 0]):
+                ai = abund[idx][i]
+                std = abs((ai-m)/s)
+                print('Line at: %.3f is %.2f sigma away' % (w, std))
     return z1[0], z2[0]
 
 
@@ -150,10 +170,9 @@ if __name__ == '__main__':
     p.add_argument('feh', type=float, help='The metallicity')
     p.add_argument('vmicro', type=float, help='The micro turbulence')
     p.add_argument('-l', '--linelist', help='The linelist to be used')
-    p.add_argument('-o', '--output', help='The output file with abundances',
-                   default='summary.out')
-    p.add_argument('-p', '--plot', help='Enable plotting', default=True,
-                   type=bool)
+    p.add_argument('-o', '--output', help='The output file with abundances', default='summary.out')
+    p.add_argument('-p', '--plot', help='Enable plotting', default=True, type=bool)
+    p.add_argument('-u', '--outlier', help='print 3 sigma outliers', default=False, action='store_true')
 
     args = p.parse_args()
 
@@ -165,24 +184,11 @@ if __name__ == '__main__':
         _update_batch(args.linelist)
 
     # Run moog
-    os.system('MOOGSILENT > zzz')
-    os.system('rm -f zzz')
+    os.system('MOOGSILENT > /dev/null')
 
     # Prepare the data
     data = read_output(args.output)
 
-    # plt.ion()
-    c1, c2 = plot_data(data[0])
-    if c1 > 0:
-        print('Raise temperature')
-    elif c1 < 0:
-        print('Lower temperature')
-    else:
-        print('Temperature is found %i' % args.temperature)
-    raw_input('Press RETURN to exit > ')
-
-    if args.plot:
-        plt.ion()
-        for d in data:
-            plot_data(d)
-        raw_input('Press RETURN to exit > ')
+    c1, c2 = plot_data(data[0], args.outlier)
+    plt.tight_layout()
+    plt.show()
