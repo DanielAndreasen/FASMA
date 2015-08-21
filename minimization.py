@@ -9,7 +9,7 @@ import os
 
 def print_format(x):
     """Print the stellar atmospheric parameters in a nice format"""
-    print '%i, %.2f, %.2f, %.2f' % (x[0], x[1], x[2], x[3])
+    print '%i %.2f %.2f %.2f' % (x[0], x[1], x[2], x[3])
 
 
 def save_iteration(parameters):
@@ -55,7 +55,7 @@ def minimize(x0, func, bounds="kurucz95",
     """
 
     # Teff, logg, vt
-    step = (500, 0.50, 0.50)
+    step = (500, 0.50, 2.00)
     if bounds.lower() == "kurucz95":
         bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
