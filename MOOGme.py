@@ -117,7 +117,7 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
     """
     try:  # Cleaning from previous runs
         os.remove('captain.log')
-    except IOError:
+    except OSError:
         pass
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
