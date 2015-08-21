@@ -18,6 +18,7 @@ from utils import _get_model, _update_par
 from model_interpolation import interpolator
 from model_interpolation import save_model
 from utils import fun_moog, fun_moog_fortran
+# from utils import error
 from minimization import minimize
 
 
@@ -204,6 +205,8 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
 
             # Get the initial grid models
             logger.info('Getting initial model grid')
+            if initial[1] > 4.99:  # quick fix
+                initial[1] = 4.99
             models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2])
             logger.info('Initial interpolation of model...')
             inter_model = interpolator(models,
@@ -228,8 +231,9 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                 output.write('\t'.join(map(str, tmp))+'\n')
             logger.info('Saved results to: results.csv')
 
-            print('\nCongratulation, you have won! Your final parameters are\n' + ', '.join(map(str,parameters)))
+            print('\nCongratulation, you have won! Your final parameters are\n' + ' '.join(map(str,parameters)))
             print(line[0])
+            # error(line[0])
     return parameters
 
 
