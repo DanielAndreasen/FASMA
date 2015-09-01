@@ -119,14 +119,15 @@ def plot_data(data, outlier=False):
     plt.subplot(211)
     plt.plot(EP, abund, '.w', label='Temperature')
     plt.plot(EP, abund, '.k')
-    plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
     plt.hlines(m - 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
     plt.hlines(m + 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
     if z1[0] < -0.001:
         plt.plot(EP, p1(EP), color=c[2], lw=3)
+        plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
         print('EW slope: %.3f. Lower Teff' % z1[0])
     elif z1[0] > 0.001:
         plt.plot(EP, p1(EP), color=c[2], lw=3)
+        plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
         print('EW slope: %.3f. Higher Teff' % z1[0])
     else:
         plt.plot(EP, p1(EP), color=c[1])
@@ -137,14 +138,15 @@ def plot_data(data, outlier=False):
     plt.subplot(212)
     plt.plot(logRW, abund, '.w', label='Micro turbulence')
     plt.plot(logRW, abund, '.k')
-    plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
     plt.hlines(m - 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
     plt.hlines(m + 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
     if z2[0] < -0.003:
         plt.plot(logRW, p2(logRW), color=c[2], lw=3)
+        plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
         print('RW slope: %.3f. Lower vt' % z2[0])
     elif z2[0] > 0.003:
         plt.plot(logRW, p2(logRW), color=c[2], lw=3)
+        plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
         print('RW slope: %.3f. Higher vt' % z2[0])
     else:
         plt.plot(logRW, p2(logRW), color=c[1])
