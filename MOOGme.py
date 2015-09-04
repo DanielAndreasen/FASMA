@@ -92,9 +92,9 @@ def _getMic(teff, logg):
 def _renaming(linelist, converged):
     """Save the output in a file related to the linelist"""
     if converged:
-        cmd = 'cp summary.out %s.out' % linelist
+        cmd = 'cp summary.out ./results/%s.out' % linelist
     else:
-        cmd = 'cp summary.out %s.NC.out' % linelist
+        cmd = 'cp summary.out ./results/%s.NC.out' % linelist
         # os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
 
     os.system(cmd)
@@ -147,6 +147,18 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
         tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
         output.write('\t'.join(tmp)+'\n')
 
+    #Check if there is a directory called linelist, if not create it and ask the user to put files there
+    if not os.path.isdir('linelist'):
+        logger.error('Error: The directory linelist does not exist!')
+        os.mkdir('linelist')
+        logger.info('linelist directory was created')
+        raise IOError('linelist directory did not exist! Put the linelists inside that directory, please.')
+
+    #Create results directory
+    if not os.path.isdir('results'):
+        os.mkdir('results')
+        logger.info('results directory was created')
+
     with open(starLines, 'r') as lines:
         for line in lines:
             if not line[0].isalpha():
@@ -159,11 +171,19 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             fix_vt = False
             line = line.strip()
             line = line.split(' ')
+
+            #Check if the linelist is inside the directory if not log it and pass to next linelist
+            if not os.path.isfile('./linelist/'+line[0]):
+                logger.error('Error: The linelist has to be inside the directory linelist')
+                parameters = None
+                continue
+            else:
+                _update_par(line_list='./linelist/'+line[0])
             if len(line) == 1:
                 initial = (5777, 4.44, 0.00, 1.00)
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
                 # Update batch.par
-                _update_par(line_list=line[0])
+
             elif len(line) == 2:
                 logger.info('Spectral type given: %s' % line[1])
                 spt = line[1]
@@ -171,12 +191,12 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                 mic = _getMic(Teff, logg)
                 initial = (Teff, logg, 0.00, mic)
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                _update_par(line_list=line[0])
+
             elif len(line) == 5:
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                _update_par(line_list=line[0])
+
             elif len(line) == 6:
                 logger.info('Initial parameters given by user and some parameters fixed.')
                 initial = map(float, line[1:-1])
@@ -194,7 +214,7 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                     logger.info('Metallicity fixed at: %s' % initial[2])
                 elif fix_vt:
                     logger.info('Micro turbulence fixed at: %s' % initial[3])
-                _update_par(line_list=line[0])
+
             else:
                 logger.error('Could not process information for this line list: %s' % line)
                 continue
