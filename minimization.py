@@ -31,7 +31,8 @@ def check_bounds(parameter, bounds, i):
 
 
 def check_convergence(RW, EP, Abdiff, fe_input, fe,
-                      fix_teff, fix_logg, fix_vt, fix_feh):
+                      fix_teff, fix_logg, fix_vt, fix_feh,
+                      EPcriteria, RWcriteria, ABdiffcriteria):
     """
     Check convergence criteria
     """
@@ -40,16 +41,16 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe,
     Abdiff = 0.00 if fix_logg else Abdiff
     fe = fe_input+7.47 if fix_feh else fe
 
-    cond1 = abs(RW) <= 0.001
-    cond2 = abs(Abdiff) <= 0.01
-    cond3 = abs(EP) <= 0.001
+    cond1 = abs(RW) <= RWcriteria
+    cond2 = abs(Abdiff) <= ABdiffcriteria
+    cond3 = abs(EP) <= EPcriteria
     cond4 = fe_input == fe-7.47
     return cond1 and cond2 and cond3 and cond4
 
 
 def minimize(x0, func, bounds="kurucz95",
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             iteration=25):
+             iteration=25, EPcriteria=0.001, RWcriteria=0.001, ABdiffcriteria=0.01):
     """
     Sane minimization like a normal human being would do it.
     """
@@ -71,7 +72,7 @@ def minimize(x0, func, bounds="kurucz95",
     while N < iteration:
         N1 = 0
         cycle = [parameters[0]]
-        while (abs(slopeEP) > 0.001) and not fix_teff and N1 < 15:
+        while (abs(slopeEP) > EPcriteria) and not fix_teff and N1 < 15:
             # For Teff
             s = np.sign(slopeEP)
             step_i = s * step[0]/abs(np.log(abs(slopeEP)+0.0005))**3
@@ -91,12 +92,13 @@ def minimize(x0, func, bounds="kurucz95",
             N1 += 1
             save_iteration(parameters)
         N += 1
+        # TODO: Change this to use user-provided criteria
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
             break
 
         N4 = 0
         cycle = [parameters[3]]
-        while (abs(slopeRW) > 0.001) and not fix_vt and N4 < 15:
+        while (abs(slopeRW) > RWcriteria) and not fix_vt and N4 < 15:
             # For micro turbulence
             s = np.sign(slopeRW)
             step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
@@ -124,7 +126,7 @@ def minimize(x0, func, bounds="kurucz95",
 
         N2 = 0
         cycle = [parameters[1]]
-        while (abs(Abdiff) > 0.01) and not fix_logg and N2 < 15:
+        while (abs(Abdiff) > ABdiffcriteria) and not fix_logg and N2 < 15:
             # For logg
             s = -np.sign(Abdiff)
             step_i = s * step[1]/abs(np.log(abs(Abdiff)+0.0005))**3
