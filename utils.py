@@ -77,7 +77,10 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         for i, li in enumerate(grid['logg']):
             if li - logg == 0:
                 break
-        logg_model = [grid['logg'][i], grid['logg'][i+1]]
+        try:  # TODO: Do this everywhere!!!
+            logg_model = [grid['logg'][i], grid['logg'][i+1]]
+        except IndexError:
+            logg_model = [grid['logg'][i-1], grid['logg'][i]]
     else:
         for i, li in enumerate(grid['logg']):
             if li - logg > 0:
