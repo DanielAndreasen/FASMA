@@ -100,6 +100,31 @@ def _renaming(linelist, converged):
     os.system(cmd)
 
 
+def _options(options):
+    '''Reads the options inside the config file'''
+    defaults = {'spt': False,
+                'outlier': False,
+                'plot': False,
+                'models':'K95',
+                'teff': False,
+                'logg': False,
+                'feh': False,
+                'vt': False,
+                'iterations': 25,
+                'epslope': 0.001,
+                'rwslope': 0.001,
+                'abdiff': 0.01
+                }
+    options = options.split(',')
+    for option in options:
+        if ':' in option:
+            option = option.split(':')
+            defaults[option[0]] = option[1]
+        else:
+            defaults[option] = True
+    return defaults
+
+
 def moogme(starLines, parfile='batch.par', model='kurucz95',
            plot=False, outlier=False):
     """The function that glues everything together
@@ -184,28 +209,41 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
                 # Update batch.par
 
-            elif len(line) == 2:
-                logger.info('Spectral type given: %s' % line[1])
-                spt = line[1]
-                Teff, logg = _getSpt(spt)
-                mic = _getMic(Teff, logg)
-                initial = (Teff, logg, 0.00, mic)
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-
             elif len(line) == 5:
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
 
+            elif len(line) == 2:
+                logger.info('Spectral type given: %s' % line[1])
+                options = _options(line[1])
+                if options['spt']:
+                    Teff, logg = _getSpt(options['spt'])
+                mic = _getMic(Teff, logg)
+                initial = (Teff, logg, 0.00, mic)
+                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+                fix_teff = options['teff']
+                fix_logg = options['logg']
+                fix_feh  = options['feh']
+                fix_vt   = options['vt']
+                if fix_teff:
+                    logger.info('Effective temperature fixed at: %i' % initial[0])
+                elif fix_logg:
+                    logger.info('Surface gravity fixed at: %s' % initial[1])
+                elif fix_feh:
+                    logger.info('Metallicity fixed at: %s' % initial[2])
+                elif fix_vt:
+                    logger.info('Micro turbulence fixed at: %s' % initial[3])
+
             elif len(line) == 6:
                 logger.info('Initial parameters given by user and some parameters fixed.')
                 initial = map(float, line[1:-1])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                fix = line[-1].lower()
-                fix_teff = True if 'teff' in fix else False
-                fix_logg = True if 'logg' in fix else False
-                fix_feh  = True if 'feh'  in fix else False
-                fix_vt   = True if 'vt'   in fix else False
+                options = _options(line[-1])
+                fix_teff = options['teff']
+                fix_logg = options['logg']
+                fix_feh  = options['feh']
+                fix_vt   = options['vt']
                 if fix_teff:
                     logger.info('Effective temperature fixed at: %i' % initial[0])
                 elif fix_logg:
@@ -220,7 +258,7 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                 continue
 
             # Setting the models to use
-            if model != 'Kurucz95':
+            if options['models'] != 'K95':
                 raise NotImplementedError('Your request for type: %s is not available' % model)
 
             # Get the initial grid models
