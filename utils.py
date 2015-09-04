@@ -95,7 +95,10 @@ def _get_model(teff, logg, feh, type='kurucz95'):
                 break
         feh_model = [grid['feh'][i-1], grid['feh'][i]]
 
-    name = lambda t, g, s, f: 'kurucz95/%s%s/%ig%i.%s%s.gz' % (s, f, t, g*10, s, f)
+    if not os.path.isdir('models'):
+        raise IOError('The models have to be inside a folder called models.')
+
+    name = lambda t, g, s, f: 'models/kurucz95/%s%s/%ig%i.%s%s.gz' % (s, f, t, g*10, s, f)
     models = []
     for teff_m in teff_model:
         for logg_m in logg_model:
