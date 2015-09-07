@@ -78,25 +78,53 @@
     file and run <code>python MOOGme.py</code> in the terminal. A describtion on how to use <code>StarMe.cfg</code>
     is in the top as a comment in the file. Here we describe in detail how to use it.
 </p>
-<p>
-    Each line in <code>StarMe.cfg</code> must contain the path to a line list formatted for MOOG.
-    Everything after this first string is optional, but follow a strict format. All options are
-    single space separated.
-    <ul>
-        <li>First option after the line list have to do with the initial parameters. It can either be</li>
-        <ul>
-            <li>A spectral type like F8V. Here the metallicity is assumed 0. If the spectral type is not found, solar parameters are assumed.</li>
-            <li>Four keywords in the current order: Effective temperature, surface gravity, metallicity, and microturbulence, all single space separated.</li>
-        </ul>
-        <li>It is possible to freeze one or more parameters. This is done by writing: teff, logg, feh, and/or vt (note: this must be comma separated).</li>
-    </ul>
 
+<h5>Explaining <code>StarMe.cfg</code></h5>
+<p>
+    Each line which start with a non-alphabetic character as ",;#.-_+ and possible more
+    are not considered and can be regarded as a comment line.
+</p>
+<p>
+    All linelists must be in a folder called <code>linelist</code>. The program will look for line lists
+    in this folder, so if you have a line list called <code>lines.sun.ares</code>, just write that in the
+    beginning of the <code>StarMe.cfg</code> file. The line list <i>must</i> be formatted for MOOG.
+    Read the documentation here: <a href="http://www.as.utexas.edu/~chris/moog.html">MOOG home page</a>.
+    A tool to help, can be found here: <a href="https://github.com/DanielAndreasen/astro_scripts/blob/master/numpy2moog.py">MOOG formatter</a>.
+    Run with the <code>-h</code> flag for help.
+</p>
+
+<p>
+    There are several options available.
+    <ul>
+        <li>First an initial guess on effective temperature, surface gravity, metallicity,
+        and micro turbulence can be provided in the following way: <code>lines.sun.ares 5777 4.44 0.0 1.0</code>.
+        It is important to provide all initial parameters, and separated by a single whitespace.</li>
+        <li>A list of other options can be turned on/off as well. They must be listed with a single comma, and no whitespaces</li>
+        <ul>
+            <li><b>spt</b>: The spectral type can be provided. This is used if and only
+                if there are not given an initial guess. Example: <code>spt:F5V</code></li>
+            <li><b>outlier</b>: Remove outliers to refine results (not implemented yet)</li>
+            <li><b>plot</b>: Save a figure of abundances versus excitation potential and reduced equivalent width for best parameters (not implemented yet)</li>
+            <li><b>models</b>: Specify which models to use. Example to use Kurucz95 models (only implemented at the moment): models:K95</li>
+            <li><b>teff</b>: Fix the effective temperature. Example: teff (turns on if provided)</li>
+            <li><b>logg</b>: Same as above but for surface gravity</li>
+            <li><b>feh</b>: Same as above but for metallicity</li>
+            <li><b>vt</b>: Same as above but for micro turbulence</li>
+            <li><b>iterations:</b> Set maximum number of iterations (default: 25). Example: iterations:40</li>
+            <li><b>epslope</b>: Set the criteria for the excitation potential slope, for when convergence is reached. This slope is mainly affected
+                by the effective temperature (default: 0.001). Example: epslope:0.005</li>
+            <li><b>rwslope</b>: Same as above, but this slope is mainly affected by the microturbulence</li>
+            <li><b>abdiff</b>: Same as above, but this slope is mainly affected by the surface gravity</li>
+        </ul>
+    </ul>
     If only the line list is provided, all parameters are free, and solar parameters are assumed as initial condition.
 </p>
 
-
-
-
+<p>
+    The resulting MOOG file with abundances will be saved in <code>results/linelist.(NC).out</code>. NC only if
+    convergence was not met. If multiple line lists are provided, they will all have a unique file. Last, the results
+    can be read more easily in results.csv.
+</p>
 
 
       <footer class="site-footer">
