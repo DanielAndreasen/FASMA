@@ -7,3 +7,6 @@ mod?
 *.atm
 *.csv
 *.dat
+*.par
+linelist
+models
