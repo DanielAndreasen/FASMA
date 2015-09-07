@@ -1,1 +1,9 @@
 *.py
+*.moog
+*.out
+*.list
+*.pyc
+mod?
+*.atm
+*.csv
+*.dat
