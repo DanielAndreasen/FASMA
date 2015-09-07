@@ -1,7 +1,10 @@
 # Our own stuff
 *~
 programs/
-kurucz95/
+models/
+results/
+results.csv
+*.log
 *.par
 *.dat
 *.ares
