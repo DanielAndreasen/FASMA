@@ -16,7 +16,7 @@ result.out
 summary.out
 *.atm
 mod?
-fort.*
+# fort.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
