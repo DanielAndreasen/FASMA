@@ -30,16 +30,14 @@ def check_bounds(parameter, bounds, i):
     return parameter
 
 
-def check_convergence(RW, EP, Abdiff, fe_input, fe,
-                      fix_teff, fix_logg, fix_vt, fix_feh,
-                      EPcriteria, RWcriteria, ABdiffcriteria):
+def check_convergence(RW, EP, Abdiff, fe_input, fe):
     """
     Check convergence criteria
     """
-    EP = 0.00 if fix_teff else EP
-    RW = 0.00 if fix_vt else RW
-    Abdiff = 0.00 if fix_logg else Abdiff
-    fe = fe_input+7.47 if fix_feh else fe
+    EP = 0.00 if f_teff else EP
+    RW = 0.00 if f_vt else RW
+    Abdiff = 0.00 if f_logg else Abdiff
+    fe = fe_input+7.47 if f_feh else fe
 
     cond1 = abs(RW) <= RWcriteria
     cond2 = abs(Abdiff) <= ABdiffcriteria
@@ -50,11 +48,15 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe,
 
 def minimize(x0, func, bounds="kurucz95",
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             iteration=25, EPcriteria=0.001, RWcriteria=0.001, ABdiffcriteria=0.01):
+             iteration=25, EPcrit=0.001, RWcrit=0.001, ABdiffcrit=0.01):
     """
     Sane minimization like a normal human being would do it.
     """
 
+    global EPcriteria, RWcriteria, ABdiffcriteria
+    global f_teff, f_logg, f_vt, f_feh
+    EPcriteria, RWcriteria, ABdiffcriteria = EPcrit, RWcrit, ABdiffcrit
+    f_teff, f_logg, f_feh, f_vt = fix_teff, fix_logg, fix_feh, fix_vt
     # Teff, logg, vt
     step = (500, 0.50, 2.00)
     if bounds.lower() == "kurucz95":
@@ -93,7 +95,7 @@ def minimize(x0, func, bounds="kurucz95",
             save_iteration(parameters)
         N += 1
         # TODO: Change this to use user-provided criteria
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             break
 
         N4 = 0
@@ -147,7 +149,7 @@ def minimize(x0, func, bounds="kurucz95",
             N2 += 1
             save_iteration(parameters)
         N += 1
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             break
 
         #       Input metal...   FeI abund.
@@ -161,15 +163,15 @@ def minimize(x0, func, bounds="kurucz95",
             N3 += 1
             save_iteration(parameters)
         N += 1
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             break
 
         N += 1
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh):
+        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             break
 
     print 'Stopped at %i iterations' % N
-    converged = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0], fix_teff, fix_logg, fix_vt, fix_feh)
+    converged = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0])
     parameters[0] = int(parameters[0])
     parameters[1] = round(parameters[1], 2)
     parameters[2] = round(parameters[2], 2)
