@@ -3,6 +3,7 @@
 programs/
 models/
 results/
+linelist/
 results.csv
 *.log
 *.par
