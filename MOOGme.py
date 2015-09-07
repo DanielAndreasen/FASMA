@@ -100,7 +100,7 @@ def _renaming(linelist, converged):
     os.system(cmd)
 
 
-def _options(options):
+def _options(options=False):
     '''Reads the options inside the config file'''
     defaults = {'spt': False,
                 'outlier': False,
@@ -115,14 +115,17 @@ def _options(options):
                 'rwslope': 0.001,
                 'abdiff': 0.01
                 }
-    options = options.split(',')
-    for option in options:
-        if ':' in option:
-            option = option.split(':')
-            defaults[option[0]] = option[1]
-        else:
-            defaults[option] = True
-    return defaults
+    if not options:
+        return defaults
+    else:
+        options = options.split(',')
+        for option in options:
+            if ':' in option:
+                option = option.split(':')
+                defaults[option[0]] = option[1]
+            else:
+                defaults[option] = True
+        return defaults
 
 
 def moogme(starLines, parfile='batch.par', model='kurucz95',
@@ -206,12 +209,14 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                 _update_par(line_list='./linelist/'+line[0])
             if len(line) == 1:
                 initial = (5777, 4.44, 0.00, 1.00)
+                options = _options()
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
                 # Update batch.par
 
             elif len(line) == 5:
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
+                options = _options()
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
 
             elif len(line) == 2:
