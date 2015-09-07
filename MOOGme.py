@@ -92,9 +92,9 @@ def _getMic(teff, logg):
 def _renaming(linelist, converged):
     """Save the output in a file related to the linelist"""
     if converged:
-        cmd = 'cp summary.out ./results/%s.out' % linelist
+        cmd = 'cp summary.out results/%s.out' % linelist
     else:
-        cmd = 'cp summary.out ./results/%s.NC.out' % linelist
+        cmd = 'cp summary.out results/%s.NC.out' % linelist
         # os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
 
     os.system(cmd)
@@ -201,12 +201,12 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             line = line.split(' ')
 
             #Check if the linelist is inside the directory if not log it and pass to next linelist
-            if not os.path.isfile('./linelist/'+line[0]):
+            if not os.path.isfile('linelist/%s' % line[0]):
                 logger.error('Error: The linelist has to be inside the directory linelist')
                 parameters = None
                 continue
             else:
-                _update_par(line_list='./linelist/'+line[0])
+                _update_par(line_list='linelist/%s' % line[0])
             if len(line) == 1:
                 initial = (5777, 4.44, 0.00, 1.00)
                 options = _options()
