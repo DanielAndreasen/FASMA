@@ -365,73 +365,62 @@ def readmoog(output):
     return teff, logg, vt, feh, fe1, sigfe1, fe2, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
 
 
-def lsq(x, y):
-    """
-    Function to do a least squares fit to a set of vectors
-    Fit line y=a*x+b and calculate rms residual
-    """
+def _slopeSigma(x, y):
+    """Sigma on a slope after fitting a straight line"""
     N = len(x)
-    sx = np.sum(x)
     sxx = np.sum((x-np.mean(x))**2)
-
-    a, b = np.polyfit(x, y, 1)  # Fit first order polynomium
-
-    axby2 = (y - a*x-b)**2
-    chi2 = np.sum(axby2)
-
-    sig_a = np.sqrt(chi2/((N-2)*sxx))
-    sig_b = sig_a * np.sqrt(sxx/N + sx**2 / (N**2) )
-
-    return a,b,sig_a,sig_b
+    a, b = np.polyfit(x, y, 1)
+    chi2 = np.sum((y - a*x-b)**2)
+    return np.sqrt(chi2/((N-2)*sxx))
 
 
 def error(linelist):
-    '''linelist to give error estimation on'''
-    # Find the output file
+    """linelist to give error estimation on"""
+    # Find the output file and read the current state of it
     if os.path.isfile('results/%s.out' % linelist):
         summary = readmoog('results/%s.out' % linelist)
     else:
         summary = readmoog('results/%s.NC.out' % linelist)
+    # Read the correct output file (error_summary.out).
+    _update_par(line_list='linelist/%s' % linelist, summary='error_summary.out')
 
+    # Prepare the different things we need
     teff, logg, vt, feh = summary[0:4]
     Fe1, Fe2 = summary[-2], summary[-1]
-    abundFe = feh
     sigmafe1 = summary[5]
     sigmafe2 = summary[7]
 
-    a1, b1, siga1, sigb1 = lsq(Fe1[:, 4], Fe1[:, 5])
-    a2, b2, siga2, sigb2 = lsq(Fe1[:, 1], Fe1[:, 5])
-
-    _update_par(line_list='linelist/%s' % linelist, summary='error_summary.out')
+    siga1 = _slopeSigma(Fe1[:, 4], Fe1[:, 5])
+    siga2 = _slopeSigma(Fe1[:, 1], Fe1[:, 5])
 
     # Error om microturbulence
     fun_moog_fortran((teff, logg, feh, vt+0.1), results='error_summary.out')
     sumvt = readmoog('error_summary.out')
-    slopeRW = sumvt[9]
+    slopeEP, slopeRW = sumvt[8], sumvt[9]
     if slopeRW == 0:
         errormicro = abs(siga1/0.001) * 0.10
     else:
         errormicro = abs(siga1/slopeRW) * 0.10
 
-    # Effect/variance on [Fe/H]
-    deltafe1micro = abs((errormicro/0.10) * (sumvt[4]-abundFe))
+    # Contribution to [Fe/H]
+    deltafe1micro = abs((errormicro/0.10) * (sumvt[4]-feh))
 
     # Error on Teff
-    slopes = errormicro/0.10 * sumvt[8]
+    slopes = errormicro/0.10 * slopeEP
     errorslopeEP = np.hypot(slopes, siga2)
     fun_moog_fortran((teff+100, logg, feh, vt), results='error_summary.out')
     sumteff = readmoog('error_summary.out')
 
     errorteff = abs(errorslopeEP/sumteff[8]) * 100
-    # Effect/variance on [Fe/H]
-    deltafe1teff = abs(errorteff/100 * (sumteff[4]-abundFe))
+    # Contribution to [Fe/H]
+    deltafe1teff = abs(errorteff/100 * (sumteff[4]-feh))
 
     # Error on logg
-    fe2error = abs(errorteff/100 * sumteff[6]-abundFe)
+    fe2error = abs(errorteff/100 * sumteff[6]-feh)
     sigmafe2total = np.hypot(sigmafe2, fe2error)
     fun_moog_fortran((teff, logg-0.20, feh, vt), results='error_summary.out')
     sumlogg = readmoog('error_summary.out')
-    errorlogg = abs(sigmafe2total/(sumlogg[6]-abundFe)*0.20)
+    errorlogg = abs(sigmafe2total/(sumlogg[6]-feh)*0.20)
 
     # Error on [Fe/H]
     errorfeh = np.sqrt(sigmafe1**2 + deltafe1teff**2 + deltafe1micro**2)
