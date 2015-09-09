@@ -118,19 +118,16 @@ def _get_model(teff, logg, feh, type='kurucz95'):
 
 
 def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
-    """Runs MOOG with the given input parameters and returns a numpy array of
-    the outputted smooth spectrum.
+    """Update the parameter file (batch.par) with new linelists, atmosphere
+    models, or others.
 
     Inputs
     -----
-
     atmosphere_model    :   Location of your model atmosphere file
     line_list           :   Location of your line list
-    infile              :   Name of the parameter file
 
     Additional keyword arguments
     ----------------------------
-
     These additional keyword arguments allow the user to have full control
     over what is put into the MOOG input file. The default values are:
 
@@ -157,7 +154,6 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
 
     Outputs
     -------
-
     And updated parameter file
     """
 
@@ -180,13 +176,13 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         'opacit':     0,
         'freeform':   0,
         'strong':     0,
+        'summary':    'summary.out'
         }
 
     # Fill the keyword arguments with the defaults if they don't exist already
     for key, value in default_kwargs.iteritems():
         if key not in kwargs.keys():
             kwargs[key] = value
-
     # Generate a MOOG-compatible run file
     moog_filename = 'batch.par'
 
@@ -195,9 +191,8 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
                     "model_in       '%s'\n"\
                     "summary_out    '%s'\n"\
                     "standard_out   '%s'\n"\
-                    "lines_in       '%s'\n" % (kwargs['terminal'],
-                                               atmosphere_model, 'summary.out',
-                                               'result.out', line_list)
+                    "lines_in       '%s'\n" % (kwargs['terminal'], atmosphere_model,
+                                               kwargs['summary'], 'result.out', line_list)
 
     settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
                'units,iraf,plot,opacit,freeform,obspectrum,histogram,'\
@@ -208,8 +203,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
 
     for setting in settings:
         if setting in kwargs:
-            moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)),
-                                          kwargs[setting])
+            moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)), kwargs[setting])
 
     with open(moog_filename, 'w') as moog:
         moog.writelines(moog_contents)
@@ -299,6 +293,9 @@ def readmoog(output):
     """Read the output file from MOOG"""
 
     nelements = 1
+    readdata = False
+    Fe1Lines = []
+    Fe2Lines = []
     with open(output, 'r') as lines:
         for line in lines:
             if 'Teff' in line:  # Get the atmospheric parameters
@@ -308,30 +305,138 @@ def readmoog(output):
                 vt = float(line[6])
                 feh = float(line[-1].split('=')[-1])
             elif '#lines' in line and nelements == 1:  # Statistics on FeI
-                nelements += 1
+                readdata = False
                 line = line.split()
                 nfe1 = int(line[-1])
                 fe1 = float(line[3])
                 sigfe1 = float(line[7])
             elif '#lines' in line and nelements == 2:  # Statistics on FeII
+                readdata = False
                 line = line.split()
                 nfe2 = int(line[-1])
                 fe2 = float(line[3])
                 sigfe2 = float(line[7])
-            elif 'E.P.' in line:
+            elif 'E.P.' in line and nelements == 1:  # We only want information from FeI
                 line = line.split()
                 slopeEP = float(line[4])
-            elif 'R.W.' in line:
+            elif 'R.W.' in line and nelements == 1:  # We only want information from FeI
                 line = line.split()
-                slopeRW = float(line[4])
+                nelements += 1  # Done with this element, move to next one
+                try:
+                    slopeRW = float(line[4])
+                except ValueError:
+                    slopeRW = False
+            else:
+                if line.startswith('wavelength'):
+                    readdata = True
+                    continue
+            if readdata:
+                content = map(float, filter(None, line.split(' ')))
+                if nelements == 1:
+                    Fe1Lines.append(content)
+                else:
+                    Fe2Lines.append(content)
 
+    # Store the line information in numpy arrays because lists are not for science!
+    linesFe1 = np.zeros((len(Fe1Lines), 7))
+    linesFe2 = np.zeros((len(Fe2Lines), 7))
+    for i, f1 in enumerate(Fe1Lines):
+        linesFe1[i, 0] = f1[0]
+        linesFe1[i, 1] = f1[1]
+        linesFe1[i, 2] = f1[2]
+        linesFe1[i, 3] = f1[3]
+        linesFe1[i, 4] = f1[4]
+        linesFe1[i, 5] = f1[5]
+        linesFe1[i, 6] = f1[6]
+    for i, f2 in enumerate(Fe2Lines):
+        linesFe2[i, 0] = f2[0]
+        linesFe2[i, 1] = f2[1]
+        linesFe2[i, 2] = f2[2]
+        linesFe2[i, 3] = f2[3]
+        linesFe2[i, 4] = f2[4]
+        linesFe2[i, 5] = f2[5]
+        linesFe2[i, 6] = f2[6]
+
+    # If We don't have any RW slope, calculate it manually
+    if not slopeRW:
+        slopeRW, _ = np.polyfit(linesFe1[:, 4], linesFe1[:, 5], 1)
+    sigfe1 = sigfe1 / np.sqrt(nfe1)
+    sigfe2 = sigfe2 / np.sqrt(nfe2)
+    return teff, logg, vt, feh, fe1, sigfe1, fe2, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
+
+
+def lsq(x, y):
+    """
+    Function to do a least squares fit to a set of vectors
+    Fit line y=a*x+b and calculate rms residual
+    """
+    N = len(x)
+    sx = np.sum(x)
+    sxx = np.sum((x-np.mean(x))**2)
+
+    a, b = np.polyfit(x, y, 1)  # Fit first order polynomium
+
+    axby2 = (y - a*x-b)**2
+    chi2 = np.sum(axby2)
+
+    sig_a = np.sqrt(chi2/((N-2)*sxx))
+    sig_b = sig_a * np.sqrt(sxx/N + sx**2 / (N**2) )
+
+    return a,b,sig_a,sig_b
 
 
 def error(linelist):
     '''linelist to give error estimation on'''
-
     # Find the output file
-    if os.path.isfile('%s.out' % linelist):
-        readmoog('%s.out' % linelist)
+    if os.path.isfile('results/%s.out' % linelist):
+        summary = readmoog('results/%s.out' % linelist)
     else:
-        readmoog('%s.NC.out' % linelist)
+        summary = readmoog('results/%s.NC.out' % linelist)
+
+    teff, logg, vt, feh = summary[0:4]
+    Fe1, Fe2 = summary[-2], summary[-1]
+    abundFe = feh
+    sigmafe1 = summary[5]
+    sigmafe2 = summary[7]
+
+    a1, b1, siga1, sigb1 = lsq(Fe1[:, 4], Fe1[:, 5])
+    a2, b2, siga2, sigb2 = lsq(Fe1[:, 1], Fe1[:, 5])
+
+    _update_par(line_list='linelist/%s' % linelist, summary='error_summary.out')
+
+    # Error om microturbulence
+    fun_moog_fortran((teff, logg, feh, vt+0.1), results='error_summary.out')
+    sumvt = readmoog('error_summary.out')
+    slopeRW = sumvt[9]
+    if slopeRW == 0:
+        errormicro = abs(siga1/0.001) * 0.10
+    else:
+        errormicro = abs(siga1/slopeRW) * 0.10
+
+    # Effect/variance on [Fe/H]
+    deltafe1micro = abs((errormicro/0.10) * (sumvt[4]-abundFe))
+
+    # Error on Teff
+    slopes = errormicro/0.10 * sumvt[8]
+    errorslopeEP = np.hypot(slopes, siga2)
+    fun_moog_fortran((teff+100, logg, feh, vt), results='error_summary.out')
+    sumteff = readmoog('error_summary.out')
+
+    errorteff = abs(errorslopeEP/sumteff[8]) * 100
+    # Effect/variance on [Fe/H]
+    deltafe1teff = abs(errorteff/100 * (sumteff[4]-abundFe))
+
+    # Error on logg
+    fe2error = abs(errorteff/100 * sumteff[6]-abundFe)
+    sigmafe2total = np.hypot(sigmafe2, fe2error)
+    fun_moog_fortran((teff, logg-0.20, feh, vt), results='error_summary.out')
+    sumlogg = readmoog('error_summary.out')
+    errorlogg = abs(sigmafe2total/(sumlogg[6]-abundFe)*0.20)
+
+    # Error on [Fe/H]
+    errorfeh = np.sqrt(sigmafe1**2 + deltafe1teff**2 + deltafe1micro**2)
+
+
+    os.remove('error_summary.out')
+    print teff, errorteff, logg, errorlogg, feh, errorfeh, vt, errormicro
+    return teff, errorteff, logg, errorlogg, feh, errorfeh, vt, errormicro
