@@ -18,7 +18,7 @@ from utils import _get_model, _update_par
 from model_interpolation import interpolator
 from model_interpolation import save_model
 from utils import fun_moog, fun_moog_fortran
-# from utils import error
+from utils import error
 from minimization import minimize
 
 
@@ -202,16 +202,16 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
 
             #Check if the linelist is inside the directory if not log it and pass to next linelist
             if not os.path.isfile('linelist/%s' % line[0]):
-                logger.error('Error: The linelist has to be inside the directory linelist')
+                logger.error('Error: linelist/%s not found.' % line[0])
                 parameters = None
                 continue
             else:
                 _update_par(line_list='linelist/%s' % line[0])
+
             if len(line) == 1:
                 initial = (5777, 4.44, 0.00, 1.00)
                 options = _options()
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
-                # Update batch.par
 
             elif len(line) == 5:
                 logger.info('Initial parameters given by the user.')
@@ -264,10 +264,12 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
 
             # Setting the models to use
             if options['models'] != 'K95':
-                raise NotImplementedError('Your request for type: %s is not available' % model)
+                logger.error('Your request for type: %s is not available' % model)
+                continue
 
             # Get the initial grid models
             logger.info('Getting initial model grid')
+            # TODO: Fix the interpolation please!
             if initial[1] > 4.99:  # quick fix
                 initial[1] = 4.99
             models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2])
@@ -288,15 +290,15 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                                              fix_feh=fix_feh, fix_vt=fix_vt)
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
-
+            parameters = error(line[0])
             with open('results.csv', 'a') as output:
-                tmp = [line[0], parameters[0], 0, parameters[1], 0.00, parameters[2], 0.00, parameters[3], 0.00, converged]
+                tmp = [line[0]] + list(parameters) + [converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
             logger.info('Saved results to: results.csv')
 
-            print('\nCongratulation, you have won! Your final parameters are\n' + ' '.join(map(str,parameters)))
-            print(line[0])
-            # error(line[0])
+            print('\nCongratulation, you have won! Your final parameters are:')
+            print(u'Teff: %i\u00B1%i, logg: %.2f\u00B1%.2f, [Fe/H]: %.2f\u00B1%.2f, vt: %.2f\u00B1%.2f' %
+                 (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
     return parameters
 
 
