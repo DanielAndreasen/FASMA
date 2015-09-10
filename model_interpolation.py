@@ -189,8 +189,8 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     teff, logg, feh, vt = params
     if type == 'kurucz95':
         header = 'KURUCZ\n'\
-                 'Teff=%i   log g=%.2f   [Fe/H]=%.2f    vt=%.3e\n'\
-                 'NTAU        %i' % (teff, logg, feh, vt, model.shape[0])
+                 'Teff= %i   log g= %.2f\n'\
+                 'NTAU        %i' % (teff, logg, model.shape[0])
     elif type.lower() == 'marcz':  # How to spell this?
         raise NotImplementedError('Patience is the key. Wait a bit more for %s\
                                    models to be implemented.' % type)
@@ -203,7 +203,7 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
              'NMOL      19\n'\
              '      606.0    106.0    607.0    608.0    107.0    108.0    112.0  707.0\n'\
              '       708.0    808.0     12.1  60808.0  10108.0    101.0     6.1    7.1\n'\
-             '         8.1    822.0     22.1' % (vt*1e5, -0.2, 7.47-0.2)
+             '         8.1    822.0     22.1' % (vt*1e5, feh, 7.47+feh)
 
     _fmt = ('%15.8E', '%8.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E')
     np.savetxt(fout, model, header=header, footer=footer, comments='',
