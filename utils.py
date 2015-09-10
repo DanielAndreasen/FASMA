@@ -362,7 +362,7 @@ def readmoog(output):
         slopeRW, _ = np.polyfit(linesFe1[:, 4], linesFe1[:, 5], 1)
     sigfe1 = sigfe1 / np.sqrt(nfe1)
     sigfe2 = sigfe2 / np.sqrt(nfe2)
-    return teff, logg, vt, feh, fe1, sigfe1, fe2, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
+    return teff, logg, vt, feh, fe1-7.47, sigfe1, fe2-7.47, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
 
 
 def _slopeSigma(x, y):
@@ -413,7 +413,7 @@ def error(linelist):
 
     errorteff = abs(errorslopeEP/sumteff[8]) * 100
     # Contribution to [Fe/H]
-    deltafe1teff = abs(errorteff/100 * (sumteff[4]-feh))
+    deltafe1teff = abs((errorteff/100) * (sumteff[4]-feh))
 
     # Error on logg
     fe2error = abs(errorteff/100 * sumteff[6]-feh)
@@ -425,7 +425,10 @@ def error(linelist):
     # Error on [Fe/H]
     errorfeh = np.sqrt(sigmafe1**2 + deltafe1teff**2 + deltafe1micro**2)
 
+    errorteff = int(errorteff)
+    errorlogg = round(errorlogg, 2)
+    errorfeh = round(errorfeh, 2)
+    errormicro = round(errormicro, 2)
 
     os.remove('error_summary.out')
-    print teff, errorteff, logg, errorlogg, feh, errorfeh, vt, errormicro
     return teff, errorteff, logg, errorlogg, feh, errorfeh, vt, errormicro
