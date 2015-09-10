@@ -66,18 +66,24 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         for i, Ti in enumerate(grid['teff']):
             if Ti - teff == 0:
                 break
-        teff_model = [grid['teff'][i], grid['teff'][i+1]]
+        try:
+            teff_model = [grid['teff'][i], grid['teff'][i+1]]
+        except IndexError:
+            teff_model = [grid['teff'][i-1], grid['teff'][i]]
     else:
         for i, Ti in enumerate(grid['teff']):
             if Ti - teff > 0:
                 break
-        teff_model = [grid['teff'][i-1], grid['teff'][i]]
+        try:
+            teff_model = [grid['teff'][i-1], grid['teff'][i]]
+        except IndexError:
+            teff_model = [grid['teff'][i], grid['teff'][i+1]]
 
     if logg in grid['logg']:
         for i, li in enumerate(grid['logg']):
             if li - logg == 0:
                 break
-        try:  # TODO: Do this everywhere!!!
+        try:
             logg_model = [grid['logg'][i], grid['logg'][i+1]]
         except IndexError:
             logg_model = [grid['logg'][i-1], grid['logg'][i]]
@@ -85,18 +91,27 @@ def _get_model(teff, logg, feh, type='kurucz95'):
         for i, li in enumerate(grid['logg']):
             if li - logg > 0:
                 break
-        logg_model = [grid['logg'][i-1], grid['logg'][i]]
+        try:
+            logg_model = [grid['logg'][i-1], grid['logg'][i]]
+        except IndexError:
+            logg_model = [grid['logg'][i], grid['logg'][i+1]]
 
     if feh in grid['feh']:
         for i, fi in enumerate(grid['feh']):
             if fi - feh == 0:
                 break
-        feh_model = [grid['feh'][i], grid['feh'][i+1]]
+        try:
+            feh_model = [grid['feh'][i], grid['feh'][i+1]]
+        except IndexError:
+            feh_model = [grid['feh'][i-1], grid['feh'][i]]
     else:
         for i, fi in enumerate(grid['feh']):
             if fi - feh > 0:
                 break
-        feh_model = [grid['feh'][i-1], grid['feh'][i]]
+        try:
+            feh_model = [grid['feh'][i-1], grid['feh'][i]]
+        except IndexError:
+            feh_model = [grid['feh'][i], grid['feh'][i+1]]
 
     if not os.path.isdir('models'):
         raise IOError('The models have to be inside a folder called models.')
