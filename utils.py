@@ -431,7 +431,7 @@ def error(linelist):
     deltafe1teff = abs((errorteff/100) * (sumteff[4]-feh))
 
     # Error on logg
-    fe2error = abs(errorteff/100 * sumteff[6]-feh)
+    fe2error = abs(errorteff/100 * (sumteff[6]-feh))
     sigmafe2total = np.hypot(sigmafe2, fe2error)
     fun_moog_fortran((teff, logg-0.20, feh, vt), results='error_summary.out')
     sumlogg = readmoog('error_summary.out')
