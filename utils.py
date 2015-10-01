@@ -6,6 +6,7 @@ from __future__ import division
 import os
 from model_interpolation import interpolator, save_model
 import numpy as np
+import statsmodels.formula.api as sm
 from glob import glob
 
 K95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
@@ -275,10 +276,13 @@ def fun_moog(x, par='batch.par', results='summary.out'):
 
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
-    EPs, RWs, abundances = _read_moog(fname=results)
+    data = read_abund(results)
+    EPs = slope((data[:,1], data[:,5]))
+    RWs = slope((data[:,4], data[:,5]))
+    _, _, abundances = _read_moog(fname=results)
     if len(abundances) == 2:
-        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
-        return res, EPs[0], RWs[0], abundances
+        res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
+        return res, EPs, RWs, abundances
 
 
 def fun_moog_fortran(x, par='batch.par', results='summary.out'):
@@ -298,10 +302,13 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out'):
 
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
-    EPs, RWs, abundances = _read_moog(fname=results)
+    data = read_abund(results)
+    EPs = slope((data[:,1], data[:,5]))
+    RWs = slope((data[:,4], data[:,5]))
+    _, _, abundances = _read_moog(fname=results)
     if len(abundances) == 2:
-        res = EPs[0]**2 + RWs[0]**2 + np.diff(abundances)[0]**2
-        return res, EPs[0], RWs[0], abundances
+        res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
+        return res, EPs, RWs, abundances
 
 
 def readmoog(output):
@@ -447,3 +454,57 @@ def error(linelist):
 
     os.remove('error_summary.out')
     return teff, errorteff, logg, errorlogg, feh, errorfeh, vt, errormicro
+
+
+def slope(data, weights=None):
+    """Calculate the slope of a data set with the weight"""
+
+    # weights = weights.lower()
+    options = ['null', 'median', 'sigma', 'mad']
+    if weights not in options or weights == 'median':
+        weights = None
+
+    data = {'x': data[0], 'y': data[1]}
+    if not weights:
+        w = 1/abs(data['y']-np.median(data['y']))
+        idx = np.isinf(w)
+        w[~idx] /= w[~idx].max()
+        w[idx] = 1
+    if weights == 'null':
+        w = np.ones(len(data['x']))
+    elif weights == 'sigma':
+        sig = np.std(data['y'])
+        w = np.zeros(len(data['y'])) + 0.01
+        mask3 = (data['y'] < np.mean(data['y']) + 3*sig) | (data['y'] > np.mean(data['y']) - 3*sig)
+        w[mask3] = 0.10
+        mask2 = (data['y'] < np.mean(data['y']) + 2*sig) | (data['y'] > np.mean(data['y']) - 2*sig)
+        w[mask2] = 0.25
+        mask1 = (data['y'] < np.mean(data['y']) + sig) | (data['y'] > np.mean(data['y']) - sig)
+        w[mask1] = 1.0
+    elif weights == 'mad':
+        mad = np.mean(np.absolute(data['y'] - np.mean(data['y'], None)), None)
+        w = np.zeros(len(data['y'])) + 0.01
+        mask3 = (data['y'] < np.mean(data['y']) + 3*mad) | (data['y'] > np.mean(data['y']) - 3*mad)
+        w[mask3] = 0.10
+        mask2 = (data['y'] < np.mean(data['y']) + 2*mad) | (data['y'] > np.mean(data['y']) - 2*mad)
+        w[mask2] = 0.25
+        mask1 = (data['y'] < np.mean(data['y']) + mad) | (data['y'] > np.mean(data['y']) - mad)
+        w[mask1] = 1.0
+
+    wls = sm.wls('y ~ x', data=data, weights=w).fit()
+    return wls.params[1]
+
+
+def read_abund(file='summary.out'):
+    read_data = False
+    data = []
+    for line in open(file, 'r'):
+        if line.startswith('wavelength'):
+            read_data = True
+            continue
+        if read_data:
+            try:
+                line = map(float, filter(None, line.split()))
+                data.append(line)
+            except ValueError:
+                return np.array(data)
