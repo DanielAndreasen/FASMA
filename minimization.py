@@ -58,7 +58,7 @@ def minimize(x0, func, bounds="kurucz95",
     EPcriteria, RWcriteria, ABdiffcriteria = EPcrit, RWcrit, ABdiffcrit
     f_teff, f_logg, f_feh, f_vt = fix_teff, fix_logg, fix_feh, fix_vt
     # Teff, logg, vt
-    step = (500, 0.50, 2.00)
+    step = (1000, 2.00, 2.00)
     if bounds.lower() == "kurucz95":
         bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
