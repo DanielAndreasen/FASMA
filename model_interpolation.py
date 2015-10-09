@@ -105,9 +105,12 @@ def _loadtxt(lines):
     :return: numpy array of atmospheric quantities
     """
     row, col = len(lines), len(lines[0].split())
-    data = np.empty((row, col))
+    data = np.zeros((row, col))
     for rowi, line in enumerate(lines):
-        data[rowi, :] = line.split()
+        try:
+            data[rowi, :] = map(float, line.split())
+        except ValueError:
+            return data[0:rowi, :]
     return data
 
 
@@ -118,13 +121,13 @@ def read_model(fname):
     :returns: The columns and tauross in a tuple
     """
     data = _unpack_model(fname)
-    model = _loadtxt(data[23:-2])
+    model = _loadtxt(data[23:-1])
     tauross = tauross_scale(model[:, 4], model[:, 0])
     return (model, tauross)
 
 
 def interpolator(mnames, teff, logg, feh):
-    """The function to call from the main program (pymoog.py or main.py)
+    """The function to call from the main program (MOOGme.py)
 
     :mnames: As generated from _get_models
     :teff: Requested Effective Temperature and the two closest models in
@@ -166,9 +169,11 @@ def interpolator(mnames, teff, logg, feh):
     # Interpolate the models using the Force
     # Look at Jobovy code.
     # More optimized/clean version compared to his
-    newdeck = np.zeros(models[0].shape)
-    newdeck[:, 7:] = models[0][:, 7:]
-    layers, columns = newdeck.shape
+
+    layers = min([model.shape[0] for model in models])
+    columns = min([model.shape[1] for model in models])
+    newdeck = np.zeros((layers, columns))
+    # newdeck[:, 7:] = models[0][:, 7:]
     for layer in range(layers):
         for column in range(columns):
             tlayer = np.zeros(interGridShape)

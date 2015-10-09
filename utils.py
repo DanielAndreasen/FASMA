@@ -20,8 +20,19 @@ K95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                0.1, 0.2, 0.3, 0.5, 1.0),
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
+K08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
+                6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
+                8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
+                11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
+                14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
+                23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000,
+                32000, 33000, 34000, 35000, 3500, 36000, 37000, 38000, 39000),
+       'feh': (-4.0, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
+               0.1, 0.2, 0.3, 0.5, 1.0),
+       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
-def _get_model(teff, logg, feh, type='kurucz95'):
+
+def _get_model(teff, logg, feh, atmtype='K95'):
     """
     Find the names of the closest grid points for a given effective
     temperature, surface gravity, and iron abundance (proxy for metallicity).
@@ -49,11 +60,25 @@ def _get_model(teff, logg, feh, type='kurucz95'):
 
     """
 
+    def _model_path(atmpath, feh, teff, logg):
+        name = 'models/%s/' % atmpath
+        if feh < 0:
+            name += 'm%s/' % str(abs(feh)).replace('.', '')
+        else:
+            name += 'p%s/' % str(abs(feh)).replace('.', '')
+        name += '%ig%s.' % (teff, str(logg).replace('.', ''))
+        if feh < 0:
+            name += 'm%s.gz' % str(abs(feh)).replace('.', '')
+        else:
+            name += 'p%s.gz' % str(abs(feh)).replace('.', '')
+        return name
+
     # Using the correct model atmosphere
-    if type == 'kurucz95':
-        grid = K95
+    atmmodels = {'K95': [K95, 'kurucz95'], 'K08': [K08, 'kurucz08']}
+    if atmtype in atmmodels.keys():
+        grid = atmmodels[atmtype][0]
     else:
-        raise NotImplementedError('You request for type: %s is not available' % type)
+        raise NotImplementedError('You request for atmospheric models: %s is not available' % atmtype)
 
     # Checking for bounds in Teff, logg, and [Fe/H]
     if (teff < grid['teff'][0]) or (teff > grid['teff'][-1]):
@@ -117,18 +142,11 @@ def _get_model(teff, logg, feh, type='kurucz95'):
     if not os.path.isdir('models'):
         raise IOError('The models have to be inside a folder called models.')
 
-    name = lambda t, g, s, f: 'models/kurucz95/%s%s/%ig%i.%s%s.gz' % (s, f, t, g*10, s, f)
     models = []
     for teff_m in teff_model:
         for logg_m in logg_model:
             for feh_m in feh_model:
-                if feh_m >= 0:
-                    feh_m = str(feh_m).replace('.', '')
-                    fout = name(teff_m, logg_m, 'p', feh_m)
-                else:
-                    feh_m = str(feh_m).replace('.', '').replace('-', '')
-                    fout = name(teff_m, logg_m, 'm', feh_m)
-                models.append(fout)
+                models.append(_model_path(atmmodels[atmtype][1], feh_m, teff_m, logg_m))
 
     return models, teff_model, logg_model, feh_model
 

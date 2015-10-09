@@ -125,6 +125,7 @@ def _options(options=False):
                 defaults[option[0]] = option[1]
             else:
                 defaults[option] = True
+        defaults['models'] = defaults['models'].upper()
         return defaults
 
 
@@ -224,8 +225,10 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                 options = _options(line[1])
                 if options['spt']:
                     Teff, logg = _getSpt(options['spt'])
-                mic = _getMic(Teff, logg)
-                initial = (Teff, logg, 0.00, mic)
+                    mic = _getMic(Teff, logg)
+                    initial = (Teff, logg, 0.00, mic)
+                else:
+                    initial = (5777, 4.44, 0.00, 1.00)
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 fix_teff = options['teff']
                 fix_logg = options['logg']
@@ -263,7 +266,7 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
                 continue
 
             # Setting the models to use
-            if options['models'] != 'K95':
+            if options['models'] != 'K95' and options['models'] != 'K08':
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
@@ -272,7 +275,7 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             # TODO: Fix the interpolation please!
             if initial[1] > 4.99:  # quick fix
                 initial[1] = 4.99
-            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2])
+            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['models'])
             logger.info('Initial interpolation of model...')
             inter_model = interpolator(models,
                                        teff=(initial[0], nt),
@@ -283,8 +286,8 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
 
             logger.info('Starting the minimization procedure...')
             # parameters, converged = minimize(initial, fun_moog, bounds=model,
-            #                                  fix_teff=fix_teff, fix_logg=fix_logg,
-            #                                  fix_feh=fix_feh, fix_vt=fix_vt)
+                                            #  fix_teff=fix_teff, fix_logg=fix_logg,
+                                            #  fix_feh=fix_feh, fix_vt=fix_vt)
             parameters, converged = minimize(initial, fun_moog_fortran, bounds=model,
                                              fix_teff=fix_teff, fix_logg=fix_logg,
                                              fix_feh=fix_feh, fix_vt=fix_vt)
