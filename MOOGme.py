@@ -22,37 +22,6 @@ from utils import error
 from minimization import minimize
 
 
-def _parser():
-    """Take care of all the argparse stuff.
-
-    :returns: the args
-    """
-    parser = argparse.ArgumentParser(description='Plot fits file for ARES. Be'
-                                     ' careful with large files')
-
-    parser.add_argument('-i', '--configfile',
-                        help='Input config file',
-                        default='StarMe.cfg')
-    parser.add_argument('-p', '--parfile',
-                        help='The parameter file (default: batch.par)',
-                        default='batch.par')
-    parser.add_argument('-m', '--model',
-                        help='Model atmosphere',
-                        default='Kurucz95',
-                        choices=['Kurucz95', 'Kn', 'Marcs', 'PHOENIX'])
-    parser.add_argument('-pl', '--plot',
-                        help='Plot the slopes',
-                        default=False)
-    parser.add_argument('-ol', '--outliers',
-                        help='Remove n*sigma outliers',
-                        type=float,
-                        default=False)
-    parser.add_argument('-v', '--verbose',
-                        help='Print information to the screen along the way',
-                        default=False)
-    return parser.parse_args()
-
-
 def _getSpt(spt):
     """Get the spectral type from a string like 'F5V'."""
     if len(spt) > 4:
@@ -103,7 +72,7 @@ def _renaming(linelist, converged):
 def _options(options=False):
     '''Reads the options inside the config file'''
     defaults = {'spt': False,
-                'outlier': False,
+                'weigths': False,
                 'plot': False,
                 'models':'K95',
                 'teff': False,
@@ -129,7 +98,7 @@ def _options(options=False):
         return defaults
 
 
-def moogme(starLines, parfile='batch.par', model='kurucz95',
+def moogme(starLines='StarMe.cfg', parfile='batch.par', model='kurucz95',
            plot=False, outlier=False):
     """The function that glues everything together
 
@@ -300,12 +269,14 @@ def moogme(starLines, parfile='batch.par', model='kurucz95',
             logger.info('Saved results to: results.csv')
 
             print('\nCongratulation, you have won! Your final parameters are:')
-            print(u' Teff:    %i\u00B1%i\n logg:    %.2f\u00B1%.2f\n [Fe/H]: %.2f\u00B1%.2f\n vt:      %.2f\u00B1%.2f\n' %
-                 (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
+            if __name__ == '__main__':
+                print(u' Teff:    %i\u00B1%i\n logg:    %.2f\u00B1%.2f\n [Fe/H]: %.2f\u00B1%.2f\n vt:      %.2f\u00B1%.2f\n' %
+                     (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
+            elif __name__ == 'MOOGme':
+                print('Teff:      %i+/-%i\nlogg:    %.2f+/-%.2f\n[Fe/H]:  %.2f+/-%.2f\nvt:        %.2f+/-%.2f\n' %
+                     (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
     return parameters
 
 
 if __name__ == '__main__':
-    args = _parser()
-    parameters = moogme(args.configfile, args.parfile, args.model,
-                        args.plot, args.outliers)
+    parameters = moogme()
