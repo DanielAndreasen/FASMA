@@ -98,8 +98,7 @@ def _options(options=False):
         return defaults
 
 
-def moogme(starLines='StarMe.cfg', parfile='batch.par', model='kurucz95',
-           plot=False, outlier=False):
+def moogme(starLines='StarMe.cfg'):
     """The function that glues everything together
 
     Input:
