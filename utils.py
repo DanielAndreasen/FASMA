@@ -358,7 +358,10 @@ def readmoog(output):
                 sigfe2 = float(line[7])
             elif 'E.P.' in line and nelements == 1:  # We only want information from FeI
                 line = line.split()
-                slopeEP = float(line[4])
+                try:
+                    slopeEP = float(line[4])
+                except ValueError:
+                    slopeEP = False
             elif 'R.W.' in line and nelements == 1:  # We only want information from FeI
                 line = line.split()
                 nelements += 1  # Done with this element, move to next one
@@ -400,6 +403,8 @@ def readmoog(output):
     # If We don't have any RW slope, calculate it manually
     if not slopeRW:
         slopeRW, _ = np.polyfit(linesFe1[:, 4], linesFe1[:, 5], 1)
+    if not slopeEP:
+        slopeEP, _ = np.polyfit(linesFe1[:, 1], linesFe1[:, 5], 1)
     sigfe1 = sigfe1 / np.sqrt(nfe1)
     sigfe2 = sigfe2 / np.sqrt(nfe2)
     return teff, logg, vt, feh, fe1-7.47, sigfe1, fe2-7.47, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
@@ -474,7 +479,7 @@ def error(linelist):
     return teff, errorteff, logg, errorlogg, feh, errorfeh, vt, errormicro
 
 
-def slope(data, weights=None):
+def slope(data, weights='null'):
     """Calculate the slope of a data set with the weight"""
 
     # weights = weights.lower()
