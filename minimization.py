@@ -48,7 +48,7 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe):
 
 def minimize(x0, func, bounds="kurucz95",
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             iteration=25, EPcrit=0.001, RWcrit=0.001, ABdiffcrit=0.01):
+             iteration=40, EPcrit=0.001, RWcrit=0.001, ABdiffcrit=0.01):
     """
     Sane minimization like a normal human being would do it.
     """
@@ -58,7 +58,7 @@ def minimize(x0, func, bounds="kurucz95",
     EPcriteria, RWcriteria, ABdiffcriteria = EPcrit, RWcrit, ABdiffcrit
     f_teff, f_logg, f_feh, f_vt = fix_teff, fix_logg, fix_feh, fix_vt
     # Teff, logg, vt
-    step = (1000, 2.00, 2.00)
+    step = (1000, 2.00, 1.50)
     if bounds.lower() == "kurucz95":
         bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
