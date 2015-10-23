@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
-# My imports
 from __future__ import division
 import os
 from model_interpolation import interpolator, save_model
@@ -9,7 +8,7 @@ import numpy as np
 import statsmodels.formula.api as sm
 from glob import glob
 
-K95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
+kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
                 8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
                 11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
@@ -20,7 +19,7 @@ K95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                0.1, 0.2, 0.3, 0.5, 1.0),
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
-K08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
+kurucz08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
                 8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
                 11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
@@ -32,7 +31,7 @@ K08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 
-def _get_model(teff, logg, feh, atmtype='K95'):
+def _get_model(teff, logg, feh, atmtype='kurucz95'):
     """
     Find the names of the closest grid points for a given effective
     temperature, surface gravity, and iron abundance (proxy for metallicity).
@@ -74,7 +73,7 @@ def _get_model(teff, logg, feh, atmtype='K95'):
         return name
 
     # Using the correct model atmosphere
-    atmmodels = {'K95': [K95, 'kurucz95'], 'K08': [K08, 'kurucz08']}
+    atmmodels = {'kurucz95': [kurucz95, 'kurucz95'], 'kurucz08': [kurucz08, 'kurucz08']}
     if atmtype in atmmodels.keys():
         grid = atmmodels[atmtype][0]
     else:
@@ -276,7 +275,7 @@ def _read_moog(fname='summary.out'):
     return EP_slopes, RW_slopes, abundances
 
 
-def fun_moog(x, par='batch.par', results='summary.out'):
+def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     """The 'function' that we should minimize
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
@@ -295,15 +294,12 @@ def fun_moog(x, par='batch.par', results='summary.out'):
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
     data = read_abund(results)
-    EPs = slope((data[:,1], data[:,5]))
-    RWs = slope((data[:,4], data[:,5]))
-    _, _, abundances = _read_moog(fname=results)
-    if len(abundances) == 2:
-        res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
-        return res, EPs, RWs, abundances
+    EPs = slope((data[:,1], data[:,5]), weights=weights)
+    RWs = slope((data[:,4], data[:,5]), weights=weights)
+    return res, EPs, RWs, abundances
 
 
-def fun_moog_fortran(x, par='batch.par', results='summary.out'):
+def fun_moog_fortran(x, par='batch.par', results='summary.out', weights='null'):
     """The 'function' that we should minimize
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
@@ -321,8 +317,8 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out'):
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
     data = read_abund(results)
-    EPs = slope((data[:,1], data[:,5]))
-    RWs = slope((data[:,4], data[:,5]))
+    EPs = slope((data[:,1], data[:,5]), weights=weights)
+    RWs = slope((data[:,4], data[:,5]), weights=weights)
     _, _, abundances = _read_moog(fname=results)
     if len(abundances) == 2:
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
@@ -488,33 +484,40 @@ def slope(data, weights='null'):
         weights = None
 
     data = {'x': data[0], 'y': data[1]}
+    fit = np.polyfit(data['x'], data['y'], 1)
+    Y = np.poly1d(fit)(data['x'])
+    dif = data['y'] - Y
     if not weights:
-        w = 1/abs(data['y']-np.median(data['y']))
+        w = 1/abs(dif)
         idx = np.isinf(w)
         w[~idx] /= w[~idx].max()
         w[idx] = 1
     if weights == 'null':
         w = np.ones(len(data['x']))
     elif weights == 'sigma':
-        sig = np.std(data['y'])
+        sig = np.std(dif)
         w = np.zeros(len(data['y'])) + 0.01
-        mask3 = (data['y'] < np.mean(data['y']) + 3*sig) | (data['y'] > np.mean(data['y']) - 3*sig)
+        mask3 = abs(data['y']-Y) < 3*sig
         w[mask3] = 0.10
-        mask2 = (data['y'] < np.mean(data['y']) + 2*sig) | (data['y'] > np.mean(data['y']) - 2*sig)
+        mask2 = abs(data['y'] - Y) < 2*sig
         w[mask2] = 0.25
-        mask1 = (data['y'] < np.mean(data['y']) + sig) | (data['y'] > np.mean(data['y']) - sig)
+        mask1 = abs(data['y'] - Y) < sig
         w[mask1] = 1.0
+
     elif weights == 'mad':
-        mad = np.mean(np.absolute(data['y'] - np.mean(data['y'], None)), None)
+        mad = np.mean(np.absolute(dif - np.mean(dif, None)), None)
         w = np.zeros(len(data['y'])) + 0.01
-        mask3 = (data['y'] < np.mean(data['y']) + 3*mad) | (data['y'] > np.mean(data['y']) - 3*mad)
+        mask3 = abs(data['y']-Y) < 3*mad
         w[mask3] = 0.10
-        mask2 = (data['y'] < np.mean(data['y']) + 2*mad) | (data['y'] > np.mean(data['y']) - 2*mad)
+        mask2 = abs(data['y'] - Y) < 2*mad
         w[mask2] = 0.25
-        mask1 = (data['y'] < np.mean(data['y']) + mad) | (data['y'] > np.mean(data['y']) - mad)
+        mask1 = abs(data['y'] - Y) < mad
         w[mask1] = 1.0
 
     wls = sm.wls('y ~ x', data=data, weights=w).fit()
+
+
+
     return wls.params[1]
 
 
