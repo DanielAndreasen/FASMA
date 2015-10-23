@@ -72,17 +72,17 @@ def _renaming(linelist, converged):
 def _options(options=False):
     '''Reads the options inside the config file'''
     defaults = {'spt': False,
-                'weigths': False,
+                'weights': 'null',
                 'plot': False,
-                'models':'K95',
+                'model':'kurucz95',
                 'teff': False,
                 'logg': False,
                 'feh': False,
                 'vt': False,
-                'iterations': 25,
-                'epslope': 0.001,
-                'rwslope': 0.001,
-                'abdiff': 0.01
+                'iterations': 160,
+                'EPslope': 0.001,
+                'RWslope': 0.001,
+                'Fedifference': 0.01
                 }
     if not options:
         return defaults
@@ -94,7 +94,11 @@ def _options(options=False):
                 defaults[option[0]] = option[1]
             else:
                 defaults[option] = True
-        defaults['models'] = defaults['models'].upper()
+        defaults['model'] = defaults['model'].lower()
+        defaults['iterations'] = int(defaults['iterations'])
+        defaults['EPslope'] = float(defaults['EPslope'])
+        defaults['RWslope'] = float(defaults['RWslope'])
+        defaults['Fedifference'] = float(defaults['Fedifference'])
         return defaults
 
 
@@ -218,7 +222,7 @@ def moogme(starLines='StarMe.cfg'):
                 continue
 
             # Setting the models to use
-            if options['models'] != 'K95' and options['models'] != 'K08':
+            if options['model'] != 'kurucz95' and options['model'] != 'kurucz08':
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
@@ -227,7 +231,7 @@ def moogme(starLines='StarMe.cfg'):
             # TODO: Fix the interpolation please!
             if initial[1] > 4.99:  # quick fix
                 initial[1] = 4.99
-            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['models'])
+            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
             logger.info('Initial interpolation of model...')
             inter_model = interpolator(models,
                                        teff=(initial[0], nt),
@@ -238,11 +242,21 @@ def moogme(starLines='StarMe.cfg'):
 
             logger.info('Starting the minimization procedure...')
             # parameters, converged = minimize(initial, fun_moog, bounds=model,
-                                            #  fix_teff=fix_teff, fix_logg=fix_logg,
-                                            #  fix_feh=fix_feh, fix_vt=fix_vt)
+            #                                  fix_teff=fix_teff, fix_logg=fix_logg,
+            #                                  fix_feh=fix_feh, fix_vt=fix_vt,
+            #                                  weights=options['weights'],
+            #                                  iteration=options['iterations'],
+            #                                  EPcrit=options['EPslope'],
+            #                                  RWcrit=options['RWslope'],
+            #                                  ABdiffcrit=options['Fedifference'])
             parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
                                              fix_teff=fix_teff, fix_logg=fix_logg,
-                                             fix_feh=fix_feh, fix_vt=fix_vt)
+                                             fix_feh=fix_feh, fix_vt=fix_vt,
+                                             weights=options['weights'],
+                                             iteration=options['iterations'],
+                                             EPcrit=options['EPslope'],
+                                             RWcrit=options['RWslope'],
+                                             ABdiffcrit=options['Fedifference'])
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
             parameters = error(line[0])
@@ -251,11 +265,20 @@ def moogme(starLines='StarMe.cfg'):
                 output.write('\t'.join(map(str, tmp))+'\n')
             logger.info('Saved results to: results.csv')
 
-            print('\nCongratulation, you have won! Your final parameters are:')
+
+
             if __name__ == '__main__':
+                if converged:
+                    print('\nCongratulation, you have won! Your final parameters are:')
+                else:
+                    print('\nSorry, you did not win. However, your final parameters are:')
                 print(u' Teff:    %i\u00B1%i\n logg:    %.2f\u00B1%.2f\n [Fe/H]: %.2f\u00B1%.2f\n vt:      %.2f\u00B1%.2f\n' %
                      (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
             elif __name__ == 'MOOGme':
+                if converged:
+                    print('\nCongratulation, you have won! Your final parameters are:')
+                else:
+                    print('\nSorry, you did not win. However, your final parameters are:')
                 print('Teff:      %i+/-%i\nlogg:    %.2f+/-%.2f\n[Fe/H]:  %.2f+/-%.2f\nvt:        %.2f+/-%.2f\n' %
                      (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
     return parameters
