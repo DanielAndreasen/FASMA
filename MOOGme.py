@@ -124,22 +124,6 @@ def moogme(starLines='StarMe.cfg'):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    # TODO: Let us just insist on having a batch.par in the directory.
-    # Create one if necessary
-    # Preparing the batch file for MOOGSILENT
-    if not os.path.isfile(parfile):
-        logger.error('%s does not exist' % parfile)
-        raise IOError('%s does not exist' % parfile)
-    if parfile != 'batch.par':
-        logger.info('Copying %s to batch.par' % parfile)
-        os.system('cp %s batch.par' % parfile)
-        rm_batch = True
-
-    if plot:
-        logger.debug('plot keyword not implemented yet')
-    if outlier:
-        logger.debug('outlier keyword not implemented yet')
-
     with open('results.csv', 'w') as output:
         tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
         output.write('\t'.join(tmp)+'\n')
@@ -256,7 +240,7 @@ def moogme(starLines='StarMe.cfg'):
             # parameters, converged = minimize(initial, fun_moog, bounds=model,
                                             #  fix_teff=fix_teff, fix_logg=fix_logg,
                                             #  fix_feh=fix_feh, fix_vt=fix_vt)
-            parameters, converged = minimize(initial, fun_moog_fortran, bounds=model,
+            parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
                                              fix_teff=fix_teff, fix_logg=fix_logg,
                                              fix_feh=fix_feh, fix_vt=fix_vt)
             logger.info('Finished minimization procedure')
