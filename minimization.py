@@ -42,13 +42,13 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe):
     cond1 = abs(RW) <= RWcriteria
     cond2 = abs(Abdiff) <= ABdiffcriteria
     cond3 = abs(EP) <= EPcriteria
-    cond4 = fe_input == fe-7.47
+    cond4 = round(fe_input, 2) == round(fe-7.47, 2)
     return cond1 and cond2 and cond3 and cond4
 
 
 def minimize(x0, func, bounds="kurucz95", weights='null',
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             iteration=160, EPcrit=0.001, RWcrit=0.001, ABdiffcrit=0.01):
+             iteration=160, EPcrit=0.002, RWcrit=0.003, ABdiffcrit=0.01):
     """
     Sane minimization like a normal human being would do it.
     """
@@ -99,7 +99,8 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             Abdiff = np.diff(abundances)[0]
             save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            break
+            print 'Stopped in %i iterations' % N
+            return parameters, True
 
         Nsub = 0
         cycle = [parameters[3]]
@@ -128,7 +129,8 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             Abdiff = np.diff(abundances)[0]
             save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            break
+            print 'Stopped in %i iterations' % N
+            return parameters, True
 
         Nsub = 0
         cycle = [parameters[1]]
@@ -155,7 +157,8 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             Abdiff = np.diff(abundances)[0]
             save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            break
+            print 'Stopped in %i iterations' % N
+            return parameters, True
 
         #       Input metal...   FeI abund.
         Nsub = 0
@@ -170,7 +173,8 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             print_format(parameters)
             save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            break
+            print 'Stopped in %i iterations' % N
+            return parameters, True
 
     print 'Stopped in %i iterations' % N
     converged = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0])
