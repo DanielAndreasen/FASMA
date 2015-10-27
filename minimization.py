@@ -77,7 +77,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
     while N < iteration:
         Nsub = 0
         cycle = [parameters[0]]
-        while (abs(slopeEP) > EPcriteria) and not fix_teff and Nsub < 15 and N < iteration:
+        while (abs(slopeEP) >= EPcriteria) and not fix_teff and Nsub < 15 and N < iteration:
             # For Teff
             s = np.sign(slopeEP)
             step_i = s * step[0]/abs(np.log(abs(slopeEP)+0.0005))**3
@@ -104,7 +104,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
 
         Nsub = 0
         cycle = [parameters[3]]
-        while (abs(slopeRW) > RWcriteria) and not fix_vt and Nsub < 15 and N < iteration:
+        while (abs(slopeRW) >= RWcriteria) and not fix_vt and Nsub < 15 and N < iteration:
             # For micro turbulence
             s = np.sign(slopeRW)
             step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
@@ -134,7 +134,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
 
         Nsub = 0
         cycle = [parameters[1]]
-        while (abs(Abdiff) > ABdiffcriteria) and not fix_logg and Nsub < 15 and N < iteration:
+        while (abs(Abdiff) >= ABdiffcriteria) and not fix_logg and Nsub < 15 and N < iteration:
             # For logg
             s = -np.sign(Abdiff)
             step_i = s * step[1]/abs(np.log(abs(Abdiff)+0.0005))**3
