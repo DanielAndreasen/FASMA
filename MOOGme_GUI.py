@@ -27,8 +27,8 @@ def _parser():
     parser.add_argument('--weights',            help='Calculate the slopes of EP and RW with weights', type=str, default='null', choices=['null', 'median', 'sigma', 'mad'])
     parser.add_argument('--EPslope',            help='EP slope to converge', default=0.003, type=float)
     parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float)
-    parser.add_argument('--Fedifference',       help='difference between FeI and FeII', default='0.000',   type=float)
-    parser.add_argument('--MOOGv',              help='Version of MOOG', default=2013, choices=[2013, 2014], type=int)
+    parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000',   type=float)
+    parser.add_argument('--MOOGv',              help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str)
     return parser.parse_args()
 
 
