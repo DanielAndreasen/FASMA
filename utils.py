@@ -415,10 +415,10 @@ def _slopeSigma(x, y):
     return np.sqrt(chi2/((N-2)*sxx))
 
 
-def error(linelist):
+def error(linelist, converged):
     """linelist to give error estimation on"""
     # Find the output file and read the current state of it
-    if os.path.isfile('results/%s.out' % linelist):
+    if converged:
         summary = readmoog('results/%s.out' % linelist)
     else:
         summary = readmoog('results/%s.NC.out' % linelist)
