@@ -19,7 +19,7 @@ from model_interpolation import interpolator
 from model_interpolation import save_model
 from utils import fun_moog, fun_moog_fortran
 from utils import error
-from minimization import minimize
+from minimization import minimize, minimize2
 
 
 def _getSpt(spt):
@@ -249,7 +249,7 @@ def moogme(starLines='StarMe.cfg'):
             #                                  EPcrit=options['EPslope'],
             #                                  RWcrit=options['RWslope'],
             #                                  ABdiffcrit=options['Fedifference'])
-            parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
+            parameters, converged = minimize2(initial, fun_moog_fortran, bounds='kurucz95',
                                              fix_teff=fix_teff, fix_logg=fix_logg,
                                              fix_feh=fix_feh, fix_vt=fix_vt,
                                              weights=options['weights'],
@@ -259,7 +259,7 @@ def moogme(starLines='StarMe.cfg'):
                                              ABdiffcrit=options['Fedifference'])
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
-            parameters = error(line[0])
+            parameters = error(line[0], converged)
             with open('results.csv', 'a') as output:
                 tmp = [line[0]] + list(parameters) + [converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
