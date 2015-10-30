@@ -13,12 +13,6 @@ def print_format(x):
     print '%i %.2f %.2f %.2f' % (x[0], x[1], x[2], x[3])
 
 
-def save_iteration(parameters):
-    """Save the current iteration"""
-    data = ','.join(map(str, parameters))
-    os.system('echo %s >> minimization_profile.dat' % data)
-
-
 def check_bounds(parameter, bounds, i):
     """
     Function which checks if parameters are within bounds.
@@ -47,6 +41,62 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe):
     return cond1 and cond2 and cond3 and cond4
 
 
+def _bump(x, alpha=0.01):
+    """Bump to the values in the list, x"""
+    for i, xi in enumerate(x):
+        xi = 0.01 if xi == 0 else xi
+        x[i] = np.random.normal(xi, abs(alpha*xi))
+    x[0] = int(x[0])
+    x[1] = round(x[1], 2)
+    x[2] = round(x[2], 2)
+    x[3] = round(x[3], 2)
+    return x
+
+
+def _stepping(slope, step, parameters, quantity, all_params, weights):
+    '''Compress the code in the minimization routine to a simple function call
+
+    Input:
+        slope: Slope/difference in ab
+        step: stepping size for a given parameter
+        parameters: all four parameters
+        quantity: teff, logg, or vt
+        all_params: all previous parameters (for bumping)
+        weights: Weights to calculate the ab slopes
+    Output:
+        parameters, all_params, and results from a function call
+    '''
+
+    # sign of direction, lower/upper limit, index for parameters list
+    setup = {'logg': [-1, 0.01, 2.5, 1],
+             'teff': [ 1, 1, 17625, 0],
+               'vt': [ 1, 0.01, 2.5, 3]}
+    idx = setup[quantity][3]
+
+    s = setup[quantity][0]*np.sign(slope)
+
+    step_i = s * step/abs(np.log(abs(slope)+0.0005))**3
+    if abs(step_i) < setup[quantity][1]:
+        step_i = s*setup[quantity][1]
+    elif abs(step_i) > setup[quantity][2]:
+        step_i = s*setup[quantity][2]
+
+    parameters[idx] += step_i
+    parameters[idx] = check_bounds(parameters[idx], bound, 2*idx+1)
+    if quantity == 'teff':
+        parameters[idx] = int(parameters[idx])
+    else:
+        parameters[idx] = round(parameters[idx], 2)
+
+    if parameters in all_params:
+        parameters = _bump(parameters, 0.005)
+    all_params.append(copy(parameters))
+    print_format(parameters)
+    res, slopeEP, slopeRW, abundances = function(parameters, weights=weights)
+
+    return parameters, all_params, (res, slopeEP, slopeRW, abundances)
+
+
 def minimize(x0, func, bounds="kurucz95", weights='null',
              fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
              iteration=160, EPcrit=0.002, RWcrit=0.003, ABdiffcrit=0.01):
@@ -56,14 +106,16 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
 
     global EPcriteria, RWcriteria, ABdiffcriteria
     global f_teff, f_logg, f_vt, f_feh
+    global bound, function
     EPcriteria, RWcriteria, ABdiffcriteria = EPcrit, RWcrit, ABdiffcrit
     f_teff, f_logg, f_feh, f_vt = fix_teff, fix_logg, fix_feh, fix_vt
+    function = func
     # Step size in Teff, logg, vt
     step = (1000, 2.00, 1.50)
     if bounds.lower() == "kurucz95":
-        bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
+        bound = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
-    res, slopeEP, slopeRW, abundances = func(x0)
+    res, slopeEP, slopeRW, abundances = function(x0)
     Abdiff = np.diff(abundances)[0]
     parameters = list(x0)
     if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
@@ -74,89 +126,41 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
     except OSError:
         pass
 
+    all_params = [copy(parameters)]
     N = 0
     while N < iteration:
         Nsub = 0
-        cycle = [parameters[0]]
         while (abs(slopeEP) >= EPcriteria) and not fix_teff and Nsub < 15 and N < iteration:
             # For Teff
-            s = np.sign(slopeEP)
-            step_i = s * step[0]/abs(np.log(abs(slopeEP)+0.0005))**3
-            if abs(step_i) < 1:
-                step_i = s*1  # Minimum 1K
-            elif abs(step_i) > 17625:
-                step_i = s*17625  # Maximum 17625K (half the interval?)
-            parameters[0] += step_i
-            parameters[0] = check_bounds(parameters[0], bounds, 1)
-            parameters[0] = int(parameters[0])
-            if parameters[0] in cycle:
-                break
-            else:
-                cycle.append(parameters[0])
-            print_format(parameters)
-            res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
+            parameters, all_params, result = _stepping(slopeEP, step[0], parameters, 'teff', all_params, weights)
+            res, slopeEP, slopeRW, abundances = result
             N += 1
             Nsub += 1
             Abdiff = np.diff(abundances)[0]
-            save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
             return parameters, True
 
         Nsub = 0
-        cycle = [parameters[3]]
         while (abs(slopeRW) >= RWcriteria) and not fix_vt and Nsub < 15 and N < iteration:
             # For micro turbulence
-            s = np.sign(slopeRW)
-            step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
-            if abs(step_i) < 0.01:
-                step_i = s*0.01  # Minimum vt step
-            elif abs(step_i) > 2.5:
-                step_i = s*2.5  # Maximum vt step
-            else:
-                step_i = step_i
-            parameters[3] += step_i
-            parameters[3] = 0.00 if parameters[3] < 0 else parameters[3]
-            parameters[3] = check_bounds(parameters[3], bounds, 7)
-            parameters[3] = round(parameters[3], 2)
-            if parameters[3] in cycle:
-                break
-            else:
-                cycle.append(parameters[3])
-            print_format(parameters)
-            res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
+            parameters, all_params, result = _stepping(slopeRW, step[2], parameters, 'vt', all_params, weights)
+            res, slopeEP, slopeRW, abundances = result
             N += 1
             Nsub += 1
             Abdiff = np.diff(abundances)[0]
-            save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
             return parameters, True
 
         Nsub = 0
-        cycle = [parameters[1]]
         while (abs(Abdiff) >= ABdiffcriteria) and not fix_logg and Nsub < 15 and N < iteration:
             # For logg
-            s = -np.sign(Abdiff)
-            step_i = s * step[1]/abs(np.log(abs(Abdiff)+0.0005))**3
-            if abs(step_i) < 0.01:
-                step_i = s*0.01  # Minimum logg step
-            elif abs(step_i) > 2.5:
-                step_i = s*2.5  # Maximum logg step
-            parameters[1] += step_i
-            # checks bounds of logg
-            parameters[1] = check_bounds(parameters[1], bounds, 3)
-            parameters[1] = round(parameters[1], 2)
-            if parameters[1] in cycle:
-                break
-            else:
-                cycle.append(parameters[1])
-            print_format(parameters)
-            res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
+            parameters, all_params, result = _stepping(slopeRW, step[1], parameters, 'logg', all_params, weights)
+            res, slopeEP, slopeRW, abundances = result
             N += 1
             Nsub += 1
             Abdiff = np.diff(abundances)[0]
-            save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
             return parameters, True
@@ -168,11 +172,13 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             parameters[2] = abundances[0]-7.47
             parameters[2] = check_bounds(parameters[2], bounds, 5)
             parameters[2] = round(parameters[2], 2)
-            res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
+            res, slopeEP, slopeRW, abundances = function(parameters, weights=weights)
             N += 1
             Nsub += 1
+            if parameters in all_params:
+                parameters = _bump(parameters)
+            all_params.append(copy(parameters))
             print_format(parameters)
-            save_iteration(parameters)
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
             return parameters, True
@@ -182,12 +188,6 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
 
     return parameters, converged
 
-
-def _bump(x):
-    """Bump to the values in the list, x"""
-    for i, xi in enumerate(x):
-        x[i] = np.random.normal(xi, abs(0.01*xi))
-    return x
 
 
 def minimize2(x0, func, bounds="kurucz95", weights='null',
@@ -265,17 +265,12 @@ def minimize2(x0, func, bounds="kurucz95", weights='null',
 
         if parameters in all_params:
             parameters = _bump(parameters)
-            parameters[0] = int(parameters[0])
-            parameters[1] = round(parameters[1], 2)
-            parameters[2] = round(parameters[2], 2)
-            parameters[3] = round(parameters[3], 2)
         all_params.append(copy(parameters))
 
         res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
         Abdiff = np.diff(abundances)[0]
         N += 1
         print_format(parameters)
-        save_iteration(parameters)
 
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
