@@ -5,6 +5,7 @@
 from __future__ import division
 import numpy as np
 import os
+from copy import copy
 
 
 def print_format(x):
@@ -213,8 +214,8 @@ def minimize2(x0, func, bounds="kurucz95", weights='null',
         os.remove('minimization_profile.dat')
     except OSError:
         pass
-    all_params = [parameters]
 
+    all_params = [copy(parameters)]
     N = 0
     while N < iteration:
         # Step for Teff
@@ -268,7 +269,8 @@ def minimize2(x0, func, bounds="kurucz95", weights='null',
             parameters[1] = round(parameters[1], 2)
             parameters[2] = round(parameters[2], 2)
             parameters[3] = round(parameters[3], 2)
-        all_params.append(parameters)
+        all_params.append(copy(parameters))
+
         res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
         Abdiff = np.diff(abundances)[0]
         N += 1
