@@ -5,7 +5,7 @@
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
-from model_interpolation import interpolator, save_model
+from interpolation import interpolator, save_model
 from utils import _get_model
 
 teff = 6454

@@ -3,7 +3,7 @@
 
 from __future__ import division
 import os
-from model_interpolation import interpolator, save_model
+from interpolation import interpolator, save_model
 import numpy as np
 import statsmodels.formula.api as sm
 from glob import glob

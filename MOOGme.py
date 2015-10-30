@@ -15,8 +15,8 @@ except ImportError:
 import yaml
 
 from utils import _get_model, _update_par
-from model_interpolation import interpolator
-from model_interpolation import save_model
+from interpolation import interpolator
+from interpolation import save_model
 from utils import fun_moog, fun_moog_fortran
 from utils import error
 from minimization import minimize, minimize2
