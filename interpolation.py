@@ -4,6 +4,7 @@ import numpy as np
 from operator import mul
 from scipy.ndimage import _nd_image
 import gzip
+from scipy import ndimage
 
 
 """
@@ -179,7 +180,8 @@ def interpolator(mnames, teff, logg, feh):
             tlayer = np.zeros(interGridShape)
             for cntr in range(N):
                 tlayer[idxs[cntr]] = models[cntr][layer, column]
-            newdeck[layer, column] = map_coordinates(tlayer, coord)
+            # newdeck[layer, column] = map_coordinates(tlayer, coord)
+            newdeck[layer, column] = ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
     return newdeck
 
 
