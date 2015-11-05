@@ -7,7 +7,7 @@ from gooey import Gooey, GooeyParser
 
 
 def ew(args):
-    '''Create the StarMe.cfg file from the GUI'''
+    '''Driver for the EW method'''
     fout = ''
     linelist = args.linelist.rpartition('/')[-1]
     if args.spectralType:
@@ -41,15 +41,19 @@ def ew(args):
     moogme()
 
 
-def synth():
-    pass
+def synth(args):
+    """Driver for the synthesis method"""
+    print(args)
+    raise NotImplementedError('Patience you must have my young Padawan')
 
 
-def abund():
-    pass
+def abund(args):
+    """Driver for abundances"""
+    print(args)
+    raise NotImplementedError('Patience you must have my young Padawan')
 
 
-@Gooey(program_name='MOOG Made Easy - for deriving stellar parameters', default_size=(700, 1000))
+@Gooey(program_name='MOOG Made Easy - for deriving stellar parameters', default_size=(700, 1000), advanced=True)
 def main():
     '''Take care of all the argparse stuff.
     :returns: the args
@@ -65,12 +69,14 @@ def main():
     parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float, metavar='[Fe/H]')
     parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
     parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str, metavar='MOOG version')
+    parent_parser.add_argument('--recal',           help='Recalibrate loggf for a given MOOG version and atm. model', metavar='Recalibrate loggf', action='store_true')
+    parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
+
 
     # For the EW method
     ew_parser = subparsers.add_parser('ew', parents=[parent_parser], help='EW method')
-    ew_parser.add_argument('linelist',             help='Input linelist file',widget='FileChooser')
+    ew_parser.add_argument('linelist',             help='Input linelist file', widget='FileChooser')
     ew_parser.add_argument('--spectralType',       help='Input spectral type (optional)', default=False, metavar='Spectral type')
-    ew_parser.add_argument('--model',              help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
     ew_parser.add_argument('--Fixteff',            help='Fix temperature',     action='store_true', metavar='Fix temperature')
     ew_parser.add_argument('--Fixgravity',         help='Fix gravity',         action='store_true', metavar='Fix gravity')
     ew_parser.add_argument('--FixFeH',             help='Fix metallicity',     action='store_true', metavar='Fix [Fe/H]')
@@ -79,20 +85,20 @@ def main():
     ew_parser.add_argument('--weights',            help='Calculate the slopes of EP and RW with weights', type=str, default='null', choices=['null', 'median', 'sigma', 'mad'])
     ew_parser.add_argument('--EPslope',            help='EP slope to converge', default=0.001, type=float, metavar='EP slope')
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
-    ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000',   type=float, metavar='|<Fel>-<Fell>|')
-    ew_parser.set_defaults(func=ew)
+    ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|[Fel]-[Fell]|')
+    ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method
     synth_parser = subparsers.add_parser('synth', parents=[parent_parser], help='Synthesis method')
     synth_parser.add_argument('--test', help='this is test')
-    synth_parser.set_defaults(func=synth)
+    synth_parser.set_defaults(driver=synth)
 
     # For calculating the abundances
     abund_parser = subparsers.add_parser('abund', parents=[parent_parser], help='Abundances')
-    abund_parser.set_defaults(func=abund)
+    abund_parser.set_defaults(driver=abund)
 
     args = parser.parse_args()
-    return args.func(args)
+    return args.driver(args)
 
 
 if __name__ == '__main__':
