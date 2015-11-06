@@ -31,15 +31,19 @@ def _create_model(teff, logg, feh, vmicro):
     os.system('rm -f mod? fort* tmp')
 
 
-def _update_batch(linelist):
+def _update_batch(linelist=False):
     """Update the batch.par file for MOOG"""
     with open('batch.par', 'r') as lines:
         lines_tmp = []
         for line in lines:
-            if 'lines_in' in line:
+            if ('lines_in' in line) and linelist:
                 line = line.split('      ')
                 line[1] = "'" + linelist + "'\n"
-                line = '      '.join(line)
+                line = '       '.join(line)
+            if 'summary_out' in line:
+                line = line.split()
+                line[1] = "'%s'\n" % 'summary.out'
+                line = '    '.join(line)
             lines_tmp.append(line)
 
     with open('batch.par', 'w') as lines:
@@ -169,8 +173,7 @@ if __name__ == '__main__':
     p.add_argument('logg', type=float, help='The surface gravity')
     p.add_argument('feh', type=float, help='The metallicity')
     p.add_argument('vmicro', type=float, help='The micro turbulence')
-    p.add_argument('-l', '--linelist', help='The linelist to be used')
-    p.add_argument('-o', '--output', help='The output file with abundances', default='summary.out')
+    p.add_argument('-l', '--linelist', help='The linelist to be used', default=False)
     p.add_argument('-p', '--plot', help='Enable plotting', default=True, type=bool)
     p.add_argument('-u', '--outlier', help='print 3 sigma outliers', default=False, action='store_true')
     args = p.parse_args()
@@ -179,14 +182,13 @@ if __name__ == '__main__':
     _create_model(args.teff, args.logg, args.feh, args.vmicro)
 
     # Update the batch file if a new linelist is used
-    if args.linelist:
-        _update_batch(args.linelist)
+    _update_batch(args.linelist)
 
     # Run moog
     os.system('MOOGSILENT > /dev/null')
 
     # Prepare the data
-    data = read_output(args.output)
+    data = read_output()
 
     c1, c2 = plot_data(data[0], args.outlier)
     plt.tight_layout()
