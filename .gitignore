@@ -1,19 +1,14 @@
 # Our own stuff
 *~
-programs/
 models/
 results/
 linelist/
 results.csv
 *.log
 *.par
-*.dat
-*.ares
 !batch.par
 *.moog
-results.out
-result.out
-summary.out
+*.out
 *.atm
 mod?
 fort.*
