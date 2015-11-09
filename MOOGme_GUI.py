@@ -53,7 +53,9 @@ def abund(args):
     raise NotImplementedError('Patience you must have my young Padawan')
 
 
-@Gooey(program_name='MOOG Made Easy - for deriving stellar parameters', default_size=(700, 1000), advanced=True)
+@Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
+       default_size=(700, 1000),
+       image_dir='./img')
 def main():
     '''Take care of all the argparse stuff.
     :returns: the args
