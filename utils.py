@@ -3,7 +3,7 @@
 
 from __future__ import division
 import os
-from interpolation import interpolator, save_model
+from interpolation import interpolator, save_model, interpolatorN7
 import numpy as np
 import statsmodels.formula.api as sm
 from glob import glob
@@ -93,6 +93,7 @@ def _get_model(teff, logg, feh, atmtype='kurucz95'):
                 break
         try:
             teff_model = [grid['teff'][i], grid['teff'][i+1]]
+            # teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
         except IndexError:
             teff_model = [grid['teff'][i-1], grid['teff'][i]]
     else:
@@ -101,6 +102,7 @@ def _get_model(teff, logg, feh, atmtype='kurucz95'):
                 break
         try:
             teff_model = [grid['teff'][i-1], grid['teff'][i]]
+            # teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
         except IndexError:
             teff_model = [grid['teff'][i], grid['teff'][i+1]]
 
@@ -289,6 +291,8 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                          feh=(feh, nf))
+    # model = interpolatorN7(models, teff=(teff, nt), logg=(logg, nl),
+                        #  feh=(feh, nf))
     save_model(model, x)
 
     # Run MOOG and get the slopes and abundaces
@@ -296,6 +300,8 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     data = read_abund(results)
     EPs = slope((data[:,1], data[:,5]), weights=weights)
     RWs = slope((data[:,4], data[:,5]), weights=weights)
+    _, _, abundances = _read_moog(fname=results)
+    res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
     return res, EPs, RWs, abundances
 
 
