@@ -4,6 +4,8 @@ import numpy as np
 from operator import mul
 from scipy.ndimage import _nd_image
 import gzip
+from scipy import ndimage
+from scipy import interpolate
 
 
 """
@@ -179,8 +181,107 @@ def interpolator(mnames, teff, logg, feh):
             tlayer = np.zeros(interGridShape)
             for cntr in range(N):
                 tlayer[idxs[cntr]] = models[cntr][layer, column]
-            newdeck[layer, column] = map_coordinates(tlayer, coord)
+            # newdeck[layer, column] = map_coordinates(tlayer, coord)
+            newdeck[layer, column] = ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
     return newdeck
+
+def interpolatorN7(mnames, teff, logg, feh):
+    """The function to call from the main program (MOOGme.py)
+
+    :mnames: As generated from _get_models
+    :teff: Requested Effective Temperature and the four closest models in
+           the gridpoints
+    :logg: Requested Surface gravity and the two closest models
+    :feh: Requested metallicity and the two closest models
+    :out: The interpolated model saved in this file
+    """
+
+    def distance_vector(teff, logg, feh, teffvector, loggvector, fehvector):
+        """This function computes the distance_vector
+        :teff: Requested Effective Temperature
+        :logg: Requested logg
+        :feh:  requested feh
+        :teffvector: vector with closest 4 teff
+        :loggvector: vector with closest 2 logg
+        :fehvector: vector with closest 2 Fe/H
+        :vector: output vector with the distance of each gridpoint to the
+        requested parameters.log10(
+        """
+        vector = []
+        for element in teffvector:
+            for element2 in loggvector:
+                for element3 in fehvector:
+                    # x1 = np.log10(teff)-np.log10(element)
+                    x1 = (teff-element)/teff
+                    x2 = logg-element2
+                    x3 = feh-element3
+                    vector.append(x1 + x2/logg + x3)
+        return vector
+
+
+    def dist(teff, logg, feh, mname):
+        m = mname.rpartition('/')[-1]
+        m = m.split('.')
+        tm = int(m[0][:-3])
+        gm = float(m[0][-2:])/10
+        if m[1].startswith('m'):
+            fm = -float(m[1][1:])/10
+        else:
+            fm = float(m[1][1:])/10
+        x1 = (teff-tm)/teff
+        x2 = logg-gm
+        x3 = feh-fm
+        return 30*x1 + 1.5*x2 + x3
+
+
+    # TODO: This is super ugly way of doing stuff!
+    # teff, tefflow1, tefflow2, teffhigh1, teffhigh2 = teff[0], teff[1][0], teff[1][1], teff[1][2], teff[1][3]
+    teff, tefflow1, teffhigh1 = teff[0], teff[1][0], teff[1][1]
+    logg, logglow, logghigh = logg[0], logg[1][0], logg[1][1]
+    feh, fehlow, fehhigh = feh[0], feh[1][0], feh[1][1]
+
+    # teff_vector = [tefflow1, tefflow2, teffhigh1, teffhigh2]
+    teff_vector = [tefflow1, teffhigh1]
+    logg_vector = [logglow, logghigh]
+    feh_vector  = [fehlow, fehhigh]
+
+    distance = distance_vector(teff, logg, feh, teff_vector, logg_vector, feh_vector)
+
+    from matplotlib import pyplot as plt
+
+    # Reading the models and defining the opacity intervals
+    models = []
+    distance = []
+    for mname in mnames:
+        tatm = read_model(mname)
+        models.append(tatm[0])
+        distance.append(dist(teff, logg, feh, mname))
+    idx = np.argsort(distance)
+    distance = list(np.array(distance)[idx])
+    models = list(np.array(models)[idx])
+
+    layers = min([model.shape[0] for model in models])
+    columns = min([model.shape[1] for model in models])
+    newatm = np.zeros((layers, columns))
+    # newdeck[:, 7:] = models[0][:, 7:]
+    for layer in range(layers):
+        for column in range(columns):
+            parameter_vector = []
+            for model in models:
+                parameter_vector.append(model[layer,column])
+            f = interpolate.interp1d(distance, parameter_vector, kind='cubic')
+            # plt.plot(distance, parameter_vector, 'o-k')
+            # x = np.linspace(distance[0], distance[-1], 100)
+            # plt.plot(x, f(x), '-r')
+            # plt.plot([0], f(0), '-or')
+            # plt.show()
+            newatm[layer,column] = f(0)
+    return newatm#, models[0]
+
+
+
+
+
 
 
 def save_model(model, params, type='kurucz95', fout='out.atm'):
@@ -213,3 +314,17 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     _fmt = ('%15.8E', '%8.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E')
     np.savetxt(fout, model, header=header, footer=footer, comments='',
                delimiter=' ', fmt=_fmt)
+
+
+
+if __name__ == '__main__':
+    from utils import _get_model
+    import matplotlib.pyplot as plt
+    teff = 5250
+    logg = 4.2
+    feh = 0.0
+    mnames, teffmod, loggmod, fehmod = _get_model(teff, logg, feh, atmtype='kurucz95')
+    new_atm, model = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    # for i in range(1, 9):
+    #     plt.plot(new_atm[:,0], (new_atm[:,i]-model[:,i])/model[:,i] * 100, 'ro')
+    #     plt.show()
