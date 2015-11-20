@@ -15,9 +15,9 @@ def _parser():
     parser.add_argument('linelist',             help='Input linelist file',widget='FileChooser')
     parser.add_argument('--temperature',        help='Input initial temperature',      default=5777,  type=int)
     parser.add_argument('--surfacegravity',     help='Input initial gravity',          default=4.44,  type=float)
-    parser.add_argument('--FeH',                help='Input initial metallicity',      default='0.0', type=float)
+    parser.add_argument('--FeH',                help='Input initial metallicity',      default='0.0', type=float, metavar='[Fe/H]')
     parser.add_argument('--microturbulence',    help='Input initial microturbulence',  default=1.0,   type=float)
-    parser.add_argument('--spectralType',       help='Input spectral type (optional)', default=False)
+    parser.add_argument('--spectralType',       help='Input spectral type (optional)', default=False, metavar='Spectral Type')
     parser.add_argument('--model',              help='Model atmosphere', default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
     parser.add_argument('--Fixteff',            help='Fix temperature',               action='store_true')
     parser.add_argument('--Fixgravity',         help='Fix gravity',         action='store_true')
@@ -28,8 +28,17 @@ def _parser():
     parser.add_argument('--EPslope',            help='EP slope to converge', default=0.001, type=float)
     parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float)
     parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000',   type=float)
-    parser.add_argument('--MOOGv',              help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str)
+    parser.add_argument('--MOOGv',              help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str, metavar='MOOG version')
     return parser.parse_args()
+
+
+
+# @Gooey(program_name="Metavar Demo")
+# def main():
+#   my_cool_parser = GooeyParser(description="Using Metavar")
+#   my_cool_parser.add_argument("spectralType", metavar="Spectral Type")
+#   return my_cool_parser.parse_args()
+
 
 
 def create_starme(args):
