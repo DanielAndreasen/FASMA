@@ -5,7 +5,6 @@ from __future__ import division
 import os
 from interpolation import interpolator, save_model, interpolatorN7
 import numpy as np
-import statsmodels.formula.api as sm
 from glob import glob
 
 kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
@@ -92,8 +91,8 @@ def _get_model(teff, logg, feh, atmtype='kurucz95'):
             if Ti - teff == 0:
                 break
         try:
-            teff_model = [grid['teff'][i], grid['teff'][i+1]]
-            # teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
+            # teff_model = [grid['teff'][i], grid['teff'][i+1]]
+            teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
         except IndexError:
             teff_model = [grid['teff'][i-1], grid['teff'][i]]
     else:
@@ -101,8 +100,8 @@ def _get_model(teff, logg, feh, atmtype='kurucz95'):
             if Ti - teff > 0:
                 break
         try:
-            teff_model = [grid['teff'][i-1], grid['teff'][i]]
-            # teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
+            # teff_model = [grid['teff'][i-1], grid['teff'][i]]
+            teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
         except IndexError:
             teff_model = [grid['teff'][i], grid['teff'][i+1]]
 
@@ -289,10 +288,10 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
-    model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
-                         feh=(feh, nf))
-    # model = interpolatorN7(models, teff=(teff, nt), logg=(logg, nl),
+    # model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
                         #  feh=(feh, nf))
+    model = interpolatorN7(models, teff=(teff, nt), logg=(logg, nl),
+                         feh=(feh, nf))
     save_model(model, x)
 
     # Run MOOG and get the slopes and abundaces
@@ -483,7 +482,7 @@ def error(linelist, converged):
 
 def slope(data, weights='null'):
     """Calculate the slope of a data set with the weight"""
-
+    import statsmodels.formula.api as sm
     # weights = weights.lower()
     options = ['null', 'median', 'sigma', 'mad']
     if weights not in options or weights == 'median':
