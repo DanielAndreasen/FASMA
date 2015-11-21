@@ -185,6 +185,7 @@ def interpolator(mnames, teff, logg, feh):
             newdeck[layer, column] = ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
     return newdeck
 
+
 def interpolatorN7(mnames, teff, logg, feh):
     """The function to call from the main program (MOOGme.py)
 
@@ -234,49 +235,235 @@ def interpolatorN7(mnames, teff, logg, feh):
         return 30*x1 + 1.5*x2 + x3
 
 
+    def _interpol(models, param, kind, layers, columns):
+        """
+        models:  dictionary of the models
+        param: The value we try to interpolate to
+        kind: The parameter: 'teff', 'logg', 'feh'
+        """
+        newatm = np.zeros((layers, columns))
+        N = len(models.keys())
+        for layer in range(layers):
+            for column in range(columns):
+                dist = np.zeros(N)
+                params = np.zeros(N)
+                i = 0
+                for k, v in models.iteritems():
+                    if kind == 'teff':
+                        kv = int(k.split('g')[0])
+                    elif kind == 'logg':
+                        kv = float(k[:2])/10
+                    else:
+                        if k[-3] == 'p':
+                            kv = float(k[-2:])/10
+                        else:
+                            kv = -float(k[-2:])/10
+                    dist[i] = kv-param
+                    params[i] = v[layer, column]
+                    i += 1
+                idx = np.argsort(dist)
+                dist = dist[idx]
+                params = params[idx]
+                if N > 2:
+                    p = np.polyfit(dist, params, deg=2)
+                    p0 = np.polyval(p, 0)
+                else:
+                    p = np.polyfit(dist, params, deg=1)
+                    p0 = np.polyval(p, 0)
+                    # plt.plot(dist, params, 'o-k')
+                    # x = np.linspace(dist[0], dist[-1], 100)
+                    # plt.plot(x, np.polyval(p, x), '-r')
+                    # plt.plot([0], p0, 'or')
+                    # plt.show()
+                newatm[layer,column] = p0
+        if kind == 'teff':
+            name = k.strip('.gz').split('g')[-1]
+        else:
+            name = k
+        return {name: newatm}
+
+
+
     # TODO: This is super ugly way of doing stuff!
-    # teff, tefflow1, tefflow2, teffhigh1, teffhigh2 = teff[0], teff[1][0], teff[1][1], teff[1][2], teff[1][3]
-    teff, tefflow1, teffhigh1 = teff[0], teff[1][0], teff[1][1]
-    logg, logglow, logghigh = logg[0], logg[1][0], logg[1][1]
-    feh, fehlow, fehhigh = feh[0], feh[1][0], feh[1][1]
+    teff, teff1, teff2, teff3, teff4 = teff[0], teff[1][0], teff[1][1], teff[1][2], teff[1][3]
+    # teff, teff1, teff2 = teff[0], teff[1][0], teff[1][1]
+    logg, logg1, logg2 = logg[0], logg[1][0], logg[1][1]
+    feh, feh1, feh2 = feh[0], feh[1][0], feh[1][1]
 
-    # teff_vector = [tefflow1, tefflow2, teffhigh1, teffhigh2]
-    teff_vector = [tefflow1, teffhigh1]
-    logg_vector = [logglow, logghigh]
-    feh_vector  = [fehlow, fehhigh]
+    teff_vector = [teff1, teff2, teff3, teff4]
+    # teff_vector = [teff1, teff2]
+    logg_vector = [logg1, logg2]
+    feh_vector  = [feh1, feh2]
 
-    distance = distance_vector(teff, logg, feh, teff_vector, logg_vector, feh_vector)
-
-    from matplotlib import pyplot as plt
-
-    # Reading the models and defining the opacity intervals
-    models = []
-    distance = []
+    models = dict()
     for mname in mnames:
         tatm = read_model(mname)
-        models.append(tatm[0])
-        distance.append(dist(teff, logg, feh, mname))
-    idx = np.argsort(distance)
-    distance = list(np.array(distance)[idx])
-    models = list(np.array(models)[idx])
+        models[mname.rpartition('/')[2]] = tatm[0]
 
-    layers = min([model.shape[0] for model in models])
-    columns = min([model.shape[1] for model in models])
-    newatm = np.zeros((layers, columns))
-    # newdeck[:, 7:] = models[0][:, 7:]
-    for layer in range(layers):
-        for column in range(columns):
-            parameter_vector = []
-            for model in models:
-                parameter_vector.append(model[layer,column])
-            f = interpolate.interp1d(distance, parameter_vector, kind='cubic')
-            # plt.plot(distance, parameter_vector, 'o-k')
-            # x = np.linspace(distance[0], distance[-1], 100)
-            # plt.plot(x, f(x), '-r')
-            # plt.plot([0], f(0), '-or')
-            # plt.show()
-            newatm[layer,column] = f(0)
-    return newatm#, models[0]
+    layers = min([model.shape[0] for model in models.values()])
+    columns = min([model.shape[1] for model in models.values()])
+
+    # Interpolate over Teff first
+    models_t1 = dict()
+    models_t2 = dict()
+    models_t3 = dict()
+    models_t4 = dict()
+    for model in models.keys():
+        if 'g'+str(logg1).replace('.', '') in model and str(feh1).replace('.', '')+'.' in model:
+            models_t1[model] = models[model]
+        elif 'g'+str(logg1).replace('.', '') in model and str(feh2).replace('.', '')+'.' in model:
+            models_t2[model] = models[model]
+        elif 'g'+str(logg2).replace('.', '') in model and str(feh1).replace('.', '')+'.' in model:
+            models_t3[model] = models[model]
+        elif 'g'+str(logg2).replace('.', '') in model and str(feh2).replace('.', '')+'.' in model:
+            models_t4[model] = models[model]
+    # print models_t1.keys()
+    # print teff_vector
+    # print models_t2.keys()
+    # print models_t3.keys()
+    # print models_t4.keys()
+
+    t1 = _interpol(models_t1, teff, 'teff', layers, columns)
+    t2 = _interpol(models_t2, teff, 'teff', layers, columns)
+    t3 = _interpol(models_t3, teff, 'teff', layers, columns)
+    t4 = _interpol(models_t4, teff, 'teff', layers, columns)
+
+
+    # Interpolate Fe/H
+    L1 = t1
+    L2 = dict()
+
+    if L1.keys()[0][0:2] != t2.keys()[0][0:2]:
+        L2[t2.keys()[0]] = t2.values()[0]
+    else:
+        L1[t2.keys()[0]] = t2.values()[0]
+
+    if L1.keys()[0][0:2] != t3.keys()[0][0:2]:
+        L2[t3.keys()[0]] = t3.values()[0]
+    else:
+        L1[t3.keys()[0]] = t3.values()[0]
+
+    if L1.keys()[0][0:2] != t4.keys()[0][0:2]:
+        L2[t4.keys()[0]] = t4.values()[0]
+    else:
+        L1[t4.keys()[0]] = t4.values()[0]
+
+
+    # print L1.keys()
+
+    l1 = _interpol(L1, feh, 'feh', layers, columns)
+    l2 = _interpol(L2, feh, 'feh', layers, columns)
+
+    # Interpolate logg
+    M = l1
+    M.update(l2)
+    newatm = _interpol(M, logg, 'logg', layers, columns)
+
+
+    return newatm.values()[0]
+
+
+
+
+
+
+    # print t1.keys()[0][0:2]
+    # print t2.keys()
+    # print t3.keys()
+    # print t4.keys()
+
+    # Interpolate logg
+    # l1 = _interpol(t1, logg, 'logg', layers, columns)
+
+
+
+
+
+
+
+
+
+
+
+    # return False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # newatm = np.zeros((layers, columns))
+    #
+    # for layer in range(layers):
+    #     for column in range(columns):
+    #         parameter_vector = []
+    #         for model in models:
+    #             parameter_vector.append(model[layer,column])
+    #         f = interpolate.interp1d(distance, parameter_vector, kind='cubic')
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    # distance = distance_vector(teff, logg, feh, teff_vector, logg_vector, feh_vector)
+    #
+    # from matplotlib import pyplot as plt
+    #
+    # # Reading the models and defining the opacity intervals
+    # models = []
+    # distance = []
+    # for mname in mnames:
+    #     tatm = read_model(mname)
+    #     models.append(tatm[0])
+    #     distance.append(dist(teff, logg, feh, mname))
+    # idx = np.argsort(distance)
+    # distance = list(np.array(distance)[idx])
+    # models = list(np.array(models)[idx])
+    #
+    # layers = min([model.shape[0] for model in models])
+    # columns = min([model.shape[1] for model in models])
+    # newatm = np.zeros((layers, columns))
+    # # newdeck[:, 7:] = models[0][:, 7:]
+    # for layer in range(layers):
+    #     for column in range(columns):
+    #         parameter_vector = []
+    #         for model in models:
+    #             parameter_vector.append(model[layer,column])
+    #         f = interpolate.interp1d(distance, parameter_vector, kind='cubic')
+    #         # plt.plot(distance, parameter_vector, 'o-k')
+    #         # x = np.linspace(distance[0], distance[-1], 100)
+    #         # plt.plot(x, f(x), '-r')
+    #         # plt.plot([0], f(0), '-or')
+    #         # plt.show()
+    #         newatm[layer,column] = f(0)
+    # return newatm#, models[0]
 
 
 
@@ -320,11 +507,16 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
 if __name__ == '__main__':
     from utils import _get_model
     import matplotlib.pyplot as plt
-    teff = 5250
+    teff = 5300
     logg = 4.2
-    feh = 0.0
+    feh = 0.02
     mnames, teffmod, loggmod, fehmod = _get_model(teff, logg, feh, atmtype='kurucz95')
-    new_atm, model = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    # try:
+    #     new_atm, model = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    # except:
+        # new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+
     # for i in range(1, 9):
     #     plt.plot(new_atm[:,0], (new_atm[:,i]-model[:,i])/model[:,i] * 100, 'ro')
     #     plt.show()
