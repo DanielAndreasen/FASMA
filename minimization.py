@@ -41,11 +41,13 @@ def check_convergence(RW, EP, Abdiff, fe_input, fe):
     return cond1 and cond2 and cond3 and cond4
 
 
-def _bump(x, alpha=0.01):
+def _bump(x, alpha):
     """Bump to the values in the list, x"""
-    for i, xi in enumerate(x):
-        xi = 0.01 if xi == 0 else xi
-        x[i] = np.random.normal(xi, abs(alpha*xi))
+    for i, X in enumerate(zip(alpha, x)):
+        ai, xi = X
+        sig = 0.01 if ai*xi == 0 else ai*xi
+        if ai:
+            x[i] = np.random.normal(xi, abs(sig))
     x[0] = int(x[0])
     x[1] = round(x[1], 2)
     x[2] = round(x[2], 2)
@@ -264,7 +266,12 @@ def minimize2(x0, func, bounds="kurucz95", weights='null',
             parameters[2] = round(parameters[2], 2)
 
         if parameters in all_params:
-            parameters = _bump(parameters)
+            alpha = [0] * 4
+            alpha[0] = abs(slopeEP) if not fix_teff else 0
+            alpha[1] = abs(Abdiff) if not fix_logg else 0
+            alpha[2] = 0.01 if not fix_feh else 0
+            alpha[3] = abs(slopeRW) if not fix_vt else 0
+            parameters = _bump(parameters, alpha)
         all_params.append(copy(parameters))
 
         res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
