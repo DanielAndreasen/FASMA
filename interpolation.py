@@ -1,10 +1,10 @@
 #!/usr/bin/python
 from __future__ import division
 import numpy as np
-# from operator import mul
-# from scipy.ndimage import _nd_image
+from operator import mul
+from scipy.ndimage import _nd_image
 import gzip
-# from scipy import ndimage
+from scipy import ndimage
 from scipy import interpolate
 
 
