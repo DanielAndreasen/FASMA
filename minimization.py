@@ -51,7 +51,7 @@ def _bump(x, alpha):
     x[0] = int(x[0])
     x[1] = round(x[1], 2)
     x[2] = round(x[2], 2)
-    x[3] = round(x[3], 2)
+    x[3] = abs(round(x[3], 2))  # We can't have negative microturbulence
     return x
 
 
