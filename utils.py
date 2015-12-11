@@ -304,7 +304,7 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     data = read_abund(results)
     EPs = slope((data[:,1], data[:,5]), weights=weights)
     RWs = slope((data[:,4], data[:,5]), weights=weights)
-    _, _, abundances = _read_moog(fname=results)
+    _, _, _, abundances = _read_moog(fname=results)
     res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
     return res, EPs, RWs, abundances
 
@@ -329,7 +329,7 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', weights='null'):
     data = read_abund(results)
     EPs = slope((data[:,1], data[:,5]), weights=weights)
     RWs = slope((data[:,4], data[:,5]), weights=weights)
-    _, _, abundances = _read_moog(fname=results)
+    _, _, _, abundances = _read_moog(fname=results)
     if len(abundances) == 2:
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
         return res, EPs, RWs, abundances
