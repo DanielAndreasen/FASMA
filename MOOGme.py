@@ -242,7 +242,7 @@ def moogme(starLines='StarMe.cfg'):
             logger.info('Interpolation successful.')
 
             logger.info('Starting the minimization procedure...')
-            # parameters, converged = minimize(initial, fun_moog, bounds=model,
+            # parameters, converged = minimize2(initial, fun_moog, bounds='kurucz95',
             #                                  fix_teff=fix_teff, fix_logg=fix_logg,
             #                                  fix_feh=fix_feh, fix_vt=fix_vt,
             #                                  weights=options['weights'],
