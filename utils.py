@@ -259,6 +259,7 @@ def _read_moog(fname='summary.out'):
     EP_slopes = []
     RW_slopes = []
     abundances = []
+    element = []
     with open(fname, 'r') as lines:
         for line in lines:
             # Get the EP slope
@@ -273,7 +274,11 @@ def _read_moog(fname='summary.out'):
             elif line.startswith('average abundance'):
                 line = filter(None, line.split('abundance =')[1].split(' '))
                 abundances.append(float(line[0]))
-    return EP_slopes, RW_slopes, abundances
+              # Get element
+            elif line.startswith('Abundance'):
+                line = filter(None, line.split(' '))
+                element.append(str(line[4])+str(line[5]))
+    return element, EP_slopes, RW_slopes, abundances
 
 
 def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
