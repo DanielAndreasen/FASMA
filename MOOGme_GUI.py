@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
+from __future__ import print_function
 from MOOGme import moogme
 import argparse
 from gooey import Gooey, GooeyParser
@@ -13,21 +14,23 @@ def ew(args):
     if args.spectralType:
         if not args.temperature and not args.surfacegravity:
             fout += '%s spt:%s,' % (linelist, args.spectralType)
+        else:
+            print('Temperature and/or surface gravity set. Will not use spectral type.')
     else:
         if not args.temperature:
-            print 'Warning: Temperature was set to 5777K'
+            print('Warning: Temperature was set to 5777K')
             args.temperature = 5777
         if not args.surfacegravity:
-            print 'Warning: Surface gravity was set to 4.44'
+            print('Warning: Surface gravity was set to 4.44')
             args.surfacegravity = 4.44
         if not args.FeH:
             args.FeH = 0.0
         if not args.microturbulence:
-            print 'Warning: Microturbulence was set to 1.00'
+            print('Warning: Microturbulence was set to 1.00')
             args.microturbulence = 1.00
         fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
 
-    fout += 'model:%s,iterations:%s,weights:%s,rwslope:%s,epslope:%s,abdiff:%s,MOOGv:%s' % (args.model, args.Iterations, args.weights, args.RWslope, args.EPslope, args.Fedifference, args.MOOGv)
+    fout += 'model:%s,iterations:%s,weights:%s,RWslope:%s,EPslope:%s,abdiff:%s,MOOGv:%s' % (args.model, args.Iterations, args.weights, args.RWslope, args.EPslope, args.Fedifference, args.MOOGv)
     if args.Fixteff:
         fout += ',teff'
     if args.Fixgravity:
@@ -51,6 +54,9 @@ def abund(args):
     """Driver for abundances"""
     print(args)
     raise NotImplementedError('Patience you must have my young Padawan')
+    fout = ''
+    with open('abund.cfg', 'w') as f:
+        f.writelines(fout)
 
 
 @Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
@@ -71,7 +77,7 @@ def main():
     parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float, metavar='[Fe/H]')
     parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
     parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str, metavar='MOOG version')
-    parent_parser.add_argument('--recal',           help='Recalibrate loggf for a given MOOG version and atm. model', metavar='Recalibrate loggf', action='store_true')
+    # parent_parser.add_argument('--recal',           help='Recalibrate loggf for a given MOOG version and atm. model', metavar='Recalibrate loggf', action='store_true')
     parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
 
 

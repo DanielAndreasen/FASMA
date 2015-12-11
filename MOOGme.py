@@ -82,7 +82,8 @@ def _options(options=False):
                 'iterations': 160,
                 'EPslope': 0.001,
                 'RWslope': 0.001,
-                'Fedifference': 0.01
+                'abdiff': 0.01,
+                'MOOGv': 2014
                 }
     if not options:
         return defaults
@@ -98,7 +99,7 @@ def _options(options=False):
         defaults['iterations'] = int(defaults['iterations'])
         defaults['EPslope'] = float(defaults['EPslope'])
         defaults['RWslope'] = float(defaults['RWslope'])
-        defaults['Fedifference'] = float(defaults['Fedifference'])
+        defaults['abdiff'] = float(defaults['abdiff'])
         return defaults
 
 
@@ -248,7 +249,7 @@ def moogme(starLines='StarMe.cfg'):
             #                                  iteration=options['iterations'],
             #                                  EPcrit=options['EPslope'],
             #                                  RWcrit=options['RWslope'],
-            #                                  ABdiffcrit=options['Fedifference'])
+            #                                  ABdiffcrit=options['abdiff'])
             parameters, converged = minimize2(initial, fun_moog_fortran, bounds='kurucz95',
                                              fix_teff=fix_teff, fix_logg=fix_logg,
                                              fix_feh=fix_feh, fix_vt=fix_vt,
@@ -256,7 +257,7 @@ def moogme(starLines='StarMe.cfg'):
                                              iteration=options['iterations'],
                                              EPcrit=options['EPslope'],
                                              RWcrit=options['RWslope'],
-                                             ABdiffcrit=options['Fedifference'])
+                                             ABdiffcrit=options['abdiff'])
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
             parameters = error(line[0], converged)
