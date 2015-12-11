@@ -269,18 +269,10 @@ def interpolatorN7(mnames, teff, logg, feh):
                 params = params[idx]
                 if N > 2:  # "interpolation" of temperature
                     p = np.polyfit(dist, params, deg=2)
-                    # f = interpolate.interp1d(dist, params, kind='cubic')
                     p0 = np.polyval(p, 0)
-                    # print p0 - f(0)
-                    # p0 = f(0)
                 else:  # "interpolation" of logg and [Fe/H]
                     p = np.polyfit(dist, params, deg=1)
                     p0 = np.polyval(p, 0)
-                    # plt.plot(dist, params, 'o-k')
-                    # x = np.linspace(dist[0], dist[-1], 100)
-                    # plt.plot(x, np.polyval(p, x), '-r')
-                    # plt.plot([0], p0, 'or')
-                    # plt.show()
                 newatm[layer,column] = p0
         if kind == 'teff':
             name = k.strip('.gz').split('g')[-1]
@@ -292,15 +284,10 @@ def interpolatorN7(mnames, teff, logg, feh):
 
     # TODO: This is super ugly way of doing stuff!
     teff, teff1, teff2, teff3, teff4 = teff[0], teff[1][0], teff[1][1], teff[1][2], teff[1][3]
-    # teff, teff1, teff2 = teff[0], teff[1][0], teff[1][1]
     logg, logg1, logg2 = logg[0], logg[1][0], logg[1][1]
-    # logg, logg1, logg2, logg3, logg4 = logg[0], logg[1][0], logg[1][1], logg[1][2], logg[1][3]
     feh, feh1, feh2 = feh[0], feh[1][0], feh[1][1]
-
     teff_vector = [teff1, teff2, teff3, teff4]
-    # teff_vector = [teff1, teff2]
     logg_vector = [logg1, logg2]
-    # logg_vector = [logg1, logg2, logg3, logg4]
     feh_vector  = [feh1, feh2]
 
     models = dict()
@@ -317,13 +304,13 @@ def interpolatorN7(mnames, teff, logg, feh):
     models_t3 = dict()
     models_t4 = dict()
     for model in models.keys():
-        if 'g'+str(logg1).replace('.', '') in model and str(feh1).replace('.', '')+'.' in model:
+        if 'g'+str(logg1).replace('.', '') in model and str(feh1).replace('.', '').replace('-','')+'.' in model:
             models_t1[model] = models[model]
-        elif 'g'+str(logg1).replace('.', '') in model and str(feh2).replace('.', '')+'.' in model:
+        elif 'g'+str(logg1).replace('.', '') in model and str(feh2).replace('.', '').replace('-','')+'.' in model:
             models_t2[model] = models[model]
-        elif 'g'+str(logg2).replace('.', '') in model and str(feh1).replace('.', '')+'.' in model:
+        elif 'g'+str(logg2).replace('.', '') in model and str(feh1).replace('.', '').replace('-','')+'.' in model:
             models_t3[model] = models[model]
-        elif 'g'+str(logg2).replace('.', '') in model and str(feh2).replace('.', '')+'.' in model:
+        elif 'g'+str(logg2).replace('.', '') in model and str(feh2).replace('.', '').replace('-','')+'.' in model:
             models_t4[model] = models[model]
 
     t1 = _interpol(models_t1, teff, 'teff', layers, columns)
@@ -392,7 +379,6 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     _fmt = ('%15.8E', '%8.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E')
     np.savetxt(fout, model, header=header, footer=footer, comments='',
                delimiter=' ', fmt=_fmt)
-
 
 
 if __name__ == '__main__':
