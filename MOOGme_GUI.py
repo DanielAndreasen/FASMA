@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 from MOOGme import moogme
+from abundances import moogme_ab
 import argparse
 from gooey import Gooey, GooeyParser
 
@@ -52,11 +53,7 @@ def synth(args):
 
 def abund(args):
     """Driver for abundances"""
-    print(args)
-    raise NotImplementedError('Patience you must have my young Padawan')
-    fout = ''
-    with open('abund.cfg', 'w') as f:
-        f.writelines(fout)
+    moogme_ab()
 
 
 @Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
