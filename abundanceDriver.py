@@ -6,14 +6,13 @@ from __future__ import division, print_function
 import logging
 import os
 import yaml
+import numpy as np
 
 from utils import _get_model, _update_par
 from interpolation import interpolator
 from interpolation import save_model
 from utils import fun_moog, fun_moog_fortran, _run_moog, _read_moog
 from utils import error
-
-import numpy as np
 
 def save(dic):
     linelist = dic.pop('linelist')
@@ -181,8 +180,7 @@ def moogme_ab(starLines='StarMe.cfg'):
                         abundance_dict[element].append(abundance)
                     else:
                         abundance_dict[element]=[np.nan]*counter+[abundance]
-                                   
-
+                        
             for key in abundance_dict.keys():
                         if len(abundance_dict[key]) < N:
                             abundance_dict[key].append(np.nan)    
