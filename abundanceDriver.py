@@ -11,10 +11,10 @@ import numpy as np
 from utils import _get_model, _update_par
 from interpolation import interpolator
 from interpolation import save_model
-from utils import fun_moog, fun_moog_fortran, _run_moog, _read_moog
-from utils import error
+from utils import _run_moog, _read_moog
 
 def save(dic):
+    """Write results"""
     linelist = dic.pop('linelist')
     teff = dic.pop('Temperature')
     logg = dic.pop('Gravity')
@@ -22,7 +22,6 @@ def save(dic):
     vt = dic.pop('microturbulence')
     elements = dic.keys()
     header = 'linelist,temperature,logg,[Fe/H],vt,' + ','.join(elements)
-    print(len(linelist))
     
     with open('results.csv', 'w') as f:
         f.writelines(header + '\n')
@@ -32,19 +31,9 @@ def save(dic):
                 line += ',%s' % dic[element][i]
             f.writelines(line + '\n')
 
-def _renaming(linelist):
-    """Save the output in a file related to the linelist"""
-    
-    cmd = 'cp summary.out results/%s.out' % linelist
-    os.system(cmd)
-
-
 def _options(options=False):
     '''Reads the options inside the config file'''
-    defaults = {'spt': False,
-                'weights': 'null',
-                'plot': False,
-                'model':'kurucz95',
+    defaults = {'model':'kurucz95',
                 'teff': False,
                 'logg': False,
                 'feh': False,
@@ -70,7 +59,6 @@ def moogme_ab(starLines='StarMe.cfg'):
     starLines   -   Configuration file (default: StarMe.cfg)
     parfile     -   The configuration file for MOOG
     model       -   Type of model atmospheres
-    plot        -   Plot results (currently not implemented)
     outlier     -   Remove outliers (currently not implemented)
 
     Output:
@@ -100,7 +88,7 @@ def moogme_ab(starLines='StarMe.cfg'):
     if not os.path.isdir('results'):
         os.mkdir('results')
         logger.info('results directory was created')
-
+        
     with open(starLines, 'r') as lines:
 
         if os.path.isfile('results.csv'): 
@@ -187,7 +175,9 @@ def moogme_ab(starLines='StarMe.cfg'):
             counter += 1
 
     save(abundance_dict)
-    return
+    cmd = 'cp summary.out results/%s.out' % line[0]
+    os.system(cmd)
+return
 
 if __name__ == '__main__':
     moogme_ab()
