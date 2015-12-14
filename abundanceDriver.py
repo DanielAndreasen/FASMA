@@ -22,7 +22,7 @@ def save(dic):
     vt = dic.pop('microturbulence')
     elements = dic.keys()
     header = 'linelist,temperature,logg,[Fe/H],vt,' + ','.join(elements)
-    
+
     with open('results.csv', 'w') as f:
         f.writelines(header + '\n')
         for i in range(len(linelist)):
@@ -88,10 +88,10 @@ def moogme_ab(starLines='StarMe.cfg'):
     if not os.path.isdir('results'):
         os.mkdir('results')
         logger.info('results directory was created')
-        
+
     with open(starLines, 'r') as lines:
 
-        if os.path.isfile('results.csv'): 
+        if os.path.isfile('results.csv'):
             os.remove('results.csv')
         counter = 0
         abundance_dict = {}
@@ -120,6 +120,12 @@ def moogme_ab(starLines='StarMe.cfg'):
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
                 options = _options()
+                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+
+            elif len(line) == 6:
+                logger.info('Initial parameters given by the user.')
+                initial = map(float, line[1:-1])
+                options = _options(line[-1])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
 
             else:
@@ -168,16 +174,16 @@ def moogme_ab(starLines='StarMe.cfg'):
                         abundance_dict[element].append(abundance)
                     else:
                         abundance_dict[element]=[np.nan]*counter+[abundance]
-                        
+
             for key in abundance_dict.keys():
                         if len(abundance_dict[key]) < N:
-                            abundance_dict[key].append(np.nan)    
+                            abundance_dict[key].append(np.nan)
             counter += 1
 
     save(abundance_dict)
     cmd = 'cp summary.out results/%s.out' % line[0]
     os.system(cmd)
-return
+    return
 
 if __name__ == '__main__':
     moogme_ab()
