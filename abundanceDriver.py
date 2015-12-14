@@ -177,7 +177,7 @@ def moogme_ab(starLines='StarMe.cfg'):
     save(abundance_dict)
     cmd = 'cp summary.out results/%s.out' % line[0]
     os.system(cmd)
-return
+    return
 
 if __name__ == '__main__':
     moogme_ab()
