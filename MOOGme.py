@@ -56,6 +56,11 @@ def abund(args):
     moogme_ab()
 
 
+def ares(args):
+    """Driver for ARES"""
+    raise NotImplementedError('Patience you must have my young Padawan')
+
+
 @Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
        default_size=(700, 1000),
        image_dir='./img')
@@ -101,6 +106,13 @@ def main():
     # For calculating the abundances
     abund_parser = subparsers.add_parser('abund', parents=[parent_parser], help='Abundances')
     abund_parser.set_defaults(driver=abund)
+
+    # Driver for ARES
+    ares_parser = subparsers.add_parser('ARES', help='ARES')
+    ares_parser.add_argument('spectrum', help='1D spectrum', widget='FileChooser')
+    ares_parser.add_argument('linelist', help='Input linelist file', widget='FileChooser')
+    ares_parser.add_argument('--output', help='Output of final linelist')
+    ares_parser.set_defaults(driver=ares)
 
     args = parser.parse_args()
     return args.driver(args)
