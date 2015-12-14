@@ -1,289 +1,110 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
-# My imports
-from __future__ import division, print_function
-import logging
-import os
+from __future__ import print_function
+from ewDriver import ewdriver
+from abundances import moogme_ab
 import argparse
-try:
-    import seaborn as sns
-    sns.set_style('dark')
-    sns.set_context('talk')
-except ImportError:
-    print('install seaborn for nice plots (pip install seaborn)')
-import yaml
-
-from utils import _get_model, _update_par
-from interpolation import interpolator
-from interpolation import save_model
-from utils import fun_moog, fun_moog_fortran
-from utils import error
-from minimization import minimize, minimize2
+from gooey import Gooey, GooeyParser
 
 
-def _getSpt(spt):
-    """Get the spectral type from a string like 'F5V'."""
-    if len(spt) > 4:
-        raise ValueError('Spectral type most be of the form: F8V')
-    if '.' in spt:
-        raise ValueError('Do not use half spectral types as %s' % spt)
-    with open('SpectralTypes.yml', 'r') as f:
-        d = yaml.safe_load(f)
-    temp = spt[0:2]
-    lum = spt[2:]
-    try:
-        line = d[lum][temp]
-    except KeyError:
-        print('Was not able to find the spectral type: %s' % spt)
-        print('Teff=5777 and logg=4.44')
-        return 5777, 4.44
-    try:
-        line = line.split()
-        teff = int(line[0])
-        logg = float(line[1])
-    except AttributeError:
-        teff = line
-        logg = 4.44
-    return teff, logg
-
-
-def _getMic(teff, logg):
-    """Calculate micro turbulence. REF? Doyle 2014"""
-    if logg >= 3.95:  # Dwarfs
-        mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
-        return round(mic, 2)
-    else:  # Giants
-        mic = 3.7 - (5.1 * teff * (10**(-4)))
-        return round(mic, 2)
-
-
-def _renaming(linelist, converged):
-    """Save the output in a file related to the linelist"""
-    if converged:
-        cmd = 'cp summary.out results/%s.out' % linelist
+def ew(args):
+    '''Driver for the EW method'''
+    fout = ''
+    linelist = args.linelist.rpartition('/')[-1]
+    if args.spectralType:
+        if not args.temperature and not args.surfacegravity:
+            fout += '%s spt:%s,' % (linelist, args.spectralType)
+        else:
+            print('Temperature and/or surface gravity set. Will not use spectral type.')
     else:
-        cmd = 'cp summary.out results/%s.NC.out' % linelist
-        # os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
+        if not args.temperature:
+            print('Warning: Temperature was set to 5777K')
+            args.temperature = 5777
+        if not args.surfacegravity:
+            print('Warning: Surface gravity was set to 4.44')
+            args.surfacegravity = 4.44
+        if not args.FeH:
+            args.FeH = 0.0
+        if not args.microturbulence:
+            print('Warning: Microturbulence was set to 1.00')
+            args.microturbulence = 1.00
+        fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
 
-    os.system(cmd)
-
-
-def _options(options=False):
-    '''Reads the options inside the config file'''
-    defaults = {'spt': False,
-                'weights': 'null',
-                'plot': False,
-                'model':'kurucz95',
-                'teff': False,
-                'logg': False,
-                'feh': False,
-                'vt': False,
-                'iterations': 160,
-                'EPslope': 0.001,
-                'RWslope': 0.001,
-                'abdiff': 0.01,
-                'MOOGv': 2014
-                }
-    if not options:
-        return defaults
-    else:
-        options = options.split(',')
-        for option in options:
-            if ':' in option:
-                option = option.split(':')
-                defaults[option[0]] = option[1]
-            else:
-                defaults[option] = True
-        defaults['model'] = defaults['model'].lower()
-        defaults['iterations'] = int(defaults['iterations'])
-        defaults['EPslope'] = float(defaults['EPslope'])
-        defaults['RWslope'] = float(defaults['RWslope'])
-        defaults['abdiff'] = float(defaults['abdiff'])
-        return defaults
+    fout += 'model:%s,iterations:%s,weights:%s,RWslope:%s,EPslope:%s,abdiff:%s,MOOGv:%s' % (args.model, args.Iterations, args.weights, args.RWslope, args.EPslope, args.Fedifference, args.MOOGv)
+    if args.Fixteff:
+        fout += ',teff'
+    if args.Fixgravity:
+        fout += ',logg'
+    if args.FixFeH:
+        fout += ',feh'
+    if args.Fixmicroturbulence:
+        fout += ',vt'
+    with open('StarMe.cfg', 'w') as f:
+        f.writelines(fout)
+    ewdriver()
 
 
-def moogme(starLines='StarMe.cfg'):
-    """The function that glues everything together
-
-    Input:
-    starLines   -   Configuration file (default: StarMe.cfg)
-    parfile     -   The configuration file for MOOG
-    model       -   Type of model atmospheres
-    plot        -   Plot results (currently not implemented)
-    outlier     -   Remove outliers (currently not implemented)
-
-    Output:
-    <linelist>.(NC).out     -   NC=not converget.
-    results.csv             -   Easy readable table with results from many linelists
-    """
-    try:  # Cleaning from previous runs
-        os.remove('captain.log')
-    except OSError:
-        pass
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler('captain.log')
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    with open('results.csv', 'w') as output:
-        tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
-        output.write('\t'.join(tmp)+'\n')
-
-    #Check if there is a directory called linelist, if not create it and ask the user to put files there
-    if not os.path.isdir('linelist'):
-        logger.error('Error: The directory linelist does not exist!')
-        os.mkdir('linelist')
-        logger.info('linelist directory was created')
-        raise IOError('linelist directory did not exist! Put the linelists inside that directory, please.')
-
-    #Create results directory
-    if not os.path.isdir('results'):
-        os.mkdir('results')
-        logger.info('results directory was created')
-
-    with open(starLines, 'r') as lines:
-        for line in lines:
-            if not line[0].isalpha():
-                logger.debug('Skipping header: %s' % line.strip())
-                continue
-            logger.info('Line list: %s' % line.strip())
-            fix_teff = False
-            fix_logg = False
-            fix_feh = False
-            fix_vt = False
-            line = line.strip()
-            line = line.split(' ')
-
-            #Check if the linelist is inside the directory if not log it and pass to next linelist
-            if not os.path.isfile('linelist/%s' % line[0]):
-                logger.error('Error: linelist/%s not found.' % line[0])
-                parameters = None
-                continue
-            else:
-                _update_par(line_list='linelist/%s' % line[0])
-
-            if len(line) == 1:
-                initial = (5777, 4.44, 0.00, 1.00)
-                options = _options()
-                logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
-
-            elif len(line) == 5:
-                logger.info('Initial parameters given by the user.')
-                initial = map(float, line[1::])
-                options = _options()
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-
-            elif len(line) == 2:
-                logger.info('Spectral type given: %s' % line[1])
-                options = _options(line[1])
-                if options['spt']:
-                    Teff, logg = _getSpt(options['spt'])
-                    mic = _getMic(Teff, logg)
-                    initial = (Teff, logg, 0.00, mic)
-                else:
-                    initial = (5777, 4.44, 0.00, 1.00)
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                fix_teff = options['teff']
-                fix_logg = options['logg']
-                fix_feh  = options['feh']
-                fix_vt   = options['vt']
-                if fix_teff:
-                    logger.info('Effective temperature fixed at: %i' % initial[0])
-                elif fix_logg:
-                    logger.info('Surface gravity fixed at: %s' % initial[1])
-                elif fix_feh:
-                    logger.info('Metallicity fixed at: %s' % initial[2])
-                elif fix_vt:
-                    logger.info('Micro turbulence fixed at: %s' % initial[3])
-
-            elif len(line) == 6:
-                logger.info('Initial parameters given by user and some parameters fixed.')
-                initial = map(float, line[1:-1])
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                options = _options(line[-1])
-                fix_teff = options['teff']
-                fix_logg = options['logg']
-                fix_feh  = options['feh']
-                fix_vt   = options['vt']
-                if fix_teff:
-                    logger.info('Effective temperature fixed at: %i' % initial[0])
-                elif fix_logg:
-                    logger.info('Surface gravity fixed at: %s' % initial[1])
-                elif fix_feh:
-                    logger.info('Metallicity fixed at: %s' % initial[2])
-                elif fix_vt:
-                    logger.info('Micro turbulence fixed at: %s' % initial[3])
-
-            else:
-                logger.error('Could not process information for this line list: %s' % line)
-                continue
-
-            # Setting the models to use
-            if options['model'] != 'kurucz95' and options['model'] != 'kurucz08':
-                logger.error('Your request for type: %s is not available' % model)
-                continue
-
-            # Get the initial grid models
-            logger.info('Getting initial model grid')
-            # TODO: Fix the interpolation please!
-            if initial[1] > 4.99:  # quick fix
-                initial[1] = 4.99
-            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
-            logger.info('Initial interpolation of model...')
-            inter_model = interpolator(models,
-                                       teff=(initial[0], nt),
-                                       logg=(initial[1], nl),
-                                       feh=(initial[2], nf))
-            save_model(inter_model, params=initial)
-            logger.info('Interpolation successful.')
-
-            logger.info('Starting the minimization procedure...')
-            # parameters, converged = minimize2(initial, fun_moog, bounds='kurucz95',
-            #                                  fix_teff=fix_teff, fix_logg=fix_logg,
-            #                                  fix_feh=fix_feh, fix_vt=fix_vt,
-            #                                  weights=options['weights'],
-            #                                  iteration=options['iterations'],
-            #                                  EPcrit=options['EPslope'],
-            #                                  RWcrit=options['RWslope'],
-            #                                  ABdiffcrit=options['abdiff'])
-            parameters, converged = minimize2(initial, fun_moog_fortran, bounds='kurucz95',
-                                             fix_teff=fix_teff, fix_logg=fix_logg,
-                                             fix_feh=fix_feh, fix_vt=fix_vt,
-                                             weights=options['weights'],
-                                             iteration=options['iterations'],
-                                             EPcrit=options['EPslope'],
-                                             RWcrit=options['RWslope'],
-                                             ABdiffcrit=options['abdiff'])
-            logger.info('Finished minimization procedure')
-            _renaming(line[0], converged)
-            parameters = error(line[0], converged)
-            with open('results.csv', 'a') as output:
-                tmp = [line[0]] + list(parameters) + [converged]
-                output.write('\t'.join(map(str, tmp))+'\n')
-            logger.info('Saved results to: results.csv')
+def synth(args):
+    """Driver for the synthesis method"""
+    print(args)
+    raise NotImplementedError('Patience you must have my young Padawan')
 
 
+def abund(args):
+    """Driver for abundances"""
+    moogme_ab()
 
-            if __name__ == '__main__':
-                if converged:
-                    print('\nCongratulation, you have won! Your final parameters are:')
-                else:
-                    print('\nSorry, you did not win. However, your final parameters are:')
-                print(u' Teff:    %i\u00B1%i\n logg:    %.2f\u00B1%.2f\n [Fe/H]: %.2f\u00B1%.2f\n vt:      %.2f\u00B1%.2f\n' %
-                     (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
-            elif __name__ == 'MOOGme':
-                if converged:
-                    print('\nCongratulation, you have won! Your final parameters are:')
-                else:
-                    print('\nSorry, you did not win. However, your final parameters are:')
-                print('Teff:      %i+/-%i\nlogg:    %.2f+/-%.2f\n[Fe/H]:  %.2f+/-%.2f\nvt:        %.2f+/-%.2f\n' %
-                     (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
-    return parameters
+
+@Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
+       default_size=(700, 1000),
+       image_dir='./img')
+def main():
+    '''Take care of all the argparse stuff.
+    :returns: the args
+    '''
+    parser = GooeyParser(description='Set parameters')
+
+    subparsers = parser.add_subparsers()
+
+    # Common to all
+    parent_parser = GooeyParser(add_help=False)
+    parent_parser.add_argument('--temperature',     help='Input initial temperature',      default=5777,  type=int)
+    parent_parser.add_argument('--surfacegravity',  help='Input initial gravity',          default=4.44,  type=float, metavar='logg')
+    parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float, metavar='[Fe/H]')
+    parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
+    parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str, metavar='MOOG version')
+    # parent_parser.add_argument('--recal',           help='Recalibrate loggf for a given MOOG version and atm. model', metavar='Recalibrate loggf', action='store_true')
+    parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
+
+
+    # For the EW method
+    ew_parser = subparsers.add_parser('ew', parents=[parent_parser], help='EW method')
+    ew_parser.add_argument('linelist',             help='Input linelist file', widget='FileChooser')
+    ew_parser.add_argument('--spectralType',       help='Input spectral type (optional)', default=False, metavar='Spectral type')
+    ew_parser.add_argument('--Fixteff',            help='Fix temperature',     action='store_true', metavar='Fix temperature')
+    ew_parser.add_argument('--Fixgravity',         help='Fix gravity',         action='store_true', metavar='Fix gravity')
+    ew_parser.add_argument('--FixFeH',             help='Fix metallicity',     action='store_true', metavar='Fix [Fe/H]')
+    ew_parser.add_argument('--Fixmicroturbulence', help='Fix microturbulence', action='store_true', metavar='Fix microturbulence')
+    ew_parser.add_argument('--Iterations',         help='Maximum number of iterations', default=160, type=int)
+    ew_parser.add_argument('--weights',            help='Calculate the slopes of EP and RW with weights', type=str, default='null', choices=['null', 'median', 'sigma', 'mad'])
+    ew_parser.add_argument('--EPslope',            help='EP slope to converge', default=0.001, type=float, metavar='EP slope')
+    ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
+    ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|[Fel]-[Fell]|')
+    ew_parser.set_defaults(driver=ew)
+
+    # For the synhtesis method
+    synth_parser = subparsers.add_parser('synth', parents=[parent_parser], help='Synthesis method')
+    synth_parser.add_argument('--test', help='this is test')
+    synth_parser.set_defaults(driver=synth)
+
+    # For calculating the abundances
+    abund_parser = subparsers.add_parser('abund', parents=[parent_parser], help='Abundances')
+    abund_parser.set_defaults(driver=abund)
+
+    args = parser.parse_args()
+    return args.driver(args)
 
 
 if __name__ == '__main__':
-    parameters = moogme()
+    main()
