@@ -53,6 +53,28 @@ def synth(args):
 
 def abund(args):
     """Driver for abundances"""
+
+    fout = ''
+    linelist = args.linelist.rpartition('/')[-1]
+
+    if not args.temperature:
+        print('Warning: Temperature was set to 5777K')
+        args.temperature = 5777
+    if not args.surfacegravity:
+        print('Warning: Surface gravity was set to 4.44')
+        args.surfacegravity = 4.44
+    if not args.FeH:
+        args.FeH = 0.0
+    if not args.microturbulence:
+        print('Warning: Microturbulence was set to 1.00')
+        args.microturbulence = 1.00
+    fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
+
+    fout += 'model:%s,MOOGv:%s' % (args.model, args.MOOGv)
+
+    with open('StarMe.cfg', 'w') as f:
+        f.writelines(fout)
+
     abundancedriver()
 
 
@@ -105,6 +127,7 @@ def main():
 
     # For calculating the abundances
     abund_parser = subparsers.add_parser('abund', parents=[parent_parser], help='Abundances')
+    abund_parser.add_argument('linelist', help='Input linelist file', widget='FileChooser')
     abund_parser.set_defaults(driver=abund)
 
     # Driver for ARES
