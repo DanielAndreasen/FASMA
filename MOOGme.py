@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 from ewDriver import ewdriver
-from abundances import moogme_ab
+from abundanceDriver import moogme_ab as abundancedriver
 import argparse
 from gooey import Gooey, GooeyParser
 
@@ -53,7 +53,7 @@ def synth(args):
 
 def abund(args):
     """Driver for abundances"""
-    moogme_ab()
+    abundancedriver()
 
 
 def ares(args):
