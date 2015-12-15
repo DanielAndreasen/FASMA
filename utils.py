@@ -218,7 +218,6 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         if key not in kwargs.keys():
             kwargs[key] = value
     # Generate a MOOG-compatible run file
-    moog_filename = 'batch.par'
 
     moog_contents = "abfind\n"\
                     "terminal       %s\n"\
@@ -239,7 +238,101 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         if setting in kwargs:
             moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)), kwargs[setting])
 
-    with open(moog_filename, 'w') as moog:
+    with open('batch.par', 'w') as moog:
+        moog.writelines(moog_contents)
+
+
+def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmosphere_model='out.atm', **kwargs):
+    """Update the parameter file (batch.par) with new linelists, atmosphere
+    models, or others.
+
+    Inputs
+    -----
+    atmosphere_model    :   Location of your model atmosphere file
+    line_list           :   Location of your line list
+
+    Additional keyword arguments
+    ----------------------------
+    These additional keyword arguments allow the user to have full control
+    over what is put into the MOOG input file. The default values are:
+
+    terminal        'x11'
+    atmosphere      1
+    molecules       2
+    trudamp         1
+    lines           1
+    flux/int        1
+    damping         2
+    units           0
+    iraf            0
+    plot            2
+    obspectrum      1       Unless obspectrum is provided to the function.
+    opacit          0
+    freeform        0
+    strong          0       Unless a strong lines list is provided.
+    plotpars        1       0.75 Gaussian smoothing by default. Show full
+                            synthesized spectral range with y:[0, 1.2]
+    histogram       0
+    synlimits               Defaults to the wavelength range provided and
+                            the given wavelength step size, and the delta
+                            defaults to the wavelength step size.
+
+    Outputs
+    -------
+    And updated parameter file
+    """
+
+    # Path checks for input files
+    if not os.path.exists(line_list):
+        raise IOError('Line list file "%s" could not be found.' % (line_list))
+
+    default_kwargs = {
+        'atmosphere': 1,
+        'molecules':  2,
+        'lines':      1,
+        'terminal':   'x11',
+        'flux/int':   0,
+        'damping':    2,
+        'obspectrum': 0,
+        'model_in':     'out.atm',
+        'smoothed_out': 'smooth.out',
+        'summary':      'summary.out'
+        }
+
+    # Fill the keyword arguments with the defaults if they don't exist already
+    for key, value in default_kwargs.iteritems():
+        if key not in kwargs.keys():
+            kwargs[key] = value
+    # Generate a MOOG-compatible run file
+
+    moog_contents = "synth\n"\
+                    "terminal          %s\n"\
+                    "model_in          '%s'\n"\
+                    "observed_in       '%s'\n"\
+                    "summary_out       '%s'\n"\
+                    "smoothed_out      'smooth.out'\n"\
+                    "standard_out      'result.out'\n"\
+                    "lines_in          '%s'\n"\
+                    "plot              0\n"\
+                    "synlimits\n"\
+                    "      %s      %s       %s      %s\n"\
+                    "plotpars          %s\n"\
+                    "      %s      %s       0.5      1.05\n"\
+                    "      0.0     0.0      0.0       0.0\n"\
+                    "      g       %s       %s       %s       %s       %s\n" % (kwargs['terminal'], atmosphere_model,  kwargs['obfile'], kwargs['summary'],
+                                                                               line_list, start_wave, end_wave, kwargs['step_wave'], kwargs['step_flux'],
+                                                                               kwargs['plotpars'], start_wave, end_wave, kwargs['resolution'], kwargs['vsini'],
+                                                                               kwargs['limb'], kwargs['vmac'], kwargs['lorentz'])
+
+    settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
+               'units,iraf,opacity,freeform,obspectrum,histogram,'\
+               'synlimits'.split(',')
+
+    for setting in settings:
+        if setting in kwargs:
+            moog_contents += "%s      %s\n" % (setting + ' ' * (14 - len(setting)), kwargs[setting])
+
+    with open('batch.par', 'w') as moog:
         moog.writelines(moog_contents)
 
 
