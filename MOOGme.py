@@ -80,7 +80,32 @@ def abund(args):
 
 def ares(args):
     """Driver for ARES"""
-    raise NotImplementedError('Patience you must have my young Padawan')
+    def rejt_from_snr(snr):
+        """Calculate rejt from SNR"""
+        return 1-1/snr
+
+    if args.SNR:
+        rejt = rejt_from_snr(args.SNR)
+    else:
+        rejt = args.rejt
+    rejt = 0.999 if rejt > 0.999 else rejt
+    plot = 1 if args.plots else 0
+    out = args.spectrum + '.ares' if not args.output else args.output
+
+    fout = 'specfits=\'%s\'\n' % args.spectrum
+    fout += 'readlinedat=\'%s\'\n' % args.linelist
+    fout += 'fileout=\'%s\'\n' % out
+    fout += 'lambdai=%s\n' % args.lambdai
+    fout += 'lambdaf=%s\n' % args.lambdaf
+    fout += 'smoothder= %s\n' % args.smoothder
+    fout += 'space=%s\n' % args.space
+    fout += 'rejt=%s\n' % rejt
+    fout += 'lineresol=%s\n' % args.lineresol
+    fout += 'miniline=%s\n' % args.miniline
+    fout += 'plots_flag=%s\n' % plot
+
+    with open('mine.opt', 'w') as f:
+        f.writelines(fout)
 
 
 @Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
@@ -131,10 +156,19 @@ def main():
     abund_parser.set_defaults(driver=abund)
 
     # Driver for ARES
-    ares_parser = subparsers.add_parser('ARES', help='ARES')
+    ares_parser = subparsers.add_parser('ares', help='ARES')
     ares_parser.add_argument('spectrum', help='1D spectrum', widget='FileChooser')
     ares_parser.add_argument('linelist', help='Input linelist file', widget='FileChooser')
     ares_parser.add_argument('--output', help='Output of final linelist')
+    ares_parser.add_argument('--lambdai', help='Beginning of wavelength interval', default=7500, type=float)
+    ares_parser.add_argument('--lambdaf', help='End of wavelength interval', default=25000, type=float)
+    ares_parser.add_argument('--smoothder', help='Noise smoother', default=4, type=int)
+    ares_parser.add_argument('--space', help='Interval for the line computation', default=2.0, type=float)
+    ares_parser.add_argument('--rejt', help='Continuum position', default=0.995, type=float)
+    ares_parser.add_argument('--lineresol', help='Line resolution', default=0.07, type=float)
+    ares_parser.add_argument('--miniline', help='Weaker line to be printed out', default=2, type=int)
+    ares_parser.add_argument('--plots', help='Flag for plots', default=False, action='store_true')
+    ares_parser.add_argument('--SNR', help='If specified, the rejt is calculated')
     ares_parser.set_defaults(driver=ares)
 
     args = parser.parse_args()
