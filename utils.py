@@ -374,6 +374,15 @@ def _read_moog(fname='summary.out'):
     return element, EP_slopes, RW_slopes, abundances
 
 
+def _read_smooth(fname='smooth.out'):
+    """Read the synthetic spectrum from the summary.out and return them
+    :fname: From the summary_out
+    :returns: wavelength and flux (in that order)
+    """
+    wavelength, flux = np.loadtxt(fname, skiprows=2, usecols=(0, 1), unpack=True)
+    return wavelength, flux
+
+
 def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     """The 'function' that we should minimize
 
@@ -637,3 +646,34 @@ def read_abund(file='summary.out'):
                 data.append(line)
             except ValueError:
                 return np.array(data)
+
+
+def read_observations(fname, start_synth, end_synth):
+    """Read observed spectrum and return wavelength and flux"""
+
+
+    if fname.lower().endswith('.fits'):
+        header = fits.getheader(fname)
+        flux = fits.getdata(fname)
+        flux = np.array(flux, dtype=np.float64)
+        start_wave = header['CRVAL1']  # initial wavelenght
+        step = header['CDELT1']  # increment per pixel
+        w0, dw, n = start_wave, step, len(flux)
+        w = start_wave + step * n
+        wavelength = np.linspace(w0, w, n, endpoint=False)
+    else:
+        wavelength, flux = np.loadtxt(fname, unpack=True, usecols=(0, 1))
+
+    wavelength_obs = wavelength[np.where((wavelength >= start_synth) & (wavelength <= end_synth))]
+    flux_obs = flux[np.where((wavelength >= start_synth) & (wavelength <= end_synth))]
+    return wavelength_obs, flux_obs
+
+
+def interpol_synthetic(fname, start_synth, end_synth):
+    """Interpolation of the synthetic flux to the observed wavelength"""
+    #The synthetic spectrum should be always finer
+    wave_synth, flux_synth = _read_smooth('smooth.out')
+    wavelength_obs, flux_obs = read_observations(fname, start_synth, end_synth)
+    f = interp1d(wavelength_obs, flux_obs, kind='cubic')
+    flux_inter_synth = f(wave_synth)
+    return wavelength_obs, flux_obs, flux_inter_synth
