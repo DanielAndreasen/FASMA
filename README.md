@@ -4,8 +4,7 @@ MOOGme
 A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html),
 the stellar spectra code.
 
-Probably [ARES](http://www.astro.up.pt/~sousasag/ares/) will also be
-integrated in the future.
+[ARES](http://www.astro.up.pt/~sousasag/ares/) is integrated.
 
 **WARNING**: This code is still under development and not fully tested. For bugs please report to the authors. 
 Updates will be available soon!
