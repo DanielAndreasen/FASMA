@@ -251,8 +251,17 @@ if __name__ == '__main__':
     synthdriver()
     _run_moog(driver='synth')
     # plot_synthetic()
-    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic('sun_harps_ganymede.txt', 6444.672, 6447.340)
-    # plt.plot(wavelength_obs, flux_obs/np.median(flux_obs), '-k', wavelength_obs, flux_inter_synth, '-r')
-    # plt.plot(wavelength_obs, flux_obs/np.median(flux_obs) - flux_inter_synth + 1, '--g')
-    # plt.show()
+    wavelength_obs, flux_obs = np.loadtxt('sun_harps_ganymede.txt', unpack=True, usecols=(0, 1))
+    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
+
+    flux_obs /= np.median(flux_obs)
+    # Normalization (use first 50 points below 1.2 as constant continuum)
+    maxes = flux_obs[(flux_obs < 1.2)].argsort()[-50:][::-1]
+    flux_obs /= np.median(flux_obs[maxes])
+
+    # flux_obs *= np.median(flux_inter_synth)/np.median(flux_obs)
+
+    plt.plot(wavelength_obs, flux_obs, '-k', wavelength_obs, flux_inter_synth, '-r')
+    plt.plot(wavelength_obs, flux_obs - flux_inter_synth + 1, '--g')
+    plt.show()
     # read_observations('sun_6000-7000.txt', 6444.0, 6448.0)
