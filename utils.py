@@ -271,7 +271,7 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
     freeform        0
     strong          0       Unless a strong lines list is provided.
     plotpars        1       0.75 Gaussian smoothing by default. Show full
-                            synthesized spectral range with y:[0, 1.2]
+                            synthesized spectral range with y:[0, 1.2]vsini
     histogram       0
     synlimits               Defaults to the wavelength range provided and
                             the given wavelength step size, and the delta
@@ -389,7 +389,7 @@ def _read_smooth(fname='smooth.out'):
     return wavelength, flux
 
 
-def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
+def fun_moog(x, par='batch.par', results='summary.out', weights='null', driver='abfind'):
     """The 'function' that we should minimize
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
@@ -405,13 +405,14 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     save_model(model, x)
 
     # Run MOOG and get the slopes and abundaces
-    _run_moog(par=par)
-    data = read_abund(results)
-    EPs = slope((data[:,1], data[:,5]), weights=weights)
-    RWs = slope((data[:,4], data[:,5]), weights=weights)
-    _, _, _, abundances = _read_moog(fname=results)
-    res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
-    return res, EPs, RWs, abundances
+    _run_moog(par=par, driver=driver)
+    if driver == 'abfind':
+        data = read_abund(results)
+        EPs = slope((data[:,1], data[:,5]), weights=weights)
+        RWs = slope((data[:,4], data[:,5]), weights=weights)
+        _, _, _, abundances = _read_moog(fname=results)
+        res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
+        return res, EPs, RWs, abundances
 
 
 def fun_moog_fortran(x, par='batch.par', results='summary.out', weights='null'):
