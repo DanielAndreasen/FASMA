@@ -313,7 +313,7 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
                     "smoothed_out      'smooth.out'\n"\
                     "standard_out      'result.out'\n"\
                     "lines_in          '%s'\n"\
-                    "plot              0\n"\
+                    "plot              1\n"\
                     "synlimits\n"\
                     "      %s      %s       %s      %s\n"\
                     "plotpars          %s\n"\
@@ -336,10 +336,16 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
         moog.writelines(moog_contents)
 
 
-def _run_moog(par='batch.par'):
+def _run_moog(par='batch.par', driver='abfind'):
     """Run MOOGSILENT with the given parameter file
     """
-    os.system('MOOGSILENT > /dev/null')
+    if driver == 'abfind':
+        os.system('MOOGSILENT > /dev/null')
+    elif driver == 'synth':
+        with open('stupid.tmp', 'w') as f:
+            f.writelines('batch.par\nq')
+        os.system('MOOGSILENT < stupid.tmp > /dev/null')
+        os.remove('stupid.tmp')
 
 
 def _read_moog(fname='summary.out'):
