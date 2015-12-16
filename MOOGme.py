@@ -3,7 +3,8 @@
 
 from __future__ import print_function
 from ewDriver import ewdriver
-from abundanceDriver import moogme_ab as abundancedriver
+from synthDriver import synthdriver
+from abundanceDriver import abundancedriver
 import argparse
 from gooey import Gooey, GooeyParser
 
