@@ -5,7 +5,7 @@ from operator import mul
 from scipy.ndimage import _nd_image
 import gzip
 from scipy import ndimage
-from scipy import interpolate
+from scipy.interpolate import griddata
 
 
 """
@@ -381,6 +381,50 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
                delimiter=' ', fmt=_fmt)
 
 
+def interpolator_scipy(mnames, teff, logg, feh):
+    """This is a new approach based on a scipy interpolator. Resembles the
+    original interpolator we used but with a change
+
+    :mnames: As generated from _get_models
+    :teff: Requested Effective Temperature and the two closest models in
+           the gridpoints
+    :logg: Requested Surface gravity and the two closest models
+    :feh: Requested metallicity and the two closest models
+    :out: The interpolated model saved in this file
+    """
+
+    #MAKING THE GRIDPOINTS
+    gridpoints =[]
+    for temp in teff[1]:
+        for grav in logg[1]:
+            for metal in feh[1]:
+                gridpoints.append((temp,grav,metal))
+    gridpoints = np.asarray(gridpoints)
+
+    #DEFINE THE POINTS TO OBTAIN IN THE END
+    teff = teff[0]
+    logg = logg[0]
+    feh = feh[0]
+
+    # Reading the models
+    models = []
+
+    for mname in mnames:
+        tatm = read_model(mname)
+        models.append(tatm[0])
+
+    layers = min([model.shape[0] for model in models])
+    columns = min([model.shape[1] for model in models])
+    newdeck = np.zeros((layers, columns))
+    for layer in range(layers):
+        for column in range(columns):
+            tlayer = np.zeros(len(models))
+            for cntr in range(len(models)):
+                tlayer[cntr] = models[cntr][layer, column]
+            newdeck[layer, column] = griddata(gridpoints, tlayer, (teff, logg, feh), method='linear', rescale=True)
+    return newdeck
+
+
 if __name__ == '__main__':
     from utils import _get_model
     # import matplotlib.pyplot as plt
@@ -392,7 +436,8 @@ if __name__ == '__main__':
     #     new_atm, model = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
     # except:
         # new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
-    new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    new_atm = interpolator_scipy(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    # new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
 
     # for i in range(1, 9):
     #     plt.plot(new_atm[:,0], (new_atm[:,i]-model[:,i])/model[:,i] * 100, 'ro')
