@@ -286,3 +286,59 @@ def minimize2(x0, func, bounds="kurucz95", weights='null',
     print 'Stopped in %i iterations' % N
     c = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0])
     return parameters, c
+
+
+
+def minimize_synth(x0, observed):
+    '''Minimize a synthetic spectrum to an observed
+
+    Input:
+        args:
+    Output:
+        output
+    '''
+    steps =np.array([500.0, 0.5])
+    from utils import interpol_synthetic, fun_moog as func
+    def chi2(obs, theory):
+        error = 1.0
+        chi = ((obs - theory)/error)**2
+        chi2 = np.sum(chi)
+        print chi2
+        return chi2
+
+    wavelength_obs, flux_obs = np.loadtxt(observed, unpack=True, usecols=(0, 1))
+    flux_obs /= np.median(flux_obs)
+    # Normalization (use first 50 points below 1.2 as constant continuum)
+    maxes = flux_obs[(flux_obs < 1.2)].argsort()[-50:][::-1]
+    flux_obs /= np.median(flux_obs[maxes])
+
+    #TODO: ITERATION STARTS, A CONVERGENCE IS NEEDED
+    iteration=0
+    iter_step = steps/(iteration+1)
+
+    temperatures = [x0[0]-iter_step[0], x0[0]+iter_step[0]]
+    temperatures = range(5500, 6400, 100)
+    loggs = np.arange(4.0, 5.0, 0.1)
+    print loggs
+    # loggs = [x0[1]-iter_step[1], x0[1]+iter_step[1]]
+    results = []
+    for teff in temperatures:
+    # for logg in loggs:
+        func((teff, 4.44, 0.00, 1.0), driver='synth')
+        # func((5777, logg, 0.00, 1.0), driver='synth')
+
+        wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
+        chi = chi2(flux_obs, flux_inter_synth)
+        results.append((teff,4.44, 0.0, 1.0, chi))
+        # results.append((5777, logg, 0.0, 1.0, chi))
+    results = np.array(results)
+    # print results[results[:,-1]==results[:,-1].min()]
+    # print results
+    return results
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    d = minimize_synth([5777,4.44, 0.0, 1.0], 'sun_harps_ganymede.txt')
+    plt.plot(d[:, 0], d[:, -1], '-ok')
+    plt.show()
