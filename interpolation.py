@@ -1,10 +1,7 @@
 #!/usr/bin/python
 from __future__ import division
 import numpy as np
-from operator import mul
-from scipy.ndimage import _nd_image
 import gzip
-from scipy import ndimage
 from scipy.interpolate import griddata
 
 
@@ -23,41 +20,15 @@ way.
 """
 
 
-def _unpack_model(fname):
-    """Unpack the compressed model and store it in a temporary file
-
-    :fname: File name of the compressed atmosphere model
-    :returns: String of the uncompressed atmosphere model
-    """
-    f = gzip.open(fname, compresslevel=1)
-    return f.readlines()
-
-
-def _loadtxt(lines):
-    """
-    Super efficient 'loadtxt' that works exactly for our data.
-    25x speed-up compared to fully np.loadtxt (which does a lot of checking)
-
-    :return: numpy array of atmospheric quantities
-    """
-    row, col = len(lines), len(lines[0].split())
-    data = np.zeros((row, col))
-    for rowi, line in enumerate(lines):
-        try:
-            data[rowi, :] = map(float, line.split())
-        except ValueError:
-            return data[0:rowi, :]
-    return data
-
-
 def read_model(fname):
     """Read the model atmosphere
 
     :fname: The gz file of the model atmosphere
     :returns: The columns and tauross in a tuple
     """
-    data = _unpack_model(fname)
-    model = _loadtxt(data[23:-1])
+    f = gzip.open(fname, compresslevel=1)
+    data = f.readlines()
+    model = np.loadtxt(data[23:-2])
     return model
 
 
@@ -306,5 +277,5 @@ if __name__ == '__main__':
     logg = 4.2
     feh = 0.02
     mnames, teffmod, loggmod, fehmod = _get_model(teff, logg, feh, atmtype='kurucz95')
-    # new_atm = interpolator_scipy(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
-    new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    new_atm = interpolator_scipy(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    # new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
