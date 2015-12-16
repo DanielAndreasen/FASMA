@@ -3,7 +3,7 @@
 
 from __future__ import division
 import os
-from interpolation import interpolator, save_model, interpolatorN7
+from interpolation import save_model, interpolatorN7, interpolator_scipy
 import numpy as np
 from glob import glob
 
@@ -401,10 +401,7 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null'):
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
     models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
-    # model = interpolator(models, teff=(teff, nt), logg=(logg, nl),
-                        #  feh=(feh, nf))
-    model = interpolatorN7(models, teff=(teff, nt), logg=(logg, nl),
-                         feh=(feh, nf))
+    model = interpolator_scipy(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
     save_model(model, x)
 
     # Run MOOG and get the slopes and abundaces
