@@ -657,7 +657,6 @@ def read_abund(file='summary.out'):
 def read_observations(fname, start_synth, end_synth):
     """Read observed spectrum and return wavelength and flux"""
 
-
     if fname.lower().endswith('.fits'):
         header = fits.getheader(fname)
         flux = fits.getdata(fname)
@@ -670,16 +669,28 @@ def read_observations(fname, start_synth, end_synth):
     else:
         wavelength, flux = np.loadtxt(fname, unpack=True, usecols=(0, 1))
 
-    wavelength_obs = wavelength[np.where((wavelength >= start_synth) & (wavelength <= end_synth))]
-    flux_obs = flux[np.where((wavelength >= start_synth) & (wavelength <= end_synth))]
+    wavelength_obs = wavelength[(wavelength >= start_synth) & (wavelength <= end_synth)]
+    flux_obs = flux[(wavelength >= start_synth) & (wavelength <= end_synth)]
     return wavelength_obs, flux_obs
 
 
 def interpol_synthetic(fname, start_synth, end_synth):
     """Interpolation of the synthetic flux to the observed wavelength"""
-    #The synthetic spectrum should be always finer
+    from scipy.interpolate import interp1d
+    # The synthetic spectrum should be always finer
     wave_synth, flux_synth = _read_smooth('smooth.out')
     wavelength_obs, flux_obs = read_observations(fname, start_synth, end_synth)
-    f = interp1d(wavelength_obs, flux_obs, kind='cubic')
-    flux_inter_synth = f(wave_synth)
+    f = interp1d(wave_synth, flux_synth, kind='cubic')
+    flux_inter_synth = f(wavelength_obs)
     return wavelength_obs, flux_obs, flux_inter_synth
+
+
+def plot_synthetic():
+    """Function to plot synthetic spectrum
+    """
+    import seaborn
+    import matplotlib.pyplot as plt
+    x, y = _read_smooth(fname='smooth.out')
+    plt.plot(x, y)
+    plt.show()
+    plt.close()
