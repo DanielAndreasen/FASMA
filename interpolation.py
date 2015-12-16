@@ -23,32 +23,6 @@ way.
 """
 
 
-def map_coordinates(input, coordinates, output=None, order=1,
-                    mode='constant', cval=0.0):
-    """
-    This is a copy of the original code, however all checks are removed.
-    That is okay, since we know what we are doing, and want a speedup.
-    The code is 3x faster than standard scipy!
-
-    See documentation for
-        scipy.ndimage.map_coordinates
-    """
-
-    mode_dir = {'nearest': 0,
-                'wrap': 1,
-                'reflect': 2,
-                'mirror': 3,
-                'constant': 4}
-
-    output_shape = coordinates.shape[1:]
-    mode = mode_dir[mode]
-    output = np.zeros(output_shape, dtype=input.dtype.name)
-    return_value = output
-    _nd_image.geometric_transform(input, None, coordinates, None, None,
-                                  output, order, mode, cval, None, None)
-    return return_value
-
-
 def _unpack_model(fname):
     """Unpack the compressed model and store it in a temporary file
 
@@ -57,46 +31,6 @@ def _unpack_model(fname):
     """
     f = gzip.open(fname, compresslevel=1)
     return f.readlines()
-
-
-def _tupleset(t, i, value):
-    """
-    This is used in tauross_scale
-    """
-    l = list(t)
-    l[i] = value
-    return tuple(l)
-
-
-def tauross_scale(abross, rhox, dx=1, axis=-1):
-    """Build the tau-ross scale
-
-    Note that this is the source of scipy.integrate.cumtrapz
-    in a more raw format to speed things up.
-
-    :abross: absorption
-    :rhox: density
-    :returns: the new tau-ross scale
-    """
-
-    y = rhox * abross
-    d = dx
-    initial = rhox[0] * abross[0]
-
-    nd = len(y.shape)
-    slice1 = _tupleset((slice(None),)*nd, axis, slice(1, None))
-    slice2 = _tupleset((slice(None),)*nd, axis, slice(None, -1))
-    res = np.add.accumulate(d * (y[slice1] + y[slice2]) / 2.0, axis)
-
-    shape = list(res.shape)
-    shape[axis] = 1
-    res = np.concatenate([np.ones(shape, dtype=res.dtype) * initial, res],
-                         axis=axis)
-
-    # Original piece of code below. More elegant, but slower
-    # tauross = cumtrapz(rhox * abross, initial=rhox[0] * abross[0])
-    # return tauross
-    return res
 
 
 def _loadtxt(lines):
@@ -124,66 +58,7 @@ def read_model(fname):
     """
     data = _unpack_model(fname)
     model = _loadtxt(data[23:-1])
-    tauross = tauross_scale(model[:, 4], model[:, 0])
-    return (model, tauross)
-
-
-def interpolator(mnames, teff, logg, feh):
-    """The function to call from the main program (MOOGme.py)
-
-    :mnames: As generated from _get_models
-    :teff: Requested Effective Temperature and the two closest models in
-           the gridpoints
-    :logg: Requested Surface gravity and the two closest models
-    :feh: Requested metallicity and the two closest models
-    :out: The interpolated model saved in this file
-    """
-
-    # TODO: This is super ugly way of doing stuff!
-    teff, tefflow, teffhigh = teff[0], teff[1][0], teff[1][1]
-    logg, logglow, logghigh = logg[0], logg[1][0], logg[1][1]
-    feh, fehlow, fehhigh = feh[0], feh[1][0], feh[1][1]
-
-    # Some black magic we need later
-    interGridShape = (2, 2, 2)
-    N = reduce(mul, interGridShape)  # Multiply all values in tuple above
-    idxs = [0] * N
-    for cntr in range(N):
-        idxs[cntr] = np.unravel_index(cntr, interGridShape)
-
-    # Reading the models and defining the opacity intervals
-    models = []
-    opmin, opmax = [], []
-    for mname in mnames:
-        tatm = read_model(mname)
-        models.append(tatm[0])
-        opmin.append(np.amin(tatm[1]))
-        opmax.append(np.amax(tatm[1]))
-
-    # Define the grid coordinates for the interpolation
-    c1 = [(teff-tefflow)/(teffhigh-tefflow)]
-    c2 = [(logg-logglow)/(logghigh-logglow)]
-    c3 = [(feh-fehlow)/(fehhigh-fehlow)]
-
-    # Need to be like this for map_coordinates! Do not touch the line below.
-    coord = np.array([c1, c2, c3])
-
-    # Interpolate the models using the Force
-    # Look at Jobovy code.
-    # More optimized/clean version compared to his
-
-    layers = min([model.shape[0] for model in models])
-    columns = min([model.shape[1] for model in models])
-    newdeck = np.zeros((layers, columns))
-    # newdeck[:, 7:] = models[0][:, 7:]
-    for layer in range(layers):
-        for column in range(columns):
-            tlayer = np.zeros(interGridShape)
-            for cntr in range(N):
-                tlayer[idxs[cntr]] = models[cntr][layer, column]
-            # newdeck[layer, column] = map_coordinates(tlayer, coord)
-            newdeck[layer, column] = ndimage.interpolation.map_coordinates(tlayer, coord, order=1)
-    return newdeck
+    return model
 
 
 def interpolatorN7(mnames, teff, logg, feh):
@@ -293,7 +168,7 @@ def interpolatorN7(mnames, teff, logg, feh):
     models = dict()
     for mname in mnames:
         tatm = read_model(mname)
-        models[mname.rpartition('/')[2]] = tatm[0]
+        models[mname.rpartition('/')[2]] = tatm
 
     layers = min([model.shape[0] for model in models.values()])
     columns = min([model.shape[1] for model in models.values()])
@@ -411,7 +286,7 @@ def interpolator_scipy(mnames, teff, logg, feh):
 
     for mname in mnames:
         tatm = read_model(mname)
-        models.append(tatm[0])
+        models.append(tatm)
 
     layers = min([model.shape[0] for model in models])
     columns = min([model.shape[1] for model in models])
@@ -427,18 +302,9 @@ def interpolator_scipy(mnames, teff, logg, feh):
 
 if __name__ == '__main__':
     from utils import _get_model
-    # import matplotlib.pyplot as plt
     teff = 5300
     logg = 4.2
     feh = 0.02
     mnames, teffmod, loggmod, fehmod = _get_model(teff, logg, feh, atmtype='kurucz95')
-    # try:
-    #     new_atm, model = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
-    # except:
-        # new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
-    new_atm = interpolator_scipy(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
-    # new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
-
-    # for i in range(1, 9):
-    #     plt.plot(new_atm[:,0], (new_atm[:,i]-model[:,i])/model[:,i] * 100, 'ro')
-    #     plt.show()
+    # new_atm = interpolator_scipy(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
+    new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
