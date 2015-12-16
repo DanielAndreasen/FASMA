@@ -52,7 +52,7 @@ def _options(options=False):
         defaults['model'] = defaults['model'].lower()
         return defaults
 
-def moogme_ab(starLines='StarMe.cfg'):
+def abundancedriver(starLines='StarMe.cfg'):
     """The function that glues everything together
 
     Input:
@@ -186,4 +186,4 @@ def moogme_ab(starLines='StarMe.cfg'):
     return
 
 if __name__ == '__main__':
-    moogme_ab()
+    abundancedriver()
