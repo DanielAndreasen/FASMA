@@ -297,14 +297,33 @@ def minimize_synth(x0, observed):
     Output:
         output
     '''
-    steps =np.array([500.0, 0.5])
     from utils import interpol_synthetic, fun_moog as func
+
     def chi2(obs, theory):
+        """chi^2 function"""
         error = 1.0
         chi = ((obs - theory)/error)**2
         chi2 = np.sum(chi)
-        print chi2
         return chi2
+
+    def best_chi(x0, iter_step, steps, chi_i, wavelength_obs, flux_obs):
+        temperatures = np.arange(x0[0]-steps[0], x0[0]+steps[0], iter_step[0]/5)
+        loggs = np.arange(x0[1]-steps[1], x0[1]+steps[1], iter_step[1]/5)
+        results = []
+        for teff in temperatures:
+            for logg in loggs:
+                func((teff, logg, 0.00, 1.0), driver='synth')        
+                wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
+                chi = chi2(flux_obs, flux_inter_synth)
+                results.append((teff, logg, 0.0, 1.0, chi))
+        #Append initial
+        results.append((x0[0], x0[1], x0[2], x0[3], chi_i))
+        results = np.array(results)
+        chi_best = results[results[:,-1]==results[:,-1].min()]
+        print temperatures
+        print loggs
+        return chi_best, results
+
 
     wavelength_obs, flux_obs = np.loadtxt(observed, unpack=True, usecols=(0, 1))
     flux_obs /= np.median(flux_obs)
@@ -312,33 +331,44 @@ def minimize_synth(x0, observed):
     maxes = flux_obs[(flux_obs < 1.2)].argsort()[-50:][::-1]
     flux_obs /= np.median(flux_obs[maxes])
 
+    #Start with the initial values 
+    teff_i, logg_i, feh_i, vt_i = x0
+    func((teff_i, logg_i, feh_i, vt_i), driver='synth')        
+    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
+    chi_i = chi2(flux_obs, flux_inter_synth)
+
     #TODO: ITERATION STARTS, A CONVERGENCE IS NEEDED
-    iteration=0
+    #Maybe the space of search should be defined by the user depending on how well the initial conditions are.
+    iteration = 0
+    steps =np.array([500.0, 0.5])
+    #This is dangerous. We have to search all parameter space unless specified by the user.
     iter_step = steps/(iteration+1)
+    chi_min, results = best_chi(x0, iter_step, steps, chi_i, wavelength_obs, flux_obs)    
+    print chi_min
 
-    temperatures = [x0[0]-iter_step[0], x0[0]+iter_step[0]]
-    temperatures = range(5500, 6400, 100)
-    loggs = np.arange(4.0, 5.0, 0.1)
-    print loggs
-    # loggs = [x0[1]-iter_step[1], x0[1]+iter_step[1]]
-    results = []
-    for teff in temperatures:
+    #temperatures = np.arange(teff_i-steps[0], teff_i-steps[0], iter_step[0]/25)
+    #loggs = np.arange(logg_i-steps[1], logg_i+steps[1], iter_step[1]/10)
+    #results = []
+    #temperatures = np.arange(5500, 6000, 100)
+    #loggs = np.arange(4.0,5.0,0.2)    
+    #for teff in temperatures:
     # for logg in loggs:
-        func((teff, 4.44, 0.00, 1.0), driver='synth')
-        # func((5777, logg, 0.00, 1.0), driver='synth')
-
-        wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
-        chi = chi2(flux_obs, flux_inter_synth)
-        results.append((teff,4.44, 0.0, 1.0, chi))
-        # results.append((5777, logg, 0.0, 1.0, chi))
-    results = np.array(results)
-    # print results[results[:,-1]==results[:,-1].min()]
-    # print results
+    #    func((teff, logg, 0.00, 1.0), driver='synth')        
+    #    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
+    #    chi = chi2(flux_obs, flux_inter_synth)
+    #    results.append((teff, logg, 0.0, 1.0, chi))
+    #Append initial
+    #results.append((teff_i, logg_i, feh_i, vt_i, chi_i))
+    #results = np.array(results)
+    #print results 								
+    #chi_best = results[results[:,-1]==results[:,-1].min()]
     return results
 
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    d = minimize_synth([5777,4.44, 0.0, 1.0], 'sun_harps_ganymede.txt')
+    d = minimize_synth([5717,4.44, 0.0, 1.0], 'spectra/sun_6444.67_6447.34.txt')
     plt.plot(d[:, 0], d[:, -1], '-ok')
+    plt.show()
+    plt.plot(d[:, 1], d[:, -1], '-ok')
     plt.show()
