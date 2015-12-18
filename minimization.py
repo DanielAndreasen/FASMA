@@ -100,101 +100,8 @@ def _stepping(slope, step, parameters, quantity, all_params, weights):
 
 
 def minimize(x0, func, bounds="kurucz95", weights='null',
-             fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             iteration=160, EPcrit=0.002, RWcrit=0.003, ABdiffcrit=0.01):
-    """
-    Sane minimization like a normal human being would do it.
-    """
-
-    global EPcriteria, RWcriteria, ABdiffcriteria
-    global f_teff, f_logg, f_vt, f_feh
-    global bound, function
-    EPcriteria, RWcriteria, ABdiffcriteria = EPcrit, RWcrit, ABdiffcrit
-    f_teff, f_logg, f_feh, f_vt = fix_teff, fix_logg, fix_feh, fix_vt
-    function = func
-    # Step size in Teff, logg, vt
-    step = (1000, 2.00, 1.50)
-    if bounds.lower() == "kurucz95":
-        bound = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
-
-    res, slopeEP, slopeRW, abundances = function(x0)
-    Abdiff = np.diff(abundances)[0]
-    parameters = list(x0)
-    if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-        return parameters, True
-
-    try:
-        os.remove('minimization_profile.dat')
-    except OSError:
-        pass
-
-    all_params = [copy(parameters)]
-    N = 0
-    while N < iteration:
-        Nsub = 0
-        while (abs(slopeEP) >= EPcriteria) and not fix_teff and Nsub < 15 and N < iteration:
-            # For Teff
-            parameters, all_params, result = _stepping(slopeEP, step[0], parameters, 'teff', all_params, weights)
-            res, slopeEP, slopeRW, abundances = result
-            N += 1
-            Nsub += 1
-            Abdiff = np.diff(abundances)[0]
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            print 'Stopped in %i iterations' % N
-            return parameters, True
-
-        Nsub = 0
-        while (abs(slopeRW) >= RWcriteria) and not fix_vt and Nsub < 15 and N < iteration:
-            # For micro turbulence
-            parameters, all_params, result = _stepping(slopeRW, step[2], parameters, 'vt', all_params, weights)
-            res, slopeEP, slopeRW, abundances = result
-            N += 1
-            Nsub += 1
-            Abdiff = np.diff(abundances)[0]
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            print 'Stopped in %i iterations' % N
-            return parameters, True
-
-        Nsub = 0
-        while (abs(Abdiff) >= ABdiffcriteria) and not fix_logg and Nsub < 15 and N < iteration:
-            # For logg
-            parameters, all_params, result = _stepping(slopeRW, step[1], parameters, 'logg', all_params, weights)
-            res, slopeEP, slopeRW, abundances = result
-            N += 1
-            Nsub += 1
-            Abdiff = np.diff(abundances)[0]
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            print 'Stopped in %i iterations' % N
-            return parameters, True
-
-        #       Input metal...   FeI abund.
-        Nsub = 0
-        while (parameters[2] != abundances[0]-7.47) and not fix_feh and Nsub < 5 and N < iteration:
-            # For metalicity
-            parameters[2] = abundances[0]-7.47
-            parameters[2] = check_bounds(parameters[2], bounds, 5)
-            parameters[2] = round(parameters[2], 2)
-            res, slopeEP, slopeRW, abundances = function(parameters, weights=weights)
-            N += 1
-            Nsub += 1
-            if parameters in all_params:
-                parameters = _bump(parameters)
-            all_params.append(copy(parameters))
-            print_format(parameters)
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            print 'Stopped in %i iterations' % N
-            return parameters, True
-
-    print 'Stopped in %i iterations' % N
-    converged = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0])
-
-    return parameters, converged
-
-
-
-def minimize2(x0, func, bounds="kurucz95", weights='null',
-             fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-             iteration=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01):
+            fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
+            iteration=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01):
     """
     Sane minimization like a normal human being would do it.
     """
@@ -312,7 +219,7 @@ def minimize_synth(x0, observed):
         results = []
         for teff in temperatures:
             for logg in loggs:
-                func((teff, logg, 0.00, 1.0), driver='synth')        
+                func((teff, logg, 0.00, 1.0), driver='synth')
                 wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
                 chi = chi2(flux_obs, flux_inter_synth)
                 results.append((teff, logg, 0.0, 1.0, chi))
@@ -331,9 +238,9 @@ def minimize_synth(x0, observed):
     maxes = flux_obs[(flux_obs < 1.2)].argsort()[-50:][::-1]
     flux_obs /= np.median(flux_obs[maxes])
 
-    #Start with the initial values 
+    #Start with the initial values
     teff_i, logg_i, feh_i, vt_i = x0
-    func((teff_i, logg_i, feh_i, vt_i), driver='synth')        
+    func((teff_i, logg_i, feh_i, vt_i), driver='synth')
     wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
     chi_i = chi2(flux_obs, flux_inter_synth)
 
@@ -343,24 +250,24 @@ def minimize_synth(x0, observed):
     steps =np.array([500.0, 0.5])
     #This is dangerous. We have to search all parameter space unless specified by the user.
     iter_step = steps/(iteration+1)
-    chi_min, results = best_chi(x0, iter_step, steps, chi_i, wavelength_obs, flux_obs)    
+    chi_min, results = best_chi(x0, iter_step, steps, chi_i, wavelength_obs, flux_obs)
     print chi_min
 
     #temperatures = np.arange(teff_i-steps[0], teff_i-steps[0], iter_step[0]/25)
     #loggs = np.arange(logg_i-steps[1], logg_i+steps[1], iter_step[1]/10)
     #results = []
     #temperatures = np.arange(5500, 6000, 100)
-    #loggs = np.arange(4.0,5.0,0.2)    
+    #loggs = np.arange(4.0,5.0,0.2)
     #for teff in temperatures:
     # for logg in loggs:
-    #    func((teff, logg, 0.00, 1.0), driver='synth')        
+    #    func((teff, logg, 0.00, 1.0), driver='synth')
     #    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
     #    chi = chi2(flux_obs, flux_inter_synth)
     #    results.append((teff, logg, 0.0, 1.0, chi))
     #Append initial
     #results.append((teff_i, logg_i, feh_i, vt_i, chi_i))
     #results = np.array(results)
-    #print results 								
+    #print results
     #chi_best = results[results[:,-1]==results[:,-1].min()]
     return results
 

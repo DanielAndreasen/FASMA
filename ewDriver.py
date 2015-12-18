@@ -19,7 +19,7 @@ from interpolation import interpolator
 from interpolation import save_model
 from utils import fun_moog, fun_moog_fortran
 from utils import error
-from minimization import minimize, minimize2
+from minimization import minimize
 
 
 def _getSpt(spt):
@@ -242,7 +242,7 @@ def ewdriver(starLines='StarMe.cfg'):
             logger.info('Interpolation successful.')
 
             logger.info('Starting the minimization procedure...')
-            # parameters, converged = minimize2(initial, fun_moog, bounds='kurucz95',
+            # parameters, converged = minimize(initial, fun_moog, bounds='kurucz95',
             #                                  fix_teff=fix_teff, fix_logg=fix_logg,
             #                                  fix_feh=fix_feh, fix_vt=fix_vt,
             #                                  weights=options['weights'],
@@ -250,7 +250,7 @@ def ewdriver(starLines='StarMe.cfg'):
             #                                  EPcrit=options['EPslope'],
             #                                  RWcrit=options['RWslope'],
             #                                  ABdiffcrit=options['abdiff'])
-            parameters, converged = minimize2(initial, fun_moog_fortran, bounds='kurucz95',
+            parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
                                              fix_teff=fix_teff, fix_logg=fix_logg,
                                              fix_feh=fix_feh, fix_vt=fix_vt,
                                              weights=options['weights'],
