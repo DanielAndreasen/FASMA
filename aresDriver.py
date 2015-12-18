@@ -8,23 +8,23 @@ import os
 import yaml
 import numpy as np
 
-def _run_ares(): 
+def _run_ares():
     """Run ARES"""
     os.system('ARES2')
 
-def make_linelist(line_file, ares, cut):
-        """
-        This function creates a MOOG readable file from the ARES output using the
-        line list and atomic data of make_linelist.dat file
-        """
-        # Read the line list and check for multiple identical lines
-        linelist = np.genfromtxt(line_file, dtype=None, skiprows=2, names=['line', 'atomic', 'excitation', 'loggf', 'ew_sun'])
-        linelist_wave = linelist['line']
+
+def make_linelist(line_file, ares, cut=200):
+    """
+    This function creates a MOOG readable file from the ARES output using the
+    line list and atomic data of make_linelist.dat file
+    """
+    # Read the line list and check for multiple identical lines
+    linelist = np.genfromtxt(line_file, dtype=None, skiprows=2, names=['line', 'atomic', 'excitation', 'loggf', 'ew_sun'])
+    linelist_wave = linelist['line']
 	linelist_excitation = linelist['excitation']
 	linelist_loggf = linelist['loggf']
 	linelist_atomic = linelist['atomic']
-	assert (len(np.unique(linelist_wave)) == len(linelist_wave)), 'Check for multiple\
-	lines in make_linelist.dat'
+    assert (len(np.unique(linelist_wave)) == len(linelist_wave)), 'Check for multiple lines in make_linelist.dat'
 	print('Number of elements in line list: ', len(linelist_wave))
 
 	# Read the lines and ews in the ares data and check for identical lines
@@ -33,7 +33,6 @@ def make_linelist(line_file, ares, cut):
 	ew_ares = data['ew']
 	dew_ares = data['dew']
 	error_ew = (dew_ares*100)/ew_ares
-	#error_ew = np.array([error_ew])
 
 	assert (len(np.unique(wave_ares)) == len(wave_ares)), 'Check for multiple lines in line.star.ares'
 	print('Number of lines measured by ares:', len(wave_ares))
@@ -45,14 +44,13 @@ def make_linelist(line_file, ares, cut):
 	ew = ew_ares[index_ares]
 	dew = dew_ares[index_ares]
 	error_ew = error_ew[index_ares]
-	#Sort common elements from ares by wavelength
+	# Sort common elements from ares by wavelength
 	ares_values = np.column_stack((common_wave, ew, dew, error_ew))
 	ares_sorted = sorted(ares_values, key=lambda row: row[0])
 	ares_sorted = np.transpose(ares_sorted)
-	indices_1 = [i for (i,v) in enumerate(ares_sorted[1]) if v>cut]
-	print('%s lines with EW higher than %s were deleted' % (len(indices_1), cut))
-	ares_sorted = np.delete(ares_sorted, indices_1, 1)
-	#print ares_sorted
+	indices_1 = ares_sorted[:, 1] > cut
+	print('%s lines with EW higher than %s were deleted' % (len(ares_sorted[indices_1]), cut))
+	ares_sorted = ares_sorted[~indices_1]
 	wave_ares = ares_sorted[0]
 	ew = ares_sorted[1]
 
@@ -67,7 +65,7 @@ def make_linelist(line_file, ares, cut):
 	loggf = linelist_loggf[linelist_index]
 	atomic = linelist_atomic[linelist_index]
 	print('Lines in the new line list: ', len(wave))
-	#Sort common elements from line list by wavelength
+	# Sort common elements from line list by wavelength
 	linelist_values = np.column_stack((wave, atomic, excitation, loggf))
 	linelist_sorted = sorted(linelist_values, key=lambda row: row[0])
 	linelist_sorted = np.transpose(linelist_sorted)
@@ -82,9 +80,9 @@ def make_linelist(line_file, ares, cut):
 	assert np.array_equal(ares_sorted[0], linelist_sorted[0]), 'There is\
 	#something wrong with the common elements of ARES and the line list'
 	data = zip(sorted_values[0], sorted_values[1], sorted_values[2], sorted_values[3], sorted_values[4])
-	np.savetxt(ares+'.moog', data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header= ' '+ares)
-        return
- 
+	np.savetxt('%s.moog' % ares, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % ares)
+
+
 def _options(options=False):
     '''Reads the options inside the config file'''
     defaults = {'lambdai':'3900.0',
@@ -94,7 +92,7 @@ def _options(options=False):
                 'space': '2.0',
                 'rejt': '0.995',
                 'lineresol' : '0.07',
-                'miniline' : '2.0', 
+                'miniline' : '2.0',
                 'plots_flag': '0',
                 'EWcut': '200.0',
                 'snr': False,
@@ -133,7 +131,7 @@ def update_ares(line_list, spectrum, out, options):
 
     def rejt_from_snr(snr):
         """Calculate rejt from SNR"""
-        return 1.0-(1.0/float(snr))
+        return 1.0-(1.0/snr)
 
     if options['snr']:
         rejt = rejt_from_snr(options['snr'])
@@ -141,7 +139,6 @@ def update_ares(line_list, spectrum, out, options):
         rejt = options['rejt']
     rejt = 0.999 if rejt > 0.999 else rejt
     plot = 1 if options['plots_flag'] else 0
-    #out = spectrum + '.ares' if not options['fileout'] else options['fileout']
 
     fout = 'specfits=\'spectra/%s\'\n' % spectrum
     fout += 'readlinedat=\'linelist/%s\'\n' % line_list
@@ -158,7 +155,7 @@ def update_ares(line_list, spectrum, out, options):
     with open('mine.opt', 'w') as f:
         f.writelines(fout)
 
- 
+
 def aresdriver(starLines='StarMe_ares.cfg'):
     """The function that glues everything together
 
@@ -232,7 +229,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             _run_ares()
             line_list = 'linelist/%s' % line[0]
             out = 'linelist/%s' % line[2]
-            make_linelist(line_list, out, cut=options['EWcut'])            
+            make_linelist(line_list, out, cut=options['EWcut'])
     return
 
 if __name__ == '__main__':
