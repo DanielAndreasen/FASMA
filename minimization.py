@@ -195,8 +195,37 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
     return parameters, c
 
 
+def chi2(obs, theory):
+    """chi^2 function"""
+    error = 1.0
+    chi = ((obs - theory)/error)**2
+    chi2 = np.sum(chi)
+    return chi2
 
-def minimize_synth(x0, observed):
+
+def best_chi(x0, iter_step, steps, wave, flux_obs, limits, p):
+    idx = {'teff': 0, 'logg': 1}
+    idx = idx[p]
+    values = np.linspace(x0[idx]-steps[idx], x0[idx]+steps[idx], 5)
+
+    results = np.zeros((5, 2))
+    for value in values:
+        if p == 'teff':
+            func((value, x0[1], x0[2], x0[3]), driver='synth')
+            wavel, flux_obs, flux_inter_synth = interpol_synthetic(wave, flux_obs, limits[0], limits[1])
+            chi = chi2(flux_obs, flux_inter_synth)
+            results.append((value, chi))
+        elif p == 'logg':
+            func((x0[0], value, x0[2], x0[3]), driver='synth')
+            wavel, flux_obs, flux_inter_synth = interpol_synthetic(wave, flux_obs, limits[0], limits[1])
+            chi = chi2(flux_obs, flux_inter_synth)
+            results.append((value, chi))
+    results = np.array(results)
+    chi_best = results[results[:,-1]==results[:,-1].min()]
+    return chi_best, results
+
+
+def minimize_synth(x0, observed, limits):
     '''Minimize a synthetic spectrum to an observed
 
     Input:
@@ -205,77 +234,141 @@ def minimize_synth(x0, observed):
         output
     '''
     from utils import interpol_synthetic, fun_moog as func
-
-    def chi2(obs, theory):
-        """chi^2 function"""
-        error = 1.0
-        chi = ((obs - theory)/error)**2
-        chi2 = np.sum(chi)
-        return chi2
-
-    def best_chi(x0, iter_step, steps, chi_i, wavelength_obs, flux_obs):
-        temperatures = np.arange(x0[0]-steps[0], x0[0]+steps[0], iter_step[0]/5)
-        loggs = np.arange(x0[1]-steps[1], x0[1]+steps[1], iter_step[1]/5)
-        results = []
-        for teff in temperatures:
-            for logg in loggs:
-                func((teff, logg, 0.00, 1.0), driver='synth')
-                wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
-                chi = chi2(flux_obs, flux_inter_synth)
-                results.append((teff, logg, 0.0, 1.0, chi))
-        #Append initial
-        results.append((x0[0], x0[1], x0[2], x0[3], chi_i))
-        results = np.array(results)
-        chi_best = results[results[:,-1]==results[:,-1].min()]
-        print temperatures
-        print loggs
-        return chi_best, results
-
+    from utils import read_observations
 
     wavelength_obs, flux_obs = np.loadtxt(observed, unpack=True, usecols=(0, 1))
+    idx = (wavelength_obs >= limits[0]) & (wavelength_obs <= limits[1])
+    wavelength_obs, flux_obs = wavelength_obs[idx], flux_obs[idx]
+
     flux_obs /= np.median(flux_obs)
     # Normalization (use first 50 points below 1.2 as constant continuum)
     maxes = flux_obs[(flux_obs < 1.2)].argsort()[-50:][::-1]
     flux_obs /= np.median(flux_obs[maxes])
 
-    #Start with the initial values
-    teff_i, logg_i, feh_i, vt_i = x0
-    func((teff_i, logg_i, feh_i, vt_i), driver='synth')
-    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
+
+    # This is dangerous. We have to search all parameter space unless specified by the user.
+    func(x0, driver='synth')
+    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, limits[0], limits[1])
     chi_i = chi2(flux_obs, flux_inter_synth)
 
-    #TODO: ITERATION STARTS, A CONVERGENCE IS NEEDED
-    #Maybe the space of search should be defined by the user depending on how well the initial conditions are.
+    # TODO: ITERATION STARTS, A CONVERGENCE IS NEEDED
+    # Maybe the space of search should be defined by the user depending on how well the initial conditions are.
     iteration = 0
-    steps =np.array([500.0, 0.5])
-    #This is dangerous. We have to search all parameter space unless specified by the user.
+    steps = np.array([800.0, 0.9])
+    # This is dangerous. We have to search all parameter space unless specified by the user.
     iter_step = steps/(iteration+1)
-    chi_min, results = best_chi(x0, iter_step, steps, chi_i, wavelength_obs, flux_obs)
-    print chi_min
 
-    #temperatures = np.arange(teff_i-steps[0], teff_i-steps[0], iter_step[0]/25)
-    #loggs = np.arange(logg_i-steps[1], logg_i+steps[1], iter_step[1]/10)
-    #results = []
-    #temperatures = np.arange(5500, 6000, 100)
-    #loggs = np.arange(4.0,5.0,0.2)
-    #for teff in temperatures:
-    # for logg in loggs:
-    #    func((teff, logg, 0.00, 1.0), driver='synth')
-    #    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
-    #    chi = chi2(flux_obs, flux_inter_synth)
-    #    results.append((teff, logg, 0.0, 1.0, chi))
-    #Append initial
-    #results.append((teff_i, logg_i, feh_i, vt_i, chi_i))
-    #results = np.array(results)
-    #print results
-    #chi_best = results[results[:,-1]==results[:,-1].min()]
-    return results
+    tmp = x0[:]
+    Teff_rng = np.linspace(x0[0]-50, x0[0]+50, 20)
+    logg_rng = np.linspace(x0[1]-0.1, x0[1]+0.1, 10)
+
+
+    ## Python version
+    Teffs, loggs = np.meshgrid(Teff_rng, logg_rng)
+    z = np.zeros(Teffs.T.shape)
+    for i, Teff in enumerate(Teffs[0, :]):
+        for j, logg in enumerate(loggs[:, 0]):
+            print 'Python --\tTeff: %i/%i\tlogg: %.2f/%.2f' % (Teff, Teff_rng.max(), logg, logg_rng.max())
+            func((Teff, logg, x0[2], x0[3]), driver='synth')
+            wavel, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, limits[0], limits[1])
+            chi = chi2(flux_obs, flux_inter_synth)
+            z[i, j] = chi
+    return z
+
+
+
+
+    # return d
+
+
+
+def mcmc_synth(x0, observed, limits):
+
+    import emcee
+    from utils import interpol_synthetic, fun_moog as func
+    from utils import read_observations
+
+    def lnlike(theta, x, y, yerr):
+        teff, logg = theta
+        x0 = (teff, logg, 0.0, 1.0)
+        func(x0, driver='synth')
+        _, _, model = interpol_synthetic(x, y, limits[0], limits[1])
+        inv_sigma2 = 1.0/(yerr**2 + model**2*np.exp(2))
+        return -0.5*(np.sum((y-model)**2*inv_sigma2 - np.log(inv_sigma2)))
+
+    def lnprior(theta):
+        teff, logg = theta
+        if 5500 < teff < 6000 and 4.0 < logg < 4.9:
+            return 0.0
+        return -np.inf
+
+    def lnprob(theta, x, y, yerr):
+        lp = lnprior(theta)
+        if not np.isfinite(lp):
+            return -np.inf
+        return lp + lnlike(theta, x, y, yerr)
+
+
+
+    x, y = np.loadtxt(observed, unpack=True, usecols=(0, 1))
+    idx = (x >= limits[0]) & (x <= limits[1])
+    x, y = x[idx], y[idx]
+    y /= np.median(y)
+    # Normalization (use first 50 points below 1.2 as constant continuum)
+    maxes = y[(y < 1.2)].argsort()[-50:][::-1]
+    y /= np.median(y[maxes])
+
+
+    x0 = np.array(x0)
+
+
+    ndim, nwalkers = 2, 8
+    Teff_step, logg_step = 50, 0.1
+    pos = [x0 + np.random.randn()*np.array([Teff_step, logg_step]) for i in range(nwalkers)]
+
+    print('starting MCMC')
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, np.array([0.01]*len(x))))
+    print('still doing MCMC I guess')
+    sampler.run_mcmc(pos, 500)
+
+    print('Are we done soon???')
+    samples = sampler.chain[:, 50:, :].reshape((-1, ndim))
+    print('Done!')
+    # print(samples)
+    print(samples.shape)
+    import corner
+    import matplotlib.pyplot as plt
+    fig = corner.corner(samples, labels=["$Teff$", "$logg$"], truths=[5777, 4.44])
+    plt.show()
+
+
+
+
+
 
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    d = minimize_synth([5717,4.44, 0.0, 1.0], 'spectra/sun_6444.67_6447.34.txt')
-    plt.plot(d[:, 0], d[:, -1], '-ok')
-    plt.show()
-    plt.plot(d[:, 1], d[:, -1], '-ok')
-    plt.show()
+    x0 = [5777, 4.44, 0.0, 1.0]
+    fname = 'spectra/solar_synthetic.txt'
+    limits = (6444.672, 6447.340)
+
+    # MCMC example
+    mcmc_synth([5777, 4.44], fname, limits)
+
+
+
+    # z = minimize_synth(x0, fname, limits=limits)
+    #
+    # z = z.T
+    # z1 = z.copy()
+    # z /= z.max()
+    #
+    # Teff_rng = np.linspace(x0[0]-50, x0[0]+50, 20)
+    # logg_rng = np.linspace(x0[1]-0.1, x0[1]+0.1, 10)
+    #
+    #
+    # Teffs, loggs = np.meshgrid(Teff_rng, logg_rng)
+    # plt.contourf(Teffs, loggs, z, levels=np.linspace(0, 1, 100), cmap=plt.cm.spectral)
+    # plt.colorbar()
+    # plt.show()
