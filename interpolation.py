@@ -113,4 +113,3 @@ if __name__ == '__main__':
     feh = 0.02
     mnames, teffmod, loggmod, fehmod = _get_model(teff, logg, feh, atmtype='kurucz95')
     new_atm = interpolator(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
-    # new_atml = interpolatorN7(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])

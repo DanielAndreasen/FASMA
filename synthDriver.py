@@ -7,7 +7,7 @@ import logging
 import os
 
 from utils import _get_model, _update_par_synth
-from interpolation import interpolatorN7 as interpolator
+from interpolation import interpolator
 from interpolation import save_model
 from utils import read_observations, _run_moog, plot_synthetic
 from utils import interpol_synthetic
