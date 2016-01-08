@@ -14,4 +14,8 @@ install:
 	@echo "Installing dependencies..."
 	@pip install -r requirements.txt
 	@echo "Dependencies installed"
-	@echo "\nMOOGme is ready to go.\nType python MOOGme.py to start"
+	@echo ""
+	@echo "MOOGme is successfully installed!"
+	@echo "Type"
+	@echo "    python MOOGme.py"
+	@echo "to start. Happy spectroscopying :)"
