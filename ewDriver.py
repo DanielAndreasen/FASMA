@@ -83,7 +83,7 @@ def _options(options=False):
                 'EPslope': 0.001,
                 'RWslope': 0.001,
                 'abdiff': 0.01,
-                'MOOGv': 2014
+                'MOOGv': 2013
                 }
     if not options:
         return defaults
@@ -100,6 +100,7 @@ def _options(options=False):
         defaults['EPslope'] = float(defaults['EPslope'])
         defaults['RWslope'] = float(defaults['RWslope'])
         defaults['abdiff'] = float(defaults['abdiff'])
+        defaults['MOOGv'] = int(defaults['MOOGv'])
         return defaults
 
 
@@ -249,7 +250,8 @@ def ewdriver(starLines='StarMe.cfg'):
                                              iteration=options['iterations'],
                                              EPcrit=options['EPslope'],
                                              RWcrit=options['RWslope'],
-                                             ABdiffcrit=options['abdiff'])
+                                             ABdiffcrit=options['abdiff'],
+                                             version=options['MOOGv'])
             # parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
             #                                  fix_teff=fix_teff, fix_logg=fix_logg,
             #                                  fix_feh=fix_feh, fix_vt=fix_vt,
