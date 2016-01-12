@@ -551,7 +551,7 @@ def error(linelist, converged):
     siga2 = _slopeSigma(Fe1[:, 1], Fe1[:, 5])
 
     # Error om microturbulence
-    fun_moog_fortran((teff, logg, feh, vt+0.1), results='error_summary.out')
+    fun_moog((teff, logg, feh, vt+0.1), results='error_summary.out')
     sumvt = readmoog('error_summary.out')
     slopeEP, slopeRW = sumvt[8], sumvt[9]
     if slopeRW == 0:
@@ -565,7 +565,7 @@ def error(linelist, converged):
     # Error on Teff
     slopes = errormicro/0.10 * slopeEP
     errorslopeEP = np.hypot(slopes, siga2)
-    fun_moog_fortran((teff+100, logg, feh, vt), results='error_summary.out')
+    fun_moog((teff+100, logg, feh, vt), results='error_summary.out')
     sumteff = readmoog('error_summary.out')
 
     errorteff = abs(errorslopeEP/sumteff[8]) * 100
@@ -575,7 +575,7 @@ def error(linelist, converged):
     # Error on logg
     fe2error = abs(errorteff/100 * (sumteff[6]-feh))
     sigmafe2total = np.hypot(sigmafe2, fe2error)
-    fun_moog_fortran((teff, logg-0.20, feh, vt), results='error_summary.out')
+    fun_moog((teff, logg-0.20, feh, vt), results='error_summary.out')
     sumlogg = readmoog('error_summary.out')
     errorlogg = abs(sigmafe2total/(sumlogg[6]-feh)*0.20)
 

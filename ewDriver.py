@@ -242,15 +242,7 @@ def ewdriver(starLines='StarMe.cfg'):
             logger.info('Interpolation successful.')
 
             logger.info('Starting the minimization procedure...')
-            # parameters, converged = minimize(initial, fun_moog, bounds='kurucz95',
-            #                                  fix_teff=fix_teff, fix_logg=fix_logg,
-            #                                  fix_feh=fix_feh, fix_vt=fix_vt,
-            #                                  weights=options['weights'],
-            #                                  iteration=options['iterations'],
-            #                                  EPcrit=options['EPslope'],
-            #                                  RWcrit=options['RWslope'],
-            #                                  ABdiffcrit=options['abdiff'])
-            parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
+            parameters, converged = minimize(initial, fun_moog, bounds='kurucz95',
                                              fix_teff=fix_teff, fix_logg=fix_logg,
                                              fix_feh=fix_feh, fix_vt=fix_vt,
                                              weights=options['weights'],
@@ -258,6 +250,14 @@ def ewdriver(starLines='StarMe.cfg'):
                                              EPcrit=options['EPslope'],
                                              RWcrit=options['RWslope'],
                                              ABdiffcrit=options['abdiff'])
+            # parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
+            #                                  fix_teff=fix_teff, fix_logg=fix_logg,
+            #                                  fix_feh=fix_feh, fix_vt=fix_vt,
+            #                                  weights=options['weights'],
+            #                                  iteration=options['iterations'],
+            #                                  EPcrit=options['EPslope'],
+            #                                  RWcrit=options['RWslope'],
+            #                                  ABdiffcrit=options['abdiff'])
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
             parameters = error(line[0], converged)
