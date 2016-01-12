@@ -101,7 +101,8 @@ def _stepping(slope, step, parameters, quantity, all_params, weights):
 
 def minimize(x0, func, bounds="kurucz95", weights='null',
             fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-            iteration=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01):
+            iteration=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
+            version=2013):
     """
     Sane minimization like a normal human being would do it.
     """
@@ -114,7 +115,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
     if bounds.lower() == "kurucz95":
         bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
-    res, slopeEP, slopeRW, abundances = func(x0)
+    res, slopeEP, slopeRW, abundances = func(x0, version=version)
     Abdiff = np.diff(abundances)[0]
     parameters = list(x0)
     if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
@@ -181,7 +182,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             parameters = _bump(parameters, alpha)
         all_params.append(copy(parameters))
 
-        res, slopeEP, slopeRW, abundances = func(parameters, weights=weights)
+        res, slopeEP, slopeRW, abundances = func(parameters, weights=weights, version=version)
         Abdiff = np.diff(abundances)[0]
         N += 1
         print_format(parameters)
@@ -263,7 +264,6 @@ def minimize_synth(x0, observed, limits):
     logg_rng = np.linspace(x0[1]-0.1, x0[1]+0.1, 10)
 
 
-    ## Python version
     Teffs, loggs = np.meshgrid(Teff_rng, logg_rng)
     z = np.zeros(Teffs.T.shape)
     for i, Teff in enumerate(Teffs[0, :]):

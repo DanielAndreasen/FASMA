@@ -341,6 +341,7 @@ def _run_moog(par='batch.par', driver='abfind'):
     """
     if driver == 'abfind':
         os.system('MOOGSILENT > /dev/null')
+        # os.system('/home/daniel/Software/moogjul2014/MOOGSILENT > /dev/null')
     elif driver == 'synth':
         with open('stupid.tmp', 'w') as f:
             f.writelines('batch.par\nq')
@@ -389,12 +390,16 @@ def _read_smooth(fname='smooth.out'):
     return wavelength, flux
 
 
-def fun_moog(x, par='batch.par', results='summary.out', weights='null', driver='abfind'):
+def fun_moog(x, par='batch.par', results='summary.out', weights='null',
+             driver='abfind', version=2013):
     """The 'function' that we should minimize
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
     :par: The parameter file (batch.par)
     :results: The summary file
+    :weights: The weights to be used in the slope calculation
+    :driver: Which driver to use when running MOOG
+    :version: The version of MOOG
     :returns: The slopes and abundances for the different elements
     """
 
@@ -408,8 +413,13 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null', driver='
     _run_moog(par=par, driver=driver)
     if driver == 'abfind':
         data = read_abund(results)
-        EPs = slope((data[:,1], data[:,5]), weights=weights)
-        RWs = slope((data[:,4], data[:,5]), weights=weights)
+        np.savetxt('test.dat', data)
+        if version > 2013:
+            EPs = slope((data[:,2], data[:,6]), weights=weights)
+            RWs = slope((data[:,5], data[:,6]), weights=weights)
+        else:
+            EPs = slope((data[:,1], data[:,5]), weights=weights)
+            RWs = slope((data[:,4], data[:,5]), weights=weights)
         _, _, _, abundances = _read_moog(fname=results)
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
         return res, EPs, RWs, abundances
@@ -441,9 +451,10 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', weights='null'):
         return res, EPs, RWs, abundances
 
 
-def readmoog(output):
+def readmoog(output, version=2013):
     """Read the output file from MOOG"""
 
+    idx = 1 if version > 2013 else 0
     nelements = 1
     readdata = False
     Fe1Lines = []
@@ -514,9 +525,9 @@ def readmoog(output):
 
     # If We don't have any RW slope, calculate it manually
     if not slopeRW:
-        slopeRW, _ = np.polyfit(linesFe1[:, 4], linesFe1[:, 5], 1)
+        slopeRW, _ = np.polyfit(linesFe1[:, 4+idx], linesFe1[:, 5+idx], 1)
     if not slopeEP:
-        slopeEP, _ = np.polyfit(linesFe1[:, 1], linesFe1[:, 5], 1)
+        slopeEP, _ = np.polyfit(linesFe1[:, 1+idx], linesFe1[:, 5+idx], 1)
     sigfe1 = sigfe1 / np.sqrt(nfe1)
     sigfe2 = sigfe2 / np.sqrt(nfe2)
     return teff, logg, vt, feh, fe1-7.47, sigfe1, fe2-7.47, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
@@ -531,9 +542,10 @@ def _slopeSigma(x, y):
     return np.sqrt(chi2/((N-2)*sxx))
 
 
-def error(linelist, converged):
+def error(linelist, converged, version=2013):
     """linelist to give error estimation on"""
     # Find the output file and read the current state of it
+    idx = 1 if version > 2013 else 0
     if converged:
         summary = readmoog('results/%s.out' % linelist)
     else:
@@ -547,11 +559,11 @@ def error(linelist, converged):
     sigmafe1 = summary[5]
     sigmafe2 = summary[7]
 
-    siga1 = _slopeSigma(Fe1[:, 4], Fe1[:, 5])
-    siga2 = _slopeSigma(Fe1[:, 1], Fe1[:, 5])
+    siga1 = _slopeSigma(Fe1[:, 4+idx], Fe1[:, 5+idx])
+    siga2 = _slopeSigma(Fe1[:, 1+idx], Fe1[:, 5+idx])
 
     # Error om microturbulence
-    fun_moog((teff, logg, feh, vt+0.1), results='error_summary.out')
+    fun_moog((teff, logg, feh, vt+0.1), results='error_summary.out', version=version)
     sumvt = readmoog('error_summary.out')
     slopeEP, slopeRW = sumvt[8], sumvt[9]
     if slopeRW == 0:
@@ -565,7 +577,7 @@ def error(linelist, converged):
     # Error on Teff
     slopes = errormicro/0.10 * slopeEP
     errorslopeEP = np.hypot(slopes, siga2)
-    fun_moog((teff+100, logg, feh, vt), results='error_summary.out')
+    fun_moog((teff+100, logg, feh, vt), results='error_summary.out', version=version)
     sumteff = readmoog('error_summary.out')
 
     errorteff = abs(errorslopeEP/sumteff[8]) * 100
@@ -575,7 +587,7 @@ def error(linelist, converged):
     # Error on logg
     fe2error = abs(errorteff/100 * (sumteff[6]-feh))
     sigmafe2total = np.hypot(sigmafe2, fe2error)
-    fun_moog((teff, logg-0.20, feh, vt), results='error_summary.out')
+    fun_moog((teff, logg-0.20, feh, vt), results='error_summary.out', version=version)
     sumlogg = readmoog('error_summary.out')
     errorlogg = abs(sigmafe2total/(sumlogg[6]-feh)*0.20)
 

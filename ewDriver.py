@@ -262,7 +262,7 @@ def ewdriver(starLines='StarMe.cfg'):
             #                                  ABdiffcrit=options['abdiff'])
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
-            parameters = error(line[0], converged)
+            parameters = error(line[0], converged, version=options['MOOGv'])
             with open('results.csv', 'a') as output:
                 tmp = [line[0]] + list(parameters) + [converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
