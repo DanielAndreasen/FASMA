@@ -13,6 +13,7 @@ install:
 	@echo "Atmosphere models installed in dir: models"
 	@echo "Installing dependencies..."
 	@pip install -r requirements.txt
+	@pip install -U --trusted-host wxpython.org --pre -f http://wxpython.org/Phoenix/snapshot-builds/ wxPython_Phoenix
 	@echo "Dependencies installed"
 	@echo ""
 	@echo "MOOGme is successfully installed!"
