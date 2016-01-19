@@ -5,7 +5,7 @@ from __future__ import print_function
 from ewDriver import ewdriver
 from synthDriver import synthdriver
 from abundanceDriver import abundancedriver
-from aresDriver import make_linelist, _run_ares
+from aresDriver import aresdriver
 import argparse
 from gooey import Gooey, GooeyParser
 
@@ -79,6 +79,7 @@ def abund(args):
 
     abundancedriver()
 
+
 def ares(args):
     """Driver for ARES"""
     def rejt_from_snr(snr):
@@ -93,24 +94,28 @@ def ares(args):
     plot = 1 if args.plots else 0
     out = args.spectrum + '.ares' if not args.output else args.output
 
-    fout = 'specfits=\'%s\'\n' % args.spectrum
-    fout += 'readlinedat=\'%s\'\n' % args.linelist
-    fout += 'fileout=\'linelist/%s\'\n' % out
-    fout += 'lambdai=%s\n' % args.lambdai
-    fout += 'lambdaf=%s\n' % args.lambdaf
-    fout += 'smoothder= %s\n' % args.smoothder
-    fout += 'space=%s\n' % args.space
-    fout += 'rejt=%s\n' % rejt
-    fout += 'lineresol=%s\n' % args.lineresol
-    fout += 'miniline=%s\n' % args.miniline
-    fout += 'plots_flag=%s\n' % plot
+    # Make the StarMe_ares.cfg file from Gooey
+    fout = args.linelist.rpartition('/')[2]
+    fout += ' %s' % args.spectrum.rpartition('/')[2]
+    fout += ' lambdai:%s,lambdaf:%s,smoothder:%s' % (args.lambdai, args.lambdaf, args.smoothder)
+    fout += ',space:%s,lineresol:%s' % (args.space, args.lineresol)
+    fout += ',miniline:%s,EWcut:%s' % (args.miniline, args.EWcut)
+    if args.SNR:
+        fout += ',rejt:%s' % rejt
+    else:
+        fout += ',rejt:%s' % args.rejt
+    if args.plots:
+        fout += ',plots_flag:1'
+    if args.output:
+        fout += ',output:%s' % args.output
 
-    with open('mine.opt', 'w') as f:
+    with open('StarMe_ares.cfg', 'w') as f:
         f.writelines(fout)
 
-    _run_ares()
-    make_linelist(args.linelist, 'linelist/'+out, args.EWcut)
-    print('Congratulations! The EWs are here:', 'linelist/'+out+'.moog')
+    aresdriver()
+    linelist_out = 'linelist/%s.moog' % args.spectrum.rpartition('/')[2].rpartition('.')[0]
+    print('Congratulations! The final line list are here: %s' % linelist_out)
+
 
 @Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
        default_size=(700, 1000),
@@ -161,19 +166,19 @@ def main():
 
     # Driver for ARES
     ares_parser = subparsers.add_parser('ares', help='ARES')
-    ares_parser.add_argument('spectrum', help='1D spectrum', widget='FileChooser')
-    ares_parser.add_argument('linelist', help='Input linelist file', widget='FileChooser')
-    ares_parser.add_argument('--output', help='Output of final linelist')
-    ares_parser.add_argument('--lambdai', help='Beginning of wavelength interval', default=3900, type=float)
-    ares_parser.add_argument('--lambdaf', help='End of wavelength interval', default=25000, type=float)
-    ares_parser.add_argument('--smoothder', help='Noise smoother', default=4, type=int)
-    ares_parser.add_argument('--space', help='Interval for the line computation', default=2.0, type=float)
-    ares_parser.add_argument('--rejt', help='Continuum position', default=0.995, type=float)
-    ares_parser.add_argument('--lineresol', help='Line resolution', default=0.07, type=float)
-    ares_parser.add_argument('--miniline', help='Weaker line to be printed out', default=2, type=int)
-    ares_parser.add_argument('--plots', help='Flag for plots', default=False, action='store_true')
-    ares_parser.add_argument('--SNR', help='If specified, the rejt is calculated')
-    ares_parser.add_argument('--EWcut', help='Cut for the maximum EW value', default=200.0, type=float)
+    ares_parser.add_argument('linelist',    help='Input linelist file', widget='FileChooser')
+    ares_parser.add_argument('spectrum',    help='1D spectrum',         widget='FileChooser')
+    ares_parser.add_argument('--output',    help='Output of final linelist')
+    ares_parser.add_argument('--lambdai',   help='Beginning of wavelength interval',  default=3900,  type=int)
+    ares_parser.add_argument('--lambdaf',   help='End of wavelength interval',        default=25000, type=int)
+    ares_parser.add_argument('--smoothder', help='Noise smoother',                    default=4,     type=int)
+    ares_parser.add_argument('--space',     help='Interval for the line computation', default=2.0,   type=float)
+    ares_parser.add_argument('--rejt',      help='Continuum position',                default=0.995, type=float)
+    ares_parser.add_argument('--lineresol', help='Line resolution',                   default=0.07,  type=float)
+    ares_parser.add_argument('--miniline',  help='Weaker line to be printed out',     default=2,     type=int)
+    ares_parser.add_argument('--plots',     help='Flag for plots',                    default=False, action='store_true')
+    ares_parser.add_argument('--SNR',       help='If specified, the rejt is calculated', type=float)
+    ares_parser.add_argument('--EWcut',     help='Cut for the maximum EW value',      default=200.0, type=float)
     ares_parser.set_defaults(driver=ares)
 
     args = parser.parse_args()
