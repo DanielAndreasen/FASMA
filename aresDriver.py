@@ -14,10 +14,9 @@ def _run_ares():
 
 
 def make_linelist(line_file, ares, cut=200):
-    """
-    This function creates a MOOG readable file from the ARES output using the
-    line list and atomic data of make_linelist.dat file
-    """
+    """This function creates a MOOG readable file from the ARES output using the
+    line list and atomic data of make_linelist.dat file"""
+
     # Read the line list and check for multiple identical lines
     linelist = np.genfromtxt(line_file, dtype=None, skiprows=2, names=['line', 'atomic', 'excitation', 'loggf', 'ew_sun'])
     linelist_wave = linelist['line']
@@ -25,7 +24,6 @@ def make_linelist(line_file, ares, cut=200):
     linelist_loggf = linelist['loggf']
     linelist_atomic = linelist['atomic']
     assert (len(np.unique(linelist_wave)) == len(linelist_wave)), 'Check for multiple lines in make_linelist.dat'
-    print('Number of elements in line list: ', len(linelist_wave))
 
     # Read the lines and ews in the ares data and check for identical lines
     data = np.genfromtxt(ares, skip_footer=1, dtype=None, names=['wave', 'fit', 'c1', 'c2', 'ew', 'dew', 'c3', 'c4', 'wave_cal'])
@@ -35,7 +33,6 @@ def make_linelist(line_file, ares, cut=200):
     error_ew = (dew_ares*100)/ew_ares
 
     assert (len(np.unique(wave_ares)) == len(wave_ares)), 'Check for multiple lines in line.star.ares'
-    print('Number of lines measured by ares:', len(wave_ares))
 
     # Wavelength and EW taken from the ares file.
     # Test whether each element of a 1D array is also present in a second array
@@ -44,6 +41,7 @@ def make_linelist(line_file, ares, cut=200):
     ew = ew_ares[index_ares]
     dew = dew_ares[index_ares]
     error_ew = error_ew[index_ares]
+
     # Sort common elements from ares by wavelength
     ares_values = np.column_stack((common_wave, ew, dew, error_ew))
     ares_sorted = sorted(ares_values, key=lambda row: row[0])
@@ -77,8 +75,7 @@ def make_linelist(line_file, ares, cut=200):
     sorted_values = np.transpose(sorted_values)
 
     # Write results in MOOG readable format
-    assert np.array_equal(ares_sorted[0], linelist_sorted[0]), 'There is\
-    #something wrong with the common elements of ARES and the line list'
+    assert np.array_equal(ares_sorted[0], linelist_sorted[0]), 'There is something wrong with the common elements of ARES and the line list'
     data = zip(sorted_values[0], sorted_values[1], sorted_values[2], sorted_values[3], sorted_values[4])
     np.savetxt('%s.moog' % ares, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % ares)
 
@@ -192,9 +189,8 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             line = line.split(' ')
 
             #Check if the linelist is inside the directory if not log it and pass to next linelist
-            if not os.path.isfile('linelist/%s' % line[0]):
-                logger.error('Error: linelist/%s not found.' % line[0])
-                parameters = None
+            if not os.path.isfile(line[0]):
+                logger.error('Error: %s not found.' % line[0])
                 continue
 
             if len(line) == 3:
@@ -204,21 +200,17 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 out = line[2]
                 update_ares(line_list, spectrum, out, options)
             elif len(line) == 4:
-                print(line[2])
                 line_list, spectrum, out = map(str, line[0:-1])
                 options = _options(line[-1])
-                print(options)
                 update_ares(line_list, spectrum, out, options)
-
             else:
-                logger.error('Could not process information for this line list: %s' % line)
+                logger.error('Could not process information for this line: %s' % line)
                 continue
 
             _run_ares()
-            line_list = 'linelist/%s' % line[0]
+            line_list = line[0]
             out = 'linelist/%s' % line[2]
             make_linelist(line_list, out, cut=options['EWcut'])
-    return
 
 if __name__ == '__main__':
     aresdriver(starLines='StarMe_ares.cfg')
