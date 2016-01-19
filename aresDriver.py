@@ -179,22 +179,10 @@ def aresdriver(starLines='StarMe_ares.cfg'):
 
     #Check if there is a directory called linelist, if not create it and ask the user to put files there
     if not os.path.isdir('linelist'):
-        logger.error('Error: The directory linelist does not exist!')
         os.mkdir('linelist')
         logger.info('linelist directory was created')
-        raise IOError('linelist directory did not exist! Put the linelists inside that directory, please.')
-
-    #Create results directory
-    if not os.path.isdir('results'):
-        os.mkdir('results')
-        logger.info('results directory was created')
-
-    if not os.path.isdir('spectra'):
-        os.mkdir('spectra')
-        logger.info('spectra directory was created')
 
     with open(starLines, 'r') as lines:
-
         for line in lines:
             if not line[0].isalpha():
                 logger.debug('Skipping header: %s' % line.strip())
