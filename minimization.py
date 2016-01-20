@@ -55,50 +55,6 @@ def _bump(x, alpha):
     return x
 
 
-def _stepping(slope, step, parameters, quantity, all_params, weights):
-    '''Compress the code in the minimization routine to a simple function call
-
-    Input:
-        slope: Slope/difference in ab
-        step: stepping size for a given parameter
-        parameters: all four parameters
-        quantity: teff, logg, or vt
-        all_params: all previous parameters (for bumping)
-        weights: Weights to calculate the ab slopes
-    Output:
-        parameters, all_params, and results from a function call
-    '''
-
-    # sign of direction, lower/upper limit, index for parameters list
-    setup = {'logg': [-1, 0.01, 2.5, 1],
-             'teff': [ 1, 1, 17625, 0],
-               'vt': [ 1, 0.01, 2.5, 3]}
-    idx = setup[quantity][3]
-
-    s = setup[quantity][0]*np.sign(slope)
-
-    step_i = s * step/abs(np.log(abs(slope)+0.0005))**3
-    if abs(step_i) < setup[quantity][1]:
-        step_i = s*setup[quantity][1]
-    elif abs(step_i) > setup[quantity][2]:
-        step_i = s*setup[quantity][2]
-
-    parameters[idx] += step_i
-    parameters[idx] = check_bounds(parameters[idx], bound, 2*idx+1)
-    if quantity == 'teff':
-        parameters[idx] = int(parameters[idx])
-    else:
-        parameters[idx] = round(parameters[idx], 2)
-
-    if parameters in all_params:
-        parameters = _bump(parameters, 0.005)
-    all_params.append(copy(parameters))
-    print_format(parameters)
-    res, slopeEP, slopeRW, abundances = function(parameters, weights=weights)
-
-    return parameters, all_params, (res, slopeEP, slopeRW, abundances)
-
-
 def minimize(x0, func, bounds="kurucz95", weights='null',
             fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
             iteration=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
