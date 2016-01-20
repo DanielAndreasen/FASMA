@@ -8,9 +8,9 @@ import os
 from copy import copy
 
 
-def print_format(x):
+def print_format(iter, x, slopes):
     """Print the stellar atmospheric parameters in a nice format"""
-    print '%i %.2f %.2f %.2f' % (x[0], x[1], x[2], x[3])
+    print '%i\t%i\t%.2f\t%.2f \t%.2f\tEP: %.2f\tRW: %.2f\tFe: %.2f' % (iter, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
 
 
 def check_bounds(parameter, bounds, i):
@@ -127,6 +127,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
 
     all_params = [copy(parameters)]
     N = 0
+    print('i\tTeff  \tlogg\t[Fe/H]\tvt\tEPslope\tRWslope\t|FeI-FeII|')
     while N < iteration:
         # Step for Teff
         if (abs(slopeEP) >= EPcriteria) and not fix_teff:
@@ -185,7 +186,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
         res, slopeEP, slopeRW, abundances = func(parameters, weights=weights, version=version)
         Abdiff = np.diff(abundances)[0]
         N += 1
-        print_format(parameters)
+        print_format(N, parameters, (slopeEP, slopeRW, Abdiff))
 
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
