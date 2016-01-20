@@ -44,7 +44,7 @@ def ew(args):
         fout += ',vt'
     with open('StarMe.cfg', 'w') as f:
         f.writelines(fout)
-    ewdriver()
+    ewdriver(overwrite=args.overwrite)
 
 
 def synth(args):
@@ -152,6 +152,7 @@ def main():
     ew_parser.add_argument('--EPslope',            help='EP slope to converge', default=0.001, type=float, metavar='EP slope')
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
     ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|[Fel]-[Fell]|')
+    ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', default=False, action='store_true')
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method

@@ -104,15 +104,12 @@ def _options(options=False):
         return defaults
 
 
-def ewdriver(starLines='StarMe.cfg'):
+def ewdriver(starLines='StarMe.cfg', overwrite=False):
     """The function that glues everything together
 
     Input:
     starLines   -   Configuration file (default: StarMe.cfg)
-    parfile     -   The configuration file for MOOG
-    model       -   Type of model atmospheres
-    plot        -   Plot results (currently not implemented)
-    outlier     -   Remove outliers (currently not implemented)
+    overwrite   -   Overwrite the results.csv file (default: False)
 
     Output:
     <linelist>.(NC).out     -   NC=not converget.
@@ -130,9 +127,15 @@ def ewdriver(starLines='StarMe.cfg'):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    with open('results.csv', 'w') as output:
-        tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
-        output.write('\t'.join(tmp)+'\n')
+    if overwrite:
+        with open('results.csv', 'w') as output:
+            tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
+            output.write('\t'.join(tmp)+'\n')
+    else:
+        if not os.path.isfile('results.csv'):
+            with open('results.csv', 'w') as output:
+                tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
+                output.write('\t'.join(tmp)+'\n')
 
     #Check if there is a directory called linelist, if not create it and ask the user to put files there
     if not os.path.isdir('linelist'):
