@@ -11,6 +11,9 @@ import numpy as np
 def _run_ares():
     """Run ARES"""
     os.system('ARES > /dev/null')
+    for tmp in ['tmp', 'tmp2', 'tmp3']:
+        if os.path.isfile(tmp):
+            os.remove(tmp)
 
 
 def make_linelist(line_file, ares, cut=200):
