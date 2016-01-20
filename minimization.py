@@ -128,6 +128,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
     all_params = [copy(parameters)]
     N = 0
     print('i\tTeff  \tlogg\t[Fe/H]\tvt\tEPslope\tRWslope\t|FeI-FeII|')
+    print('-' * 101)
     while N < iteration:
         # Step for Teff
         if (abs(slopeEP) >= EPcriteria) and not fix_teff:
