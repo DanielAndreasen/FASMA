@@ -138,6 +138,10 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             alpha[2] = 0.01 if not fix_feh else 0
             alpha[3] = abs(slopeRW) if not fix_vt else 0
             parameters = _bump(parameters, alpha)
+            parameters[0] = check_bounds(parameters[0], bounds, 1)
+            parameters[1] = check_bounds(parameters[1], bounds, 3)
+            parameters[2] = check_bounds(parameters[2], bounds, 5)
+            parameters[3] = check_bounds(parameters[3], bounds, 7)
         all_params.append(copy(parameters))
 
         res, slopeEP, slopeRW, abundances = func(parameters, weights=weights, version=version)
