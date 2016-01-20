@@ -10,7 +10,7 @@ from copy import copy
 
 def print_format(iter, x, slopes):
     """Print the stellar atmospheric parameters in a nice format"""
-    print '%i\t%i\t%.2f\t%.2f \t%.2f\tEP: %.2f\tRW: %.2f\tFe: %.2f' % (iter, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
+    print '%i\t%i\t%.2f\t%.2f \t%.2f\tEP:  %.3f\tRW: %.3f\tFe: %.3f' % (iter, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
 
 
 def check_bounds(parameter, bounds, i):
