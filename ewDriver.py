@@ -73,16 +73,15 @@ def _options(options=False):
     '''Reads the options inside the config file'''
     defaults = {'spt': False,
                 'weights': 'null',
-                'plot': False,
                 'model':'kurucz95',
                 'teff': False,
                 'logg': False,
                 'feh': False,
                 'vt': False,
                 'iterations': 160,
-                'EPslope': 0.001,
-                'RWslope': 0.001,
-                'abdiff': 0.01,
+                'EPcrit': 0.001,
+                'RWcrit': 0.001,
+                'ABdiffcrit': 0.01,
                 'MOOGv': 2013
                 }
     if not options:
@@ -97,9 +96,9 @@ def _options(options=False):
                 defaults[option] = True
         defaults['model'] = defaults['model'].lower()
         defaults['iterations'] = int(defaults['iterations'])
-        defaults['EPslope'] = float(defaults['EPslope'])
-        defaults['RWslope'] = float(defaults['RWslope'])
-        defaults['abdiff'] = float(defaults['abdiff'])
+        defaults['EPcrit'] = float(defaults['EPcrit'])
+        defaults['RWcrit'] = float(defaults['RWcrit'])
+        defaults['ABdiffcrit'] = float(defaults['ABdiffcrit'])
         defaults['MOOGv'] = int(defaults['MOOGv'])
         return defaults
 
@@ -246,23 +245,17 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             logger.info('Interpolation successful.')
 
             logger.info('Starting the minimization procedure...')
-            parameters, converged = minimize(initial, fun_moog, bounds='kurucz95',
+            # Options not in use will be removed
+            options.pop('spt')
+            # Fixing parameters
+            fix_teff = options.pop('teff')
+            fix_logg = options.pop('logg')
+            fix_feh = options.pop('feh')
+            fix_vt = options.pop('vt')
+            parameters, converged = minimize(initial, fun_moog,
                                              fix_teff=fix_teff, fix_logg=fix_logg,
-                                             fix_feh=fix_feh, fix_vt=fix_vt,
-                                             weights=options['weights'],
-                                             iteration=options['iterations'],
-                                             EPcrit=options['EPslope'],
-                                             RWcrit=options['RWslope'],
-                                             ABdiffcrit=options['abdiff'],
-                                             version=options['MOOGv'])
-            # parameters, converged = minimize(initial, fun_moog_fortran, bounds='kurucz95',
-            #                                  fix_teff=fix_teff, fix_logg=fix_logg,
-            #                                  fix_feh=fix_feh, fix_vt=fix_vt,
-            #                                  weights=options['weights'],
-            #                                  iteration=options['iterations'],
-            #                                  EPcrit=options['EPslope'],
-            #                                  RWcrit=options['RWslope'],
-            #                                  ABdiffcrit=options['abdiff'])
+                                             fix_feh=fix_feh, fix_vt=fix_vt, **options)
+
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
             parameters = error(line[0], converged, version=options['MOOGv'])

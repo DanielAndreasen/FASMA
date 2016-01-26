@@ -55,10 +55,10 @@ def _bump(x, alpha):
     return x
 
 
-def minimize(x0, func, bounds="kurucz95", weights='null',
+def minimize(x0, func, model="kurucz95", weights='null',
             fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-            iteration=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
-            version=2013):
+            iterations=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
+            MOOGv=2013):
     """
     Sane minimization like a normal human being would do it.
     """
@@ -68,10 +68,10 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
     f_teff, f_logg, f_feh, f_vt = fix_teff, fix_logg, fix_feh, fix_vt
     # Step size in Teff, logg, vt
     step = (700, 1.50, 0.50)
-    if bounds.lower() == "kurucz95":
+    if model.lower() == "kurucz95":
         bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
-    res, slopeEP, slopeRW, abundances = func(x0, version=version)
+    res, slopeEP, slopeRW, abundances = func(x0, version=MOOGv)
     Abdiff = np.diff(abundances)[0]
     parameters = list(x0)
     if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
@@ -85,7 +85,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
     N = 0
     print('i\tTeff  \tlogg\t[Fe/H]\tvt\tEPslope\tRWslope\t|FeI-FeII|')
     print('-' * 101)
-    while N < iteration:
+    while N < iterations:
         # Step for Teff
         if (abs(slopeEP) >= EPcriteria) and not fix_teff:
             s = np.sign(slopeEP)
@@ -144,7 +144,7 @@ def minimize(x0, func, bounds="kurucz95", weights='null',
             parameters[3] = check_bounds(parameters[3], bounds, 7)
         all_params.append(copy(parameters))
 
-        res, slopeEP, slopeRW, abundances = func(parameters, weights=weights, version=version)
+        res, slopeEP, slopeRW, abundances = func(parameters, weights=weights, version=MOOGv)
         Abdiff = np.diff(abundances)[0]
         N += 1
         print_format(N, parameters, (slopeEP, slopeRW, Abdiff))
@@ -216,10 +216,10 @@ def minimize_synth(x0, observed, limits):
 
     # TODO: ITERATION STARTS, A CONVERGENCE IS NEEDED
     # Maybe the space of search should be defined by the user depending on how well the initial conditions are.
-    iteration = 0
+    iterations = 0
     steps = np.array([800.0, 0.9])
     # This is dangerous. We have to search all parameter space unless specified by the user.
-    iter_step = steps/(iteration+1)
+    iter_step = steps/(iterations+1)
 
     tmp = x0[:]
     Teff_rng = np.linspace(x0[0]-50, x0[0]+50, 20)
