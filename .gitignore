@@ -3,6 +3,10 @@
 models/
 results/
 linelist/
+rawLinelist/
+!rawLinelist/optical_cool.moog
+!rawLinelist/optical_solar.moog
+!rawLinelist/nir_solar.moog
 results.csv
 *.log
 *.par
