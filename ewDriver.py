@@ -78,6 +78,8 @@ def _options(options=False):
                 'logg': False,
                 'feh': False,
                 'vt': False,
+                'refine': True,
+                'outlier': True,
                 'iterations': 160,
                 'EPcrit': 0.001,
                 'RWcrit': 0.001,
@@ -93,7 +95,8 @@ def _options(options=False):
                 option = option.split(':')
                 defaults[option[0]] = option[1]
             else:
-                defaults[option] = True
+                # Clever way to change the boolean
+                defaults[option] = False if defaults[option] else True
         defaults['model'] = defaults['model'].lower()
         defaults['iterations'] = int(defaults['iterations'])
         defaults['EPcrit'] = float(defaults['EPcrit'])
@@ -247,6 +250,8 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             logger.info('Starting the minimization procedure...')
             # Options not in use will be removed
             options.pop('spt')
+            options.pop('refine')
+            options.pop('outlier')
             # Fixing parameters
             fix_teff = options.pop('teff')
             fix_logg = options.pop('logg')
