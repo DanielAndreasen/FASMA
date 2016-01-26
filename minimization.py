@@ -10,7 +10,7 @@ from copy import copy
 
 def print_format(iter, x, slopes):
     """Print the stellar atmospheric parameters in a nice format"""
-    print '%i\t%i\t%.2f\t%.2f \t%.2f\tEP:  %.3f\tRW: %.3f\tFe: %.3f' % (iter, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
+    print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter+7, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
 
 
 def check_bounds(parameter, bounds, i):
@@ -83,8 +83,8 @@ def minimize(x0, func, model="kurucz95", weights='null',
 
     all_params = [copy(parameters)]
     N = 0
-    print('i\tTeff  \tlogg\t[Fe/H]\tvt\tEPslope\tRWslope\t|FeI-FeII|')
-    print('-' * 101)
+    print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
+    print('-' * 70)
     while N < iterations:
         # Step for Teff
         if (abs(slopeEP) >= EPcriteria) and not fix_teff:
