@@ -5,7 +5,6 @@
 from __future__ import division, print_function
 import logging
 import os
-import yaml
 import numpy as np
 
 from utils import _get_model, _update_par
@@ -13,9 +12,10 @@ from interpolation import interpolator
 from interpolation import save_model
 from utils import _run_moog, _read_moog
 
+
 def save(dic):
     """Write results"""
-    linelist = dic.pop('linelist')
+    linelists = dic.pop('linelist')
     teff = dic.pop('Temperature')
     logg = dic.pop('Gravity')
     feh = dic.pop('[Fe/H]')
@@ -23,21 +23,19 @@ def save(dic):
     elements = dic.keys()
     header = 'linelist,temperature,logg,[Fe/H],vt,' + ','.join(elements)
 
-    with open('results.csv', 'w') as f:
-        f.writelines(header + '\n')
-        for i in range(len(linelist)):
-            line = '%s,%i,%.2f,%.2f,%.2f' % (linelist[i], teff[i], logg[i], feh[i], vt[i])
+    with open('abundances.csv', 'w') as fout:
+        fout.writelines(header + '\n')
+        for i, linelist in enumerate(linelists):
+            line = '%s,%i,%.2f,%.2f,%.2f' % (linelist, teff[i], logg[i], feh[i], vt[i])
             for element in elements:
                 line += ',%s' % dic[element][i]
-            f.writelines(line + '\n')
+            fout.writelines(line + '\n')
+
 
 def _options(options=False):
     '''Reads the options inside the config file'''
     defaults = {'model':'kurucz95',
-                'teff': False,
-                'logg': False,
-                'feh': False,
-                'vt': False,
+                'MOOGv': 2013
                 }
     if not options:
         return defaults
@@ -52,14 +50,12 @@ def _options(options=False):
         defaults['model'] = defaults['model'].lower()
         return defaults
 
+
 def abundancedriver(starLines='StarMe.cfg'):
     """The function that glues everything together
 
     Input:
     starLines   -   Configuration file (default: StarMe.cfg)
-    parfile     -   The configuration file for MOOG
-    model       -   Type of model atmospheres
-    outlier     -   Remove outliers (currently not implemented)
 
     Output:
     <linelist>.out          -   Output file
@@ -90,7 +86,7 @@ def abundancedriver(starLines='StarMe.cfg'):
         logger.info('results directory was created')
 
     with open(starLines, 'r') as lines:
-
+        # TODO: We should not remove this file from previous runs. New standard is to append.
         if os.path.isfile('results.csv'):
             os.remove('results.csv')
         counter = 0
@@ -103,7 +99,7 @@ def abundancedriver(starLines='StarMe.cfg'):
             line = line.strip()
             line = line.split(' ')
 
-            #Check if the linelist is inside the directory if not log it and pass to next linelist
+            # Check if the linelist is inside the directory if not log it and pass to next linelist
             if not os.path.isfile('linelist/%s' % line[0]):
                 logger.error('Error: linelist/%s not found.' % line[0])
                 parameters = None
@@ -127,13 +123,12 @@ def abundancedriver(starLines='StarMe.cfg'):
                 initial = map(float, line[1:-1])
                 options = _options(line[-1])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-
             else:
                 logger.error('Could not process information for this line list: %s' % line)
                 continue
 
             # Setting the models to use
-            if options['model'] != 'kurucz95' and options['model'] != 'kurucz08':
+            if (options['model'] != 'kurucz95') and (options['model'] != 'kurucz08'):
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
@@ -169,21 +164,19 @@ def abundancedriver(starLines='StarMe.cfg'):
 
             N = len(abundance_dict['linelist'])
             for element, abundance in zip(elements, abundances):
-                    print('Element: ', element, 'Abundance:', abundance)
-                    if element in abundance_dict.keys():
-                        abundance_dict[element].append(abundance)
-                    else:
-                        abundance_dict[element]=[np.nan]*counter+[abundance]
+                print('Element: ', element, 'Abundance:', abundance)
+                if element in abundance_dict.keys():
+                    abundance_dict[element].append(abundance)
+                else:
+                    abundance_dict[element]=[np.nan]*counter+[abundance]
 
             for key in abundance_dict.keys():
-                        if len(abundance_dict[key]) < N:
-                            abundance_dict[key].append(np.nan)
+                if len(abundance_dict[key]) < N:
+                    abundance_dict[key].append(np.nan)
             counter += 1
 
     save(abundance_dict)
-    cmd = 'cp summary.out results/%s.out' % line[0]
-    os.system(cmd)
-    return
+
 
 if __name__ == '__main__':
     abundancedriver()
