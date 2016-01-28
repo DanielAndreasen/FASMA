@@ -413,11 +413,11 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null',
     if driver == 'abfind':
         data = read_abund(results)
         if version > 2013:
-            EPs = slope((data[:,2], data[:,6]), weights=weights)
-            RWs = slope((data[:,5], data[:,6]), weights=weights)
+            EPs, _ = slope((data[:,2], data[:,6]), weights=weights)
+            RWs, _ = slope((data[:,5], data[:,6]), weights=weights)
         else:
-            EPs = slope((data[:,1], data[:,5]), weights=weights)
-            RWs = slope((data[:,4], data[:,5]), weights=weights)
+            EPs, _ = slope((data[:,1], data[:,5]), weights=weights)
+            RWs, _ = slope((data[:,4], data[:,5]), weights=weights)
         _, _, _, abundances = _read_moog(fname=results)
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
         return res, EPs, RWs, abundances
@@ -441,8 +441,8 @@ def fun_moog_fortran(x, par='batch.par', results='summary.out', weights='null'):
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par)
     data = read_abund(results)
-    EPs = slope((data[:,1], data[:,5]), weights=weights)
-    RWs = slope((data[:,4], data[:,5]), weights=weights)
+    EPs, _ = slope((data[:,1], data[:,5]), weights=weights)
+    RWs, _ = slope((data[:,4], data[:,5]), weights=weights)
     _, _, _, abundances = _read_moog(fname=results)
     if len(abundances) == 2:
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
@@ -531,16 +531,16 @@ def readmoog(output, version=2013):
     return teff, logg, vt, feh, fe1-7.47, sigfe1, fe2-7.47, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
 
 
-def _slopeSigma(x, y):
+def _slopeSigma(x, y, weights):
     """Sigma on a slope after fitting a straight line"""
     N = len(x)
     sxx = np.sum((x-np.mean(x))**2)
-    a, b = np.polyfit(x, y, 1)
+    a, b = np.polyfit(x, y, 1, w=weights)
     chi2 = np.sum((y - a*x-b)**2)
     return np.sqrt(chi2/((N-2)*sxx))
 
 
-def error(linelist, converged, version=2013):
+def error(linelist, converged, version=2013, weights='null'):
     """linelist to give error estimation on"""
     # Find the output file and read the current state of it
     idx = 1 if version > 2013 else 0
@@ -550,6 +550,11 @@ def error(linelist, converged, version=2013):
         summary = readmoog('results/%s.NC.out' % linelist)
     # Read the correct output file (error_summary.out).
     _update_par(line_list='linelist/%s' % linelist, summary='error_summary.out')
+    data = read_abund('summary.out')
+    if version > 2013:
+        _, weights = slope((data[:,2], data[:,6]), weights=weights)
+    else:
+        _, weights = slope((data[:,1], data[:,5]), weights=weights)
 
     # Prepare the different things we need
     teff, logg, vt, feh = summary[0:4]
@@ -557,8 +562,8 @@ def error(linelist, converged, version=2013):
     sigmafe1 = summary[5]
     sigmafe2 = summary[7]
 
-    siga1 = _slopeSigma(Fe1[:, 4+idx], Fe1[:, 5+idx])
-    siga2 = _slopeSigma(Fe1[:, 1+idx], Fe1[:, 5+idx])
+    siga1 = _slopeSigma(Fe1[:, 4+idx], Fe1[:, 5+idx], weights=weights)
+    siga2 = _slopeSigma(Fe1[:, 1+idx], Fe1[:, 5+idx], weights=weights)
 
     # Error om microturbulence
     fun_moog((teff, logg, feh, vt+0.1), results='error_summary.out', version=version)
@@ -641,7 +646,7 @@ def slope(data, weights='null'):
         w[mask1] = 1.0
 
     wls = sm.wls('y ~ x', data=data, weights=w).fit()
-    return wls.params[1]
+    return wls.params[1], w
 
 
 def read_abund(file='summary.out'):

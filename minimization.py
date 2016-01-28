@@ -10,7 +10,7 @@ from copy import copy
 
 def print_format(iter, x, slopes):
     """Print the stellar atmospheric parameters in a nice format"""
-    print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter+7, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
+    print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
 
 
 def check_bounds(parameter, bounds, i):
@@ -138,7 +138,7 @@ def minimize(x0, func, model="kurucz95", weights='null',
             alpha[2] = 0.01 if not fix_feh else 0
             alpha[3] = abs(slopeRW) if not fix_vt else 0
             parameters = _bump(parameters, alpha)
-            parameters[0] = check_bounds(parameters[0], bounds, 1)
+            parameters[0] = int(check_bounds(parameters[0], bounds, 1))
             parameters[1] = check_bounds(parameters[1], bounds, 3)
             parameters[2] = check_bounds(parameters[2], bounds, 5)
             parameters[3] = check_bounds(parameters[3], bounds, 7)

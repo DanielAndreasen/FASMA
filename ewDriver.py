@@ -180,6 +180,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             elif len(line) == 5:
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
+                initial[0] = int(initial[0])
                 options = _options()
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
 
@@ -209,6 +210,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             elif len(line) == 6:
                 logger.info('Initial parameters given by user and some parameters fixed.')
                 initial = map(float, line[1:-1])
+                initial[0] = int(initial[0])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 options = _options(line[-1])
                 fix_teff = options['teff']
@@ -263,7 +265,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
 
             logger.info('Finished minimization procedure')
             _renaming(line[0], converged)
-            parameters = error(line[0], converged, version=options['MOOGv'])
+            parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
             with open('results.csv', 'a') as output:
                 tmp = [line[0]] + list(parameters) + [converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
