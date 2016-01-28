@@ -10,7 +10,8 @@ from copy import copy
 
 def print_format(iter, x, slopes):
     """Print the stellar atmospheric parameters in a nice format"""
-    print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, x[0], x[1], x[2], x[3], slopes[0], slopes[1], slopes[2])
+    rest = x + list(slopes)
+    print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, *rest)
 
 
 def check_bounds(parameter, bounds, i):
@@ -151,10 +152,19 @@ def minimize(x0, func, model="kurucz95", weights='null',
 
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
+            if refine:
+                print 'Refining the parameters.\nThis may take some time...'
+                fix = {'teff': fix_teff, 'logg': fix_logg, 'feh': fix_feh, 'vt': fix_vt}
+                parameters, True = refine(parameters, fix)
             return parameters, True
 
     print 'Stopped in %i iterations' % N
     c = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0])
+    if c:
+        if refine:
+            print 'Refining the parameters.\nThis may take some time...'
+            fix = {'teff': fix_teff, 'logg': fix_logg, 'feh': fix_feh, 'vt': fix_vt}
+            parameters, True = refine(parameters, fix)
     return parameters, c
 
 
