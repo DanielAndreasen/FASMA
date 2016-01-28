@@ -604,17 +604,18 @@ def error(linelist, converged, version=2013):
 
 
 def slope(data, weights='null'):
-    """Calculate the slope of a data set with the weight"""
+    """Calculate the slope of a data set with weights"""
     import statsmodels.formula.api as sm
-    # weights = weights.lower()
-    options = ['null', 'median', 'sigma', 'mad']
-    if weights not in options or weights == 'median':
+    weights = weights.lower()
+    options = ['null', 'sigma', 'mad']
+    if weights not in options:
         weights = None
 
     data = {'x': data[0], 'y': data[1]}
     fit = np.polyfit(data['x'], data['y'], 1)
     Y = np.poly1d(fit)(data['x'])
     dif = data['y'] - Y
+
     if not weights:
         w = 1/abs(dif)
         idx = np.isinf(w)
@@ -631,7 +632,6 @@ def slope(data, weights='null'):
         w[mask2] = 0.25
         mask1 = abs(data['y'] - Y) < sig
         w[mask1] = 1.0
-
     elif weights == 'mad':
         mad = np.mean(np.absolute(dif - np.mean(dif, None)), None)
         w = np.zeros(len(data['y'])) + 0.01
@@ -643,9 +643,6 @@ def slope(data, weights='null'):
         w[mask1] = 1.0
 
     wls = sm.wls('y ~ x', data=data, weights=w).fit()
-
-
-
     return wls.params[1]
 
 
