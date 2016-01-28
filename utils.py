@@ -413,7 +413,6 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null',
     _run_moog(par=par, driver=driver)
     if driver == 'abfind':
         data = read_abund(results)
-        np.savetxt('test.dat', data)
         if version > 2013:
             EPs = slope((data[:,2], data[:,6]), weights=weights)
             RWs = slope((data[:,5], data[:,6]), weights=weights)
