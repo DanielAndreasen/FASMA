@@ -337,8 +337,7 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
 
 
 def _run_moog(par='batch.par', driver='abfind'):
-    """Run MOOGSILENT with the given parameter file
-    """
+    """Run MOOGSILENT with the given parameter file"""
     if driver == 'abfind':
         os.system('MOOGSILENT > /dev/null')
         # os.system('/home/daniel/Software/moogjul2014/MOOGSILENT > /dev/null')
@@ -392,7 +391,7 @@ def _read_smooth(fname='smooth.out'):
 
 def fun_moog(x, par='batch.par', results='summary.out', weights='null',
              driver='abfind', version=2013):
-    """The 'function' that we should minimize
+    """Run MOOG and return slopes for abfind mode.
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
     :par: The parameter file (batch.par)

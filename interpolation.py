@@ -33,8 +33,8 @@ def read_model(fname):
 
 
 def interpolator(mnames, teff, logg, feh):
-    """This is a new approach based on a scipy interpolator. Resembles the
-    original interpolator we used but with a change
+    """This is a new approach based on a scipy interpolator.
+    Resembles the original interpolator we used but with a change
 
     :mnames: As generated from _get_models
     :teff: Requested Effective Temperature and the two closest models in
@@ -44,7 +44,7 @@ def interpolator(mnames, teff, logg, feh):
     :out: The interpolated model saved in this file
     """
 
-    # Making the grid points
+    # Making the surrounding grid points
     gridpoints = []
     for temp in teff[1]:
         for grav in logg[1]:
@@ -79,6 +79,7 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     """Save the model atmosphere in the right format
 
     :model: The interpolated model atmosphere
+    :params: Atmospheric parameters in usual order
     :type: Type of model atmosphere (onyl kurucz95 at the moment)
     :fout: Which place to save to
     """
@@ -104,12 +105,3 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
 
     _fmt = ('%15.8E', '%8.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E')
     np.savetxt(fout, model, header=header, footer=footer, comments='', delimiter=' ', fmt=_fmt)
-
-
-if __name__ == '__main__':
-    from utils import _get_model
-    teff = 5300
-    logg = 4.2
-    feh = 0.02
-    mnames, teffmod, loggmod, fehmod = _get_model(teff, logg, feh, atmtype='kurucz95')
-    new_atm = interpolator(mnames, [teff, teffmod], [logg,loggmod], [feh,fehmod])
