@@ -78,8 +78,7 @@ def _options(options=False):
                 'logg': False,
                 'feh': False,
                 'vt': False,
-                'refine': True,
-                'outlier': True,
+                'refine': False,
                 'iterations': 160,
                 'EPcrit': 0.001,
                 'RWcrit': 0.001,
@@ -251,9 +250,11 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
 
             logger.info('Starting the minimization procedure...')
             # Options not in use will be removed
+            if __name__ == '__main__':
+                options['GUI'] = False  # Running batch mode
+            else:
+                options['GUI'] = True  # Running GUI mode
             options.pop('spt')
-            options.pop('refine')
-            options.pop('outlier')
             # Fixing parameters
             fix_teff = options.pop('teff')
             fix_logg = options.pop('logg')
