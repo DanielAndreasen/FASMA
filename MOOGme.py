@@ -137,7 +137,6 @@ def main():
     parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float, metavar='[Fe/H]')
     parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
     parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str, metavar='MOOG version')
-    # parent_parser.add_argument('--recal',           help='Recalibrate loggf for a given MOOG version and atm. model', metavar='Recalibrate loggf', action='store_true')
     parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
 
 
@@ -149,13 +148,13 @@ def main():
     ew_parser.add_argument('--Fixgravity',         help='Fix gravity',         action='store_true', metavar='Fix gravity')
     ew_parser.add_argument('--FixFeH',             help='Fix metallicity',     action='store_true', metavar='Fix [Fe/H]')
     ew_parser.add_argument('--Fixmicroturbulence', help='Fix microturbulence', action='store_true', metavar='Fix microturbulence')
-    ew_parser.add_argument('--refine',             help='Refine parameters',           action='store_true', default=True, metavar='Refine parameters')
+    ew_parser.add_argument('--refine',             help='Refine parameters',   action='store_true', metavar='Refine parameters')
     ew_parser.add_argument('--Iterations',         help='Maximum number of iterations', default=160, type=int)
     ew_parser.add_argument('--weights',            help='Calculate the slopes of EP and RW with weights', type=str, default='null', choices=['null', 'sigma', 'mad'])
     ew_parser.add_argument('--EPslope',            help='EP slope to converge', default=0.001, type=float, metavar='EP slope')
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
-    ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|[Fel]-[Fell]|')
-    ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', default=False, action='store_true')
+    ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|Fel-Fell|')
+    ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method
