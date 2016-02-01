@@ -34,7 +34,8 @@ def ew(args):
         fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
 
     fout += 'model:%s,iterations:%s,weights:%s,RWcrit:%s,EPcrit:%s,ABdiffcrit:%s,MOOGv:%s' % (args.model, args.Iterations, args.weights, args.RWslope, args.EPslope, args.Fedifference, args.MOOGv)
-    fout += ',refine:%s' % (args.refine)
+    if args.refine:
+        fout += ',refine'
     if args.Fixteff:
         fout += ',teff'
     if args.Fixgravity:
