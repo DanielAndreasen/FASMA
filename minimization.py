@@ -8,10 +8,58 @@ import os
 from copy import copy
 
 
-def print_format(iter, x, slopes):
+def print_format(iter, x, slopes, GUI=True):
     """Print the stellar atmospheric parameters in a nice format"""
     rest = x + list(slopes)
-    print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, *rest)
+    if GUI:
+        print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, *rest)
+    else:
+        print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, *rest)
+
+
+def _refine(func, params, fix, weights, version):
+    """Refine the parameters by searching in a small
+    parameter space centered on the values given
+
+    Input:
+        params - The final parameters as found by the minimization routine
+        fix    - A dictionary containing the information of which params should be fixed
+    Output:
+        The refined parameters.
+    """
+
+    # Average time for 1 MOOG call: 0.8s
+    # 4**4 calls * 0.8(s/call) / [60s/min] = 3.4min
+    teffs = np.linspace(0, 12, 4) + params[0] - 6
+    loggs = np.linspace(0, 0.1, 4) + params[1] - 0.05
+    fehs  = np.linspace(0, 0.1, 4) + params[2] - 0.05
+    vts   = np.linspace(0, 0.2, 4) + params[3] - 0.1
+
+    res, _, _, _ = func(params, weights=weights, version=version)
+    best = {res: params}
+
+    for teff in teffs:
+        if fix['teff']:
+            teff = params[0]
+            continue
+        for logg in loggs:
+            if fix['logg']:
+                logg = params[1]
+                continue
+            for feh in fehs:
+                if fix['feh']:
+                    feh = params[2]
+                    continue
+                for vt in vts:
+                    if fix['vt']:
+                        vt = params[3]
+                        continue
+                    params_new = (int(teff), round(logg, 2), round(feh, 2), round(vt, 2))
+                    res, _, _, _ = func(params_new, weights=weights, version=version)
+                    if best.keys()[0] > res:
+                        best.pop(best.keys()[0])
+                        best[res] = params_new
+    return best
 
 
 def check_bounds(parameter, bounds, i):
@@ -59,7 +107,7 @@ def _bump(x, alpha):
 def minimize(x0, func, model="kurucz95", weights='null',
             fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
             iterations=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
-            MOOGv=2013):
+            MOOGv=2013, refine=True, GUI=True):
     """
     Sane minimization like a normal human being would do it.
     """
@@ -84,8 +132,13 @@ def minimize(x0, func, model="kurucz95", weights='null',
 
     all_params = [copy(parameters)]
     N = 0
-    print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
-    print('-' * 70)
+
+    if GUI:
+        print(' i     Teff       logg     [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
+        print('-' * 99)
+    else:
+        print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
+        print('-' * 70)
     while N < iterations:
         # Step for Teff
         if (abs(slopeEP) >= EPcriteria) and not fix_teff:
@@ -148,14 +201,14 @@ def minimize(x0, func, model="kurucz95", weights='null',
         res, slopeEP, slopeRW, abundances = func(parameters, weights=weights, version=MOOGv)
         Abdiff = np.diff(abundances)[0]
         N += 1
-        print_format(N, parameters, (slopeEP, slopeRW, Abdiff))
+        print_format(N, parameters, (slopeEP, slopeRW, Abdiff), GUI)
 
         if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
             print 'Stopped in %i iterations' % N
             if refine:
                 print 'Refining the parameters.\nThis may take some time...'
                 fix = {'teff': fix_teff, 'logg': fix_logg, 'feh': fix_feh, 'vt': fix_vt}
-                parameters, True = refine(parameters, fix)
+                parameters = _refine(func, parameters, fix, weights, MOOGv)
             return parameters, True
 
     print 'Stopped in %i iterations' % N
@@ -164,7 +217,7 @@ def minimize(x0, func, model="kurucz95", weights='null',
         if refine:
             print 'Refining the parameters.\nThis may take some time...'
             fix = {'teff': fix_teff, 'logg': fix_logg, 'feh': fix_feh, 'vt': fix_vt}
-            parameters, True = refine(parameters, fix)
+            parameters = _refine(func, parameters, fix, weights, MOOGv)
     return parameters, c
 
 
