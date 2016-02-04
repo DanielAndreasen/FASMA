@@ -255,6 +255,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             else:
                 options['GUI'] = True  # Running GUI mode
             options.pop('spt')
+            refine = options.pop('refine')
             # Fixing parameters
             fix_teff = options.pop('teff')
             fix_logg = options.pop('logg')
@@ -265,7 +266,22 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                                              fix_feh=fix_feh, fix_vt=fix_vt, **options)
 
             logger.info('Finished minimization procedure')
+            if converged:
+                if refine:
+                    logger.info('Refining the parameters')
+                    print('\nRefining the parameters')
+                    print('This might take some time...')
+                    options['EPcrit'] = 0.001
+                    options['RWcrit'] = 0.001
+                    options['ABdiffcrit'] = 0.01
+                    p1, converged = minimize(parameters, fun_moog,
+                                             fix_teff=fix_teff, fix_logg=fix_logg,
+                                             fix_feh=fix_feh, fix_vt=fix_vt, **options)
+                    if converged:
+                        print('reseting the parameters')
+                        parameters = p1  # overwrite with new best results
             _renaming(line[0], converged)
+
             parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
             with open('results.csv', 'a') as output:
                 tmp = [line[0]] + list(parameters) + [converged]
