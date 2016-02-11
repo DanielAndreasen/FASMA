@@ -198,5 +198,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             line_list = line[0]
             make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
 
+    os.remove('logARES.txt')
+
 if __name__ == '__main__':
     aresdriver(starLines='StarMe_ares.cfg')
