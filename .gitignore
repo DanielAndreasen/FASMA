@@ -9,6 +9,7 @@ spectra/
 !rawLinelist/optical_solar.moog
 !rawLinelist/nir_solar.moog
 results.csv
+logARES.txt
 *.log
 *.par
 !batch.par
