@@ -140,6 +140,7 @@ def update_ares(line_list, spectrum, out, options):
     fout += 'lineresol=%s\n' % options['lineresol']
     fout += 'miniline=%s\n' % options['miniline']
     fout += 'plots_flag=%s\n' % plot
+    fout += 'rvmask=\'0,%s\'\n' % options['rvmask']
 
     with open('mine.opt', 'w') as f:
         f.writelines(fout)

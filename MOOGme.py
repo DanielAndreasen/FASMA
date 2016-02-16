@@ -94,6 +94,7 @@ def ares(args):
         rejt = args.rejt
     rejt = 0.999 if rejt > 0.999 else rejt
     plot = 1 if args.plots else 0
+    rvmask = False if args.RVmask==0 else args.RVmask
     out = args.spectrum + '.ares' if not args.output else args.output
 
     # Make the StarMe_ares.cfg file from Gooey
@@ -110,6 +111,8 @@ def ares(args):
         fout += ',plots_flag:1'
     if args.output:
         fout += ',output:%s' % args.output
+    if rvmask:
+        fout += ',rvmask:%s' % rvmask
 
     with open('StarMe_ares.cfg', 'w') as f:
         f.writelines(fout)
@@ -182,6 +185,7 @@ def main():
     ares_parser.add_argument('--plots',     help='Flag for plots',                    default=False, action='store_true')
     ares_parser.add_argument('--SNR',       help='If specified, the rejt is calculated', type=float)
     ares_parser.add_argument('--EWcut',     help='Cut for the maximum EW value',      default=200.0, type=float)
+    ares_parser.add_argument('--RVmask',    help='RV of spectrum (km/s)',             default='0.0', type=float)
     ares_parser.set_defaults(driver=ares)
 
     args = parser.parse_args()
