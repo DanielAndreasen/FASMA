@@ -197,7 +197,10 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 continue
             _run_ares()
             line_list = line[0]
-            make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
+            try:
+                make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
+            except IOError:
+                raise IOError('ARES did not run properly. Take a look at "logARES.txt" for more help.')
 
     os.remove('logARES.txt')
 
