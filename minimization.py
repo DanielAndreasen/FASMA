@@ -8,6 +8,16 @@ import os
 from copy import copy
 
 
+def _getMic(teff, logg):
+    """Calculate micro turbulence. REF? Doyle 2014"""
+    if logg >= 3.95:  # Dwarfs
+        mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
+        return round(mic, 2)
+    else:  # Giants
+        mic = 3.7 - (5.1 * teff * (10**(-4)))
+        return round(mic, 2)
+
+
 def print_format(iter, x, slopes, GUI=True):
     """Print the stellar atmospheric parameters in a nice format"""
     rest = x + list(slopes)
@@ -139,6 +149,11 @@ def minimize(x0, func, model="kurucz95", weights='null',
             parameters[2] = abundances[0]-7.47
             parameters[2] = check_bounds(parameters[2], bounds, 5)
             parameters[2] = round(parameters[2], 2)
+
+        if fix_vt:
+            parameters[3] = _getMic(parameters[0], parameters[1])
+            parameters[3] = check_bounds(parameters[3], bounds, 7)
+            parameters[3] = round(parameters[3], 2)
 
         if parameters in all_params:
             alpha = [0] * 4
