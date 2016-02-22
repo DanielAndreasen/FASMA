@@ -1,11 +1,16 @@
 #!/usr/bin/python
 
+from __future__ import division
 import numpy as np
 import pandas as pd
 import seaborn as sns
-sns.set_style('white')
+sns.set_style('dark')
 sns.set_context('talk', font_scale=1.2)
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import argparse
+from copy import copy
+
 
 def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
     """Calculate a mass using the Torres calibration"""
@@ -15,32 +20,21 @@ def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
     randomfeh = feh + erfeh * np.random.randn(ntrials)
 
     # Parameters for the Torres calibration:
-    a1 = 1.5689
-    a2 = 1.3787
-    a3 = 0.4243
-    a4 = 1.139
-    a5 = -0.1425
-    a6 = 0.01969
+    a1, a2, a3 = 1.5689, 1.3787, 0.4243
+    a4, a5, a6 = 1.139, -0.1425, 0.01969
     a7 = 0.1010
 
-    M = np.zeros(ntrials)
     logM = np.zeros(ntrials)
     for i in xrange(ntrials):
         X = np.log10(randomteff[i]) - 4.1
-        logMass = a1 + a2 * X + a3 * X * X + a4 * X * X * X + a5 *\
-            randomlogg[i] * randomlogg[i] + a6 * randomlogg[i] *\
-            randomlogg[i] * randomlogg[i] + a7 * randomfeh[i]
-        logM[i] = logMass
-        M[i] = 10 ** logMass
+        logM[i] = a1 + a2*X + a3*X**2 + a4*X**3 + a5*randomlogg[i]**2 + a6*randomlogg[i]**3 + a7*randomfeh[i]
 
     meanMasslog = np.mean(logM)
-    sigMasslog = np.sqrt(np.sum([(logMi - meanMasslog)**2 for logMi in logM]) /
-                         (ntrials - 1))
-    sigMasslogTot = np.sqrt(0.027*0.027 + sigMasslog*sigMasslog)
+    sigMasslog = np.sqrt(np.sum(logM-meanMasslog)**2)/(ntrials-1)
+    sigMasslogTot = np.sqrt(0.027**2 + sigMasslog**2)
 
     meanMass = 10**meanMasslog
     sigMass = 10**(meanMasslog + sigMasslogTot) - meanMass
-
     return meanMass, sigMass
 
 
@@ -51,54 +45,82 @@ def radTorres(teff, erteff, logg, erlogg, feh, erfeh):
     randomfeh = feh + erfeh*np.random.randn(ntrials)
 
     # Parameters for the Torres calibration:
-    b1 = 2.4427
-    b2 = 0.6679
-    b3 = 0.1771
-    b4 = 0.705
-    b5 = -0.21415
-    b6 = 0.02306
+    b1, b2, b3 = 2.4427, 0.6679, 0.1771
+    b4, b5, b6 = 0.705, -0.21415, 0.02306
     b7 = 0.04173
 
-    R = np.zeros(ntrials)
     logR = np.zeros(ntrials)
-
     for i in xrange(ntrials):
         X = np.log10(randomteff[i]) - 4.1
-        logRad = b1 + b2 * X + b3 * X * X + b4 * X * X * X + b5 *\
-            randomlogg[i] * randomlogg[i] + b6 * randomlogg[i] *\
-            randomlogg[i] * randomlogg[i] + b7 * randomfeh[i]
-        logR[i] = logRad
-        R[i] = 10 ** logRad
+        logR[i] = b1 + b2*X + b3*X**2 + b4*X**3 + b5*randomlogg[i]**2 + b6*randomlogg[i]**3 + b7*randomfeh[i]
 
     meanRadlog = np.mean(logR)
-    sigRadlog = np.sqrt(np.sum([(logRi-meanRadlog)**2 for logRi in logR]) /
-                        (ntrials-1))
-    sigRadlogTot = np.sqrt(0.014*0.014 + sigRadlog*sigRadlog)
+    sigRadlog = np.sqrt(np.sum((logR-meanRadlog)**2))/(ntrials-1)
+    sigRadlogTot = np.sqrt(0.014**2 + sigRadlog**2)
 
     meanRad = 10**meanRadlog
     sigRad = 10**(meanRadlog + sigRadlogTot) - meanRad
-
     return meanRad, sigRad
 
 
+def _parser():
+    parser = argparse.ArgumentParser(description='Preprocess the results')
+    p = ['teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr']
+    p += ['lum', 'mass', 'masserr', 'radius', 'radiuserr']
+    parser.add_argument('x', choices=p)
+    parser.add_argument('y', choices=p)
+    parser.add_argument('-z', help='Color scale', choices=p, default=None)
+    parser.add_argument('-i', '--input', help='File name of result file', default='results.csv')
+    parser.add_argument('-c', '--convergence', help='Only plot converged results', default=True, action='store_false')
+    parser.add_argument('-ix', help='Inverse x axis', default=False, action='store_true')
+    parser.add_argument('-iy', help='Inverse y axis', default=False, action='store_true')
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == '__main__':
-    df = pd.read_csv('results.csv', delimiter=r'\s+')
+
+    args = _parser()
+
+    df = pd.read_csv(args.input, delimiter=r'\s+')
     m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)]
     r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)]
-    df['mass'] = pd.Series(np.asarray(m)[:, 0])
-    df['masserr'] = pd.Series(np.asarray(m)[:, 1])
-    df['radius'] = pd.Series(np.asarray(r)[:, 0])
-    df['radiuserr'] = pd.Series(np.asarray(r)[:, 1])
-    df['lum'] = (df.teff/5777)**4 * df.mass
+    mr = ['mass', 'masserr', 'radius', 'radiuserr', 'lum']
+    if (args.x in mr) or (args.y in mr):
+        df['mass'] = pd.Series(np.asarray(m)[:, 0])
+        df['masserr'] = pd.Series(np.asarray(m)[:, 1])
+        df['radius'] = pd.Series(np.asarray(r)[:, 0])
+        df['radiuserr'] = pd.Series(np.asarray(r)[:, 1])
+        df['lum'] = (df.teff/5777)**4 * df.mass
+
+    df1 = df[df.convergence]
+    df2 = df[~df.convergence]
 
     # Plot the results
     color = sns.color_palette()
     plt.figure()
-    plt.plot(df.teff[df.convergence], df.lum[df.convergence], 'o', c=color[0], ms=10)
-    plt.plot(df.teff[~df.convergence], df.lum[~df.convergence], 'o', c=color[2], ms=5)
-    plt.xlim(plt.xlim()[::-1])  # Reverse Teff (as normal HR diagram)
-    plt.title('HR diagram')
-    plt.xlabel(r'Teff [K]')
-    plt.ylabel(r'L$_\odot$')
+    if args.z:
+        z = copy(df1[args.z].values)
+        color = copy(df1[args.z].values)
+        size = (z-z.min())/(z.max()-z.min())*100
+        size[np.argmin(size)] = 10  # Be sure to see the "smallest" point
+        plt.scatter(df1[args.x], df1[args.y], c=color, s=size, cmap=cm.seismic, label='Converged')
+    else:
+        plt.scatter(df1[args.x], df1[args.y], c=color[0], s=40, label='Converged')
+    if not args.convergence:
+        if args.z:
+            plt.scatter(df2[args.x], df2[args.y], c=df2[args.z].values, cmap=cm.seismic, s=9, marker='d', label='Not converged')
+        else:
+            plt.scatter(df2[args.x], df2[args.y], c=color[2], s=9, marker='d', label='Not converged')
+        plt.legend(loc='best', frameon=False)
+
+    if args.z:
+        plt.colorbar()
+
+    if args.ix:
+        plt.xlim(plt.xlim()[::-1])
+    if args.iy:
+        plt.ylim(plt.ylim()[::-1])
+
     plt.tight_layout()
     plt.show()
