@@ -174,7 +174,7 @@ if __name__ == '__main__':
     p.add_argument('feh', type=float, help='The metallicity')
     p.add_argument('vmicro', type=float, help='The micro turbulence')
     p.add_argument('-l', '--linelist', help='The linelist to be used', default=False)
-    p.add_argument('-p', '--plot', help='Enable plotting', default=True, type=bool)
+    p.add_argument('-p', '--plot', help='Enable plotting', default=True, action='store_false')
     p.add_argument('-u', '--outlier', help='print 3 sigma outliers', default=False, action='store_true')
     args = p.parse_args()
 
@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
     # Prepare the data
     data = read_output()
-
     c1, c2 = plot_data(data[0], args.outlier)
-    plt.tight_layout()
-    plt.show()
+    if args.plot:
+        plt.tight_layout()
+        plt.show()
