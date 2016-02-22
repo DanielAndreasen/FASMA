@@ -6,4 +6,5 @@ gooey>=0.8.15.2
 PyYAML
 statsmodels
 patsy
+pandas
 # emcee
