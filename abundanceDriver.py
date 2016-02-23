@@ -6,11 +6,10 @@ from __future__ import division, print_function
 import logging
 import os
 import numpy as np
-
 from utils import _get_model, _update_par
 from interpolation import interpolator
 from interpolation import save_model
-from utils import _run_moog, _read_moog
+from utils import _run_moog, Readmoog
 
 
 def save(dic):
@@ -147,9 +146,9 @@ def abundancedriver(starLines='StarMe.cfg'):
             logger.info('Interpolation successful.')
             _run_moog()
 
-
-            elements, EP_slopes, RW_slopes, abundances = _read_moog()
-            if counter == 0:
+            m = Readmoog()
+            elements, abundances = m.elements()
+            if not counter:
                 abundance_dict={'linelist':[line[0]],
                                 'Temperature':[initial[0]],
                                 'Gravity': [initial[1]],
