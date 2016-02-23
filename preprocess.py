@@ -86,8 +86,9 @@ if __name__ == '__main__':
     args = _parser()
 
     df = pd.read_csv(args.input, delimiter=r'\s+')
-    m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)]
-    r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)]
+    params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
+    m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
+    r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
     mr = ['mass', 'masserr', 'radius', 'radiuserr', 'lum']
     if (args.x in mr) or (args.y in mr):
         df['mass'] = pd.Series(np.asarray(m)[:, 0])
@@ -116,8 +117,25 @@ if __name__ == '__main__':
             plt.scatter(df2[args.x], df2[args.y], c=color[2], s=9, marker='d', label='Not converged')
         plt.legend(loc='best', frameon=False)
 
+    labels = {'teff': r'$T_\mathrm{eff}$ [K]',
+              'tefferr': r'$\sigma T_\mathrm{eff}$ [K]',
+              'logg': r'$\log(g)$ [cgs]',
+              'loggerr': r'\sigma $\log(g)$ [cgs]',
+              'feh': '[Fe/H]',
+              'feherr': r'$\sigma$ [Fe/H]',
+              'vt': r'$\xi_\mathrm{micro}$ [km/s]',
+              'vterr': r'$\sigma\xi_\mathrm{micro}$ [km/s]',
+              'lum': r'$L_\odot$',
+              'mass': r'$M_\odot$',
+              'masserr': r'$\sigma M_\odot$',
+              'radius': r'$R_\odot$',
+              'radiuserr': r'$\sigma R_\odot$'}
+
+    plt.xlabel(labels[args.x])
+    plt.ylabel(labels[args.y])
     if args.z:
-        plt.colorbar()
+        cbar = plt.colorbar()
+        cbar.set_label(labels[args.z])
 
     if args.ix:
         plt.xlim(plt.xlim()[::-1])
