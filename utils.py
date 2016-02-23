@@ -348,38 +348,6 @@ def _run_moog(par='batch.par', driver='abfind'):
         os.remove('stupid.tmp')
 
 
-def _read_moog(fname='summary.out'):
-    """Read the slopes from the summary.out and return them
-
-    :fname: From the summary_out
-    :returns: A tuple of the slopes and the average abundances for
-    different elements
-    """
-    EP_slopes = []
-    RW_slopes = []
-    abundances = []
-    element = []
-    with open(fname, 'r') as lines:
-        for line in lines:
-            # Get the EP slope
-            if line.startswith('E.P'):
-                line = filter(None, line.split('slope =')[1].split(' '))
-                EP_slopes.append(float(line[0]))
-            # Get the reduced EW slope
-            elif line.startswith('R.W'):
-                line = filter(None, line.split('slope =')[1].split(' '))
-                RW_slopes.append(float(line[0]))
-            # Get the average abundance
-            elif line.startswith('average abundance'):
-                line = filter(None, line.split('abundance =')[1].split(' '))
-                abundances.append(float(line[0]))
-              # Get element
-            elif line.startswith('Abundance'):
-                line = filter(None, line.split(' '))
-                element.append(str(line[4])+str(line[5]))
-    return element, EP_slopes, RW_slopes, abundances
-
-
 def _read_smooth(fname='smooth.out'):
     """Read the synthetic spectrum from the summary.out and return them
     :fname: From the summary_out
@@ -411,124 +379,130 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null',
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par, driver=driver)
     if driver == 'abfind':
-        data = read_abund(results)
+        m = Readmoog(fname=results, version=version)
+        _, _, _, _, _, _, data, _ = m.fe_statistics()
         if version > 2013:
             EPs, _ = slope((data[:,2], data[:,6]), weights=weights)
             RWs, _ = slope((data[:,5], data[:,6]), weights=weights)
         else:
             EPs, _ = slope((data[:,1], data[:,5]), weights=weights)
             RWs, _ = slope((data[:,4], data[:,5]), weights=weights)
-        _, _, _, abundances = _read_moog(fname=results)
+        m = Readmoog(fname=results, version=version)
+        fe1, _, fe2, _, _, _, _, _ = m.fe_statistics()
+        abundances = [fe1+7.47, fe2+7.47]
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
         return res, EPs, RWs, abundances
 
 
-def fun_moog_fortran(x, par='batch.par', results='summary.out', weights='null'):
-    """The 'function' that we should minimize
+class Readmoog:
 
-    :x: A tuple/list with values (teff, logg, [Fe/H], vt)
-    :par: The parameter file (batch.par)
-    :results: The summary file
-    :returns: The slopes and abundances for the different elements
-    """
+    def __init__(self, fname='summary.out', version=2013):
+        self.fname = fname
+        self.nelements = 1
+        self.idx = 1 if version > 2013 else 0
+        with open(self.fname, 'r') as f:
+            self.lines = f.readlines()
 
-    # Create an atmosphere model from input parameters
-    teff, logg, feh, vt = x
-    p = '/home/daniel/Software/SPECPAR/interpol_models/'
-    os.system('echo %i %s %s | %sintermod.e > /dev/null' % (teff, logg, feh, p))
-    os.system('echo %s | %stransform.e > /dev/null' % (vt, p))
-
-    # Run MOOG and get the slopes and abundaces
-    _run_moog(par=par)
-    data = read_abund(results)
-    EPs, _ = slope((data[:,1], data[:,5]), weights=weights)
-    RWs, _ = slope((data[:,4], data[:,5]), weights=weights)
-    _, _, _, abundances = _read_moog(fname=results)
-    if len(abundances) == 2:
-        res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
-        return res, EPs, RWs, abundances
+    def parameters(self):
+        """Get the atmospheric parameters"""
+        for line in self.lines:
+            if 'Teff' in line:
+                break
+        line = line.split()
+        self.teff = int(line[1])
+        self.logg = float(line[4])
+        self.vt = float(line[6])
+        self.feh = float(line[-1].split('=')[-1])
+        self.params = self.teff, self.logg, self.feh, self.vt
+        return self.params
 
 
-def readmoog(output, version=2013):
-    """Read the output file from MOOG"""
-
-    idx = 1 if version > 2013 else 0
-    nelements = 1
-    readdata = False
-    Fe1Lines = []
-    Fe2Lines = []
-    with open(output, 'r') as lines:
-        for line in lines:
-            if 'Teff' in line:  # Get the atmospheric parameters
+    def fe_statistics(self):
+        """Get statistics on Fe lines"""
+        self.readdata = False
+        self.Fe1Lines = []
+        self.Fe2Lines = []
+        for line in self.lines:
+            if '#lines' in line and self.nelements == 1:  # Statistics on FeI
                 line = line.split()
-                teff = int(line[1])
-                logg = float(line[4])
-                vt = float(line[6])
-                feh = float(line[-1].split('=')[-1])
-            elif '#lines' in line and nelements == 1:  # Statistics on FeI
-                readdata = False
+                self.readdata = False
+                self.nfe1 = int(line[-1])
+                self.fe1 = float(line[3])
+                self.sigfe1 = float(line[7])
+            elif '#lines' in line and self.nelements == 2:  # Statistics on FeII
                 line = line.split()
-                nfe1 = int(line[-1])
-                fe1 = float(line[3])
-                sigfe1 = float(line[7])
-            elif '#lines' in line and nelements == 2:  # Statistics on FeII
-                readdata = False
-                line = line.split()
-                nfe2 = int(line[-1])
-                fe2 = float(line[3])
-                sigfe2 = float(line[7])
-            elif 'E.P.' in line and nelements == 1:  # We only want information from FeI
+                self.readdata = False
+                self.nfe2 = int(line[-1])
+                self.fe2 = float(line[3])
+                self.sigfe2 = float(line[7])
+            elif 'E.P.' in line and self.nelements == 1:  # We only want information from FeI
                 line = line.split()
                 try:
-                    slopeEP = float(line[4])
+                    self.slopeEP = float(line[4])
                 except ValueError:
-                    slopeEP = False
-            elif 'R.W.' in line and nelements == 1:  # We only want information from FeI
+                    self.slopeEP = False
+            elif 'R.W.' in line and self.nelements == 1:  # We only want information from FeI
                 line = line.split()
-                nelements += 1  # Done with this element, move to next one
+                self.nelements += 1  # Done with this element, move to next one
                 try:
-                    slopeRW = float(line[4])
+                    self.slopeRW = float(line[4])
                 except ValueError:
-                    slopeRW = False
+                    self.slopeRW = False
             else:
                 if line.startswith('wavelength'):
-                    readdata = True
+                    self.readdata = True
                     continue
-            if readdata:
+            if self.readdata:
                 content = map(float, filter(None, line.split(' ')))
-                if nelements == 1:
-                    Fe1Lines.append(content)
+                if self.nelements == 1:
+                    self.Fe1Lines.append(content)
                 else:
-                    Fe2Lines.append(content)
+                    self.Fe2Lines.append(content)
 
-    # Store the line information in numpy arrays because lists are not for science!
-    linesFe1 = np.zeros((len(Fe1Lines), 7))
-    linesFe2 = np.zeros((len(Fe2Lines), 7))
-    for i, f1 in enumerate(Fe1Lines):
-        linesFe1[i, 0] = f1[0]
-        linesFe1[i, 1] = f1[1]
-        linesFe1[i, 2] = f1[2]
-        linesFe1[i, 3] = f1[3]
-        linesFe1[i, 4] = f1[4]
-        linesFe1[i, 5] = f1[5]
-        linesFe1[i, 6] = f1[6]
-    for i, f2 in enumerate(Fe2Lines):
-        linesFe2[i, 0] = f2[0]
-        linesFe2[i, 1] = f2[1]
-        linesFe2[i, 2] = f2[2]
-        linesFe2[i, 3] = f2[3]
-        linesFe2[i, 4] = f2[4]
-        linesFe2[i, 5] = f2[5]
-        linesFe2[i, 6] = f2[6]
+        # Store the line information in numpy arrays because lists are not for science!
+        self.linesFe1 = np.zeros((len(self.Fe1Lines), 7))
+        self.linesFe2 = np.zeros((len(self.Fe2Lines), 7))
+        for i, f1 in enumerate(self.Fe1Lines):
+            self.linesFe1[i, 0] = f1[0]
+            self.linesFe1[i, 1] = f1[1]
+            self.linesFe1[i, 2] = f1[2]
+            self.linesFe1[i, 3] = f1[3]
+            self.linesFe1[i, 4] = f1[4]
+            self.linesFe1[i, 5] = f1[5]
+            self.linesFe1[i, 6] = f1[6]
+        for i, f2 in enumerate(self.Fe2Lines):
+            self.linesFe2[i, 0] = f2[0]
+            self.linesFe2[i, 1] = f2[1]
+            self.linesFe2[i, 2] = f2[2]
+            self.linesFe2[i, 3] = f2[3]
+            self.linesFe2[i, 4] = f2[4]
+            self.linesFe2[i, 5] = f2[5]
+            self.linesFe2[i, 6] = f2[6]
 
-    # If We don't have any RW slope, calculate it manually
-    if not slopeRW:
-        slopeRW, _ = np.polyfit(linesFe1[:, 4+idx], linesFe1[:, 5+idx], 1)
-    if not slopeEP:
-        slopeEP, _ = np.polyfit(linesFe1[:, 1+idx], linesFe1[:, 5+idx], 1)
-    sigfe1 = sigfe1 / np.sqrt(nfe1)
-    sigfe2 = sigfe2 / np.sqrt(nfe2)
-    return teff, logg, vt, feh, fe1-7.47, sigfe1, fe2-7.47, sigfe2, slopeEP, slopeRW, linesFe1, linesFe2
+        # If We don't have any RW slope, calculate it manually
+        if not self.slopeRW:
+            self.slopeRW, _ = np.polyfit(self.linesFe1[:, 4+self.idx], self.linesFe1[:, 5+self.idx], 1)
+        if not self.slopeEP:
+            self.slopeEP, _ = np.polyfit(self.linesFe1[:, 1+self.idx], self.linesFe1[:, 5+self.idx], 1)
+        self.sigfe1 = self.sigfe1 / np.sqrt(self.nfe1)
+        self.sigfe2 = self.sigfe2 / np.sqrt(self.nfe2)
+        return self.fe1-7.47, self.sigfe1, self.fe2-7.47, self.sigfe2, self.slopeEP, self.slopeRW, self.linesFe1, self.linesFe2
+
+
+    def elements(self):
+        """Get the elements and abundances from the output file"""
+        abundances = []
+        element = []
+        for line in self.lines:
+            # Get the average abundance
+            if line.startswith('average abundance'):
+                line = filter(None, line.split('abundance =')[1].split(' '))
+                self.abundances.append(float(line[0]))
+              # Get element
+            elif line.startswith('Abundance'):
+                line = filter(None, line.split(' '))
+                self.element.append(str(line[4])+str(line[5]))
+        return self.element, self.abundances
 
 
 def _slopeSigma(x, y, weights):
@@ -545,54 +519,52 @@ def error(linelist, converged, version=2013, weights='null'):
     # Find the output file and read the current state of it
     idx = 1 if version > 2013 else 0
     if converged:
-        summary = readmoog('results/%s.out' % linelist)
+        m = Readmoog(fname='results/%s.out' % linelist, version=version)
+        summary = m.fe_statistics()
     else:
-        summary = readmoog('results/%s.NC.out' % linelist)
+        m = Readmoog(fname='results/%s.NC.out' % linelist, version=version)
+        summary = m.fe_statistics()
     # Read the correct output file (error_summary.out).
     _update_par(line_list='linelist/%s' % linelist, summary='error_summary.out')
-    data = read_abund('summary.out')
-    if version > 2013:
-        _, weights = slope((data[:,2], data[:,6]), weights=weights)
-    else:
-        _, weights = slope((data[:,1], data[:,5]), weights=weights)
+    data = summary[6]
+    _, weights = slope((data[:,1+idx], data[:,5+idx]), weights=weights)
 
     # Prepare the different things we need
-    teff, logg, vt, feh = summary[0:4]
+    teff, logg, feh, vt = m.parameters()
     Fe1, Fe2 = summary[-2], summary[-1]
-    sigmafe1 = summary[5]
-    sigmafe2 = summary[7]
+    sigmafe1 = summary[1]
+    sigmafe2 = summary[3]
 
     siga1 = _slopeSigma(Fe1[:, 4+idx], Fe1[:, 5+idx], weights=weights)
     siga2 = _slopeSigma(Fe1[:, 1+idx], Fe1[:, 5+idx], weights=weights)
 
     # Error om microturbulence
     fun_moog((teff, logg, feh, vt+0.1), results='error_summary.out', version=version)
-    sumvt = readmoog('error_summary.out')
-    slopeEP, slopeRW = sumvt[8], sumvt[9]
+    sumvt = Readmoog(fname='error_summary.out', version=version).fe_statistics()
+    slopeEP, slopeRW = sumvt[4], sumvt[5]
     if slopeRW == 0:
         errormicro = abs(siga1/0.001) * 0.10
     else:
         errormicro = abs(siga1/slopeRW) * 0.10
 
     # Contribution to [Fe/H]
-    deltafe1micro = abs((errormicro/0.10) * (sumvt[4]-feh))
+    deltafe1micro = abs((errormicro/0.10) * (sumvt[0]-feh))
 
     # Error on Teff
     slopes = errormicro/0.10 * slopeEP
     errorslopeEP = np.hypot(slopes, siga2)
     fun_moog((teff+100, logg, feh, vt), results='error_summary.out', version=version)
-    sumteff = readmoog('error_summary.out')
+    sumteff = Readmoog(fname='error_summary.out', version=version).fe_statistics()
 
-    errorteff = abs(errorslopeEP/sumteff[8]) * 100
+    errorteff = abs(errorslopeEP/sumteff[4]) * 100
     # Contribution to [Fe/H]
-    deltafe1teff = abs((errorteff/100) * (sumteff[4]-feh))
-
+    deltafe1teff = abs((errorteff/100) * (sumteff[0]-feh))
     # Error on logg
-    fe2error = abs(errorteff/100 * (sumteff[6]-feh))
+    fe2error = abs(errorteff/100 * (sumteff[2]-feh))
     sigmafe2total = np.hypot(sigmafe2, fe2error)
     fun_moog((teff, logg-0.20, feh, vt), results='error_summary.out', version=version)
-    sumlogg = readmoog('error_summary.out')
-    errorlogg = abs(sigmafe2total/(sumlogg[6]-feh)*0.20)
+    sumlogg = Readmoog(fname='error_summary.out', version=version).fe_statistics()
+    errorlogg = abs(sigmafe2total/(sumlogg[2]-feh)*0.20)
 
     # Error on [Fe/H]
     errorfeh = np.sqrt(sigmafe1**2 + deltafe1teff**2 + deltafe1micro**2)
@@ -647,21 +619,6 @@ def slope(data, weights='null'):
 
     wls = sm.wls('y ~ x', data=data, weights=w).fit()
     return wls.params[1], w
-
-
-def read_abund(file='summary.out'):
-    read_data = False
-    data = []
-    for line in open(file, 'r'):
-        if line.startswith('wavelength'):
-            read_data = True
-            continue
-        if read_data:
-            try:
-                line = map(float, filter(None, line.split()))
-                data.append(line)
-            except ValueError:
-                return np.array(data)
 
 
 def read_observations(wavelength, flux, start_synth, end_synth):
