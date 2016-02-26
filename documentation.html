@@ -61,22 +61,25 @@
 </p>
 <p>
     To prepare a run, simply run the <code>makefile</code> file with <code>make install</code>.
-    This will create the directories. At the moment we use <a href="http://kurucz.harvard.edu/">Kurucz model atmospheres</a>.
+    This will install the required dependencies and create the necessary directories: model atmospheres, linelists and results. 
+    At the moment we use <a href="http://kurucz.harvard.edu/">Kurucz model atmospheres</a>. <a href="www.as.utexas.edu/~chris/moog.html/">MOOG</a> 
+    has to be installed independently from the user. 
 </p>
 <p>
-    Please download them in the format required <a href="http://astro.up.pt/~dandreasen/kurucz95.tar.gz">here</a>.
-    The models must be unpacked in the <code>models</code> folder.
-</p>
-
-
 
 
 <h3><a id="example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h3>
 
 <p>
-    Currently MOOGme only support a batch mode. This is done by editing the <code>StarMe.cfg</code>
-    file and run <code>python MOOGme.py</code> in the terminal. A describtion on how to use <code>StarMe.cfg</code>
-    is in the top as a comment in the file. Here we describe in detail how to use it.
+    MOOGme supports a batch mode that performs various tasks (drivers). The main tasks are: 1) measure the Equivalent Widths (EW) 
+    of a spectrum using the ARES software, 2) derive stellar parameters from a given line list using the EWs of the given stars, 
+    3) derive chemical abundances from a given line list using the EWs of a list of stars, and 4) derive stellar parameters 
+    using the spectral synthesis technique (this is still under development). 
+</p>
+<p>
+    This is done by editing the <code>StarMe.cfg</code> file and run the equivalent Driver in the terminal. 
+    A describtion on how to use <code>StarMe.cfg</code> is in the top as a comment in the file. Here we describe in detail how 
+    to use it.
 </p>
 
 <h5>Explaining <code>StarMe.cfg</code></h5>
