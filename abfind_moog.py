@@ -11,6 +11,7 @@ import seaborn as sns
 sns.set_style('dark')
 sns.set_context('notebook', font_scale=1.5)
 c = sns.color_palette()
+from utils import Readmoog
 
 # Path to the interpolation code
 path = '/home/daniel/Software/SPECPAR/interpol_models/'
@@ -50,68 +51,14 @@ def _update_batch(linelist=False):
         lines.write(''.join(lines_tmp))
 
 
-def _data_structure(out='summary.out'):
-    """Black magic here"""
-    structure = []
-    with open(out, 'r') as lines:
-        s = 0
-        for line in lines:
-            line = filter(None, line.strip().split())
-            try:
-                line = map(float, line)
-            except ValueError:
-                if s > 0:
-                    structure.append(s)
-                line = []
-                s = 0
-            if len(line) > 1:
-                s += 1
-    return structure
-
-
-def read_output(out='summary.out'):
-    """
-    Read the summary file and extract the elements and return a numpy structure
-    of the data.
-
-    nelements is the number of elements, e.g. 2 if analysing FeI and FeII.
-    """
-
-    structure = _data_structure(out=out)
-    nelements = len(structure)
-
-    element = [[]] * nelements
-    for i, struct in enumerate(structure):
-        element[i] = np.zeros((struct, 7))
-
-    i = -1  # counter for which element we are saving
-    with open(out, 'r') as lines:
-        s = -1
-        for line in lines:
-            s += 1
-            if line.startswith('wavelength'):
-                i += 1
-
-            line = filter(None, line.strip().split())
-            try:
-                line = map(float, line)
-            except ValueError:
-                line = []
-                s = -1
-
-            if len(line) > 1:
-                element[i][s] = line
-
-    return element
-
-
-def plot_data(data, outlier=False):
+def plot_data(data, outlier=False, version=2014):
+    idx = 1 if version > 2013 else 0
     c = sns.color_palette()
-    EP = data[:, 1]
-    logRW = data[:, 4]
-    abund = data[:, 5]
+    EP = data[:, 1+idx]
+    logRW = data[:, 4+idx]
+    abund = data[:, 5+idx]
     m = np.mean(abund)
-    s = np.std(abund)
+    s = 3*np.std(abund)
 
     z1 = np.polyfit(EP, abund, 1)
     p1 = np.poly1d(z1)
@@ -123,15 +70,14 @@ def plot_data(data, outlier=False):
     plt.subplot(211)
     plt.plot(EP, abund, '.w', label='Temperature')
     plt.plot(EP, abund, '.k')
-    plt.hlines(m - 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
-    plt.hlines(m + 3*s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m - s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m + s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
     if z1[0] < -0.001:
         plt.plot(EP, p1(EP), color=c[2], lw=3)
-        plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
         print('EW slope: %.3f. Lower Teff' % z1[0])
     elif z1[0] > 0.001:
         plt.plot(EP, p1(EP), color=c[2], lw=3)
-        plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
         print('EW slope: %.3f. Higher Teff' % z1[0])
     else:
         plt.plot(EP, p1(EP), color=c[1])
@@ -142,15 +88,14 @@ def plot_data(data, outlier=False):
     plt.subplot(212)
     plt.plot(logRW, abund, '.w', label='Micro turbulence')
     plt.plot(logRW, abund, '.k')
-    plt.hlines(m - 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
-    plt.hlines(m + 3*s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m - s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m + s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
     if z2[0] < -0.003:
         plt.plot(logRW, p2(logRW), color=c[2], lw=3)
-        plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
         print('RW slope: %.3f. Lower vt' % z2[0])
     elif z2[0] > 0.003:
         plt.plot(logRW, p2(logRW), color=c[2], lw=3)
-        plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
         print('RW slope: %.3f. Higher vt' % z2[0])
     else:
         plt.plot(logRW, p2(logRW), color=c[1])
@@ -158,10 +103,10 @@ def plot_data(data, outlier=False):
     plt.xlabel(r'Reduced EW: $\log RW$')
     plt.ylabel('Abundance')
     if outlier:
-        idx = abs(data[:, 6]) > 3*s  # deviation larger than 3 sigma
-        if True in idx:
-            for i, w in enumerate(data[idx, 0]):
-                ai = abund[idx][i]
+        indc = abs(data[:, 6+idx]) > s  # deviation larger than 3 sigma
+        if True in indc:
+            for i, w in enumerate(data[indc, 0]):
+                ai = abund[indc][i]
                 std = abs((ai-m)/s)
                 print('Line at: %.3f is %.2f sigma away' % (w, std))
     return z1[0], z2[0]
@@ -176,6 +121,7 @@ if __name__ == '__main__':
     p.add_argument('-l', '--linelist', help='The linelist to be used', default=False)
     p.add_argument('-p', '--plot', help='Enable plotting', default=True, action='store_false')
     p.add_argument('-u', '--outlier', help='print 3 sigma outliers', default=False, action='store_true')
+    p.add_argument('-v', '--version', help='MOOG version', choices=['2013', '2014'], default='2014')
     args = p.parse_args()
 
     # Interpolate and transform models
@@ -188,8 +134,9 @@ if __name__ == '__main__':
     os.system('MOOGSILENT > /dev/null')
 
     # Prepare the data
-    data = read_output()
-    c1, c2 = plot_data(data[0], args.outlier)
+    m = Readmoog(fname='summary.out', version=int(args.version))
+    _, _, _, _, _, _, data, _ = m.fe_statistics()
+    c1, c2 = plot_data(data, args.outlier, int(args.version))
     if args.plot:
         plt.tight_layout()
         plt.show()
