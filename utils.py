@@ -400,6 +400,7 @@ class Readmoog:
         self.fname = fname
         self.nelements = 1
         self.idx = 1 if version > 2013 else 0
+        self.version = version
         with open(self.fname, 'r') as f:
             self.lines = f.readlines()
 
@@ -460,8 +461,8 @@ class Readmoog:
                     self.Fe2Lines.append(content)
 
         # Store the line information in numpy arrays because lists are not for science!
-        self.linesFe1 = np.zeros((len(self.Fe1Lines), 7))
-        self.linesFe2 = np.zeros((len(self.Fe2Lines), 7))
+        self.linesFe1 = np.zeros((len(self.Fe1Lines), 7+self.idx))
+        self.linesFe2 = np.zeros((len(self.Fe2Lines), 7+self.idx))
         for i, f1 in enumerate(self.Fe1Lines):
             self.linesFe1[i, 0] = f1[0]
             self.linesFe1[i, 1] = f1[1]
@@ -470,6 +471,8 @@ class Readmoog:
             self.linesFe1[i, 4] = f1[4]
             self.linesFe1[i, 5] = f1[5]
             self.linesFe1[i, 6] = f1[6]
+            if self.version > 2013:
+                self.linesFe1[i, 7] = f1[7]
         for i, f2 in enumerate(self.Fe2Lines):
             self.linesFe2[i, 0] = f2[0]
             self.linesFe2[i, 1] = f2[1]
@@ -478,6 +481,8 @@ class Readmoog:
             self.linesFe2[i, 4] = f2[4]
             self.linesFe2[i, 5] = f2[5]
             self.linesFe2[i, 6] = f2[6]
+            if self.version > 2013:
+                self.linesFe2[i, 7] = f2[7]
 
         # If We don't have any RW slope, calculate it manually
         if not self.slopeRW:
