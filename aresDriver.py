@@ -32,9 +32,9 @@ def make_linelist(line_file, ares, cut=200):
     data = data[idx]
 
     # Cut high EW lines away
-    idx = (data[:, 1] > cut) & (data[:, 1] < 5.0)
-    print('%s line(s) with EW higher than %s were deleted' % (len(data[idx, 0]), cut))
-    data = data[~idx]
+    idx = (data[:, 1] < cut) & (data[:, 1] > 5.0)
+    print('%s line(s) with EW higher than %s were deleted' % (len(data[~idx, 0]), cut))
+    data = data[idx]
     # Wavelength and EW taken from the ares file.
     # Test whether each element of a 1D array is also present in a second array
     idx = np.in1d(data[:, 0], linelist[:, 0])
