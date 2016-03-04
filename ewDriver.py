@@ -83,7 +83,8 @@ def _options(options=False):
                 'EPcrit': 0.001,
                 'RWcrit': 0.001,
                 'ABdiffcrit': 0.01,
-                'MOOGv': 2013
+                'MOOGv': 2013,
+                'loggLC': False
                 }
     if not options:
         return defaults
@@ -261,6 +262,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             fix_logg = options.pop('logg')
             fix_feh = options.pop('feh')
             fix_vt = options.pop('vt')
+            loggLC = options.pop('loggLC')
             parameters, converged = minimize(initial, fun_moog,
                                              fix_teff=fix_teff, fix_logg=fix_logg,
                                              fix_feh=fix_feh, fix_vt=fix_vt, **options)
@@ -283,8 +285,11 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             _renaming(line[0], converged)
 
             parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
+            parameters = list(parameters)
+            if loggLC:
+                parameters[2] = parameters[2] - 4.57E-4*parameters[0] + 2.59
             with open('results.csv', 'a') as output:
-                tmp = [line[0]] + list(parameters) + [converged]
+                tmp = [line[0]] + parameters + [converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
             logger.info('Saved results to: results.csv')
 

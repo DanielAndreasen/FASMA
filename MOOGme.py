@@ -44,6 +44,8 @@ def ew(args):
         fout += ',feh'
     if args.Fixmicroturbulence:
         fout += ',vt'
+    if args.logg:
+        fout += ',loggLC'
     with open('StarMe.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
@@ -139,7 +141,7 @@ def main():
     parent_parser.add_argument('--surfacegravity',  help='Input initial gravity',          default=4.44,  type=float, metavar='logg')
     parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float, metavar='[Fe/H]')
     parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
-    parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2013', choices=['2013', '2014'], type=str, metavar='MOOG version')
+    parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2014', choices=['2013', '2014'], type=str, metavar='MOOG version')
     parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
 
 
@@ -158,6 +160,7 @@ def main():
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
     ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|Fel-Fell|')
     ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
+    ew_parser.add_argument('--logg',               help='Correct for logg (Mortier 2009+)', action='store_true', default=True, metavar='logg correction')
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method
