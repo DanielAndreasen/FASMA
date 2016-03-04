@@ -287,7 +287,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
             if loggLC:
-                parameters[2] = parameters[2] - 4.57E-4*parameters[0] + 2.59
+                parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
             with open('results.csv', 'a') as output:
                 tmp = [line[0]] + parameters + [converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
