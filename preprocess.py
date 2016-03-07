@@ -86,16 +86,19 @@ if __name__ == '__main__':
     args = _parser()
 
     df = pd.read_csv(args.input, delimiter=r'\s+')
-    params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
-    m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
-    r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
-    mr = ['mass', 'masserr', 'radius', 'radiuserr', 'lum']
-    if (args.x in mr) or (args.y in mr):
+    m_ = ['mass', 'masserr', 'lum']
+    if (args.x in m_) or (args.y in m_):
+        params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
+        m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
         df['mass'] = pd.Series(np.asarray(m)[:, 0])
         df['masserr'] = pd.Series(np.asarray(m)[:, 1])
+        df['lum'] = (df.teff/5777)**4 * df.mass
+
+    r_ = ['radius', 'radiuserr']
+    if (args.x in r_) or (args.y in r_):
+        r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
         df['radius'] = pd.Series(np.asarray(r)[:, 0])
         df['radiuserr'] = pd.Series(np.asarray(r)[:, 1])
-        df['lum'] = (df.teff/5777)**4 * df.mass
 
     df1 = df[df.convergence]
     df2 = df[~df.convergence]
