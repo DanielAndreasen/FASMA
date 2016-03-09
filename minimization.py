@@ -8,178 +8,175 @@ import os
 from copy import copy
 
 
-def _getMic(teff, logg):
-    """Calculate micro turbulence. REF? Doyle 2014"""
-    if logg >= 3.95:  # Dwarfs
-        mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
-        return round(mic, 2)
-    else:  # Giants
-        mic = 3.7 - (5.1 * teff * (10**(-4)))
-        return round(mic, 2)
+class Minimize:
+    """Minimize for best parameters given a line list"""
+
+    def __init__(self, x0, func, model="kurucz95", weights='null',
+                 fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
+                 iterations=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
+                 MOOGv=2013, GUI=True):
+        self.x0 = x0
+        self.func = func
+        self.model = model
+        self.weights = weights
+        self.fix_teff = fix_teff
+        self.fix_logg = fix_logg
+        self.fix_feh = fix_feh
+        self.fix_vt = fix_vt
+        self.maxiterations = iterations
+        self.iteration = 0
+        self.EPcrit = EPcrit
+        self.RWcrit = RWcrit
+        self.ABdiffcrit = ABdiffcrit
+        self.MOOGv = MOOGv
+        self.GUI = GUI
+        if self.model.lower() == 'kurucz95':
+            self.bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
 
 
-def print_format(iter, x, slopes, GUI=True):
-    """Print the stellar atmospheric parameters in a nice format"""
-    rest = x + list(slopes)
-    if GUI:
-        print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, *rest)
-    else:
-        print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(iter, *rest)
+    def _getMic(self):
+        """Get the microturbulence if this is fixed"""
+        if self.x0[1] >= 3.95:
+            self.x0[3] = round(6.932*self.x0[0]/1000 - 0.348*self.x0[1] - 1.437, 2)
+        else:
+            self.x0[3] = round(3.7 - 5.1*self.x0[0]/1000, 2)
 
 
-def check_bounds(parameter, bounds, i):
-    """
-    Function which checks if parameters are within bounds.
-    Input - parameter: what we want to check; bounds: ze bounds;
-    i: the index of the bounds we want to check"""
-    if parameter < bounds[i-1]:
-        parameter = bounds[i-1]
-    elif parameter > bounds[i]:
-        parameter = bounds[i]
-    return parameter
-
-
-def check_convergence(RW, EP, Abdiff, fe_input, fe):
-    """
-    Check convergence criteria
-    """
-    EP = 0.00 if f_teff else EP
-    RW = 0.00 if f_vt else RW
-    Abdiff = 0.00 if f_logg else Abdiff
-    fe = fe_input+7.47 if f_feh else fe
-
-    cond1 = abs(RW) <= RWcriteria
-    cond2 = abs(Abdiff) <= ABdiffcriteria
-    cond3 = abs(EP) <= EPcriteria
-    cond4 = round(fe_input, 2) == round(fe-7.47, 2)
-    return cond1 and cond2 and cond3 and cond4
-
-
-def _bump(x, alpha):
-    """Bump to the values in the list, x"""
-    for i, X in enumerate(zip(alpha, x)):
-        ai, xi = X
-        sig = 0.01 if ai*xi == 0 else ai*xi
-        if ai:
-            x[i] = np.random.normal(xi, abs(sig))
-    x[0] = int(x[0])
-    x[1] = round(x[1], 2)
-    x[2] = round(x[2], 2)
-    x[3] = abs(round(x[3], 2))  # We can't have negative microturbulence
-    return x
-
-
-def minimize(x0, func, model="kurucz95", weights='null',
-            fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
-            iterations=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
-            MOOGv=2013, GUI=True):
-    """
-    Sane minimization like a normal human being would do it.
-    """
-    global EPcriteria, RWcriteria, ABdiffcriteria
-    global f_teff, f_logg, f_vt, f_feh
-    EPcriteria, RWcriteria, ABdiffcriteria = EPcrit, RWcrit, ABdiffcrit
-    f_teff, f_logg, f_feh, f_vt = fix_teff, fix_logg, fix_feh, fix_vt
-    # Step size in Teff, logg, vt
-    step = (700, 1.50, 0.50)
-    if model.lower() == "kurucz95":
-        bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
-
-    res, slopeEP, slopeRW, abundances = func(x0, version=MOOGv)
-    Abdiff = np.diff(abundances)[0]
-    parameters = list(x0)
-    if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-        return parameters, True
-    try:
-        os.remove('minimization_profile.dat')
-    except OSError:
-        pass
-
-    all_params = [copy(parameters)]
-    N = 0
-
-    if GUI:
-        print(' i     Teff       logg     [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
-        print('-' * 99)
-    else:
-        print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
-        print('-' * 70)
-    while N < iterations:
-        # Step for Teff
-        if (abs(slopeEP) >= EPcriteria) and not fix_teff:
-            s = np.sign(slopeEP)
-            step_i = s * step[0]/abs(np.log(abs(slopeEP)+0.0005))**3
-            if abs(step_i) < 1:
-                step_i = s*1  # Minimum 1K
-            elif abs(step_i) > 17625:
-                step_i = s*17625  # Maximum 17625K (half the interval?)
-            parameters[0] += step_i
-            parameters[0] = check_bounds(parameters[0], bounds, 1)
-            parameters[0] = int(parameters[0])
-
-        # Step for VT
-        if (abs(slopeRW) >= RWcriteria) and not fix_vt:
-            s = np.sign(slopeRW)
-            step_i = s * step[2]/abs(np.log(abs(slopeRW)+0.0005))**3
-            if abs(step_i) < 0.01:
-                step_i = s*0.01  # Minimum vt step
-            elif abs(step_i) > 2.5:
-                step_i = s*2.5  # Maximum vt step
+    def print_format(self):
+        """Print the stellar atmospheric parameters in a nice format"""
+        rest = self.x0 + list((self.slopeEP, self.slopeRW, self.Abdiff))
+        if self.iteration == 0:
+            if self.GUI:
+                print(' i     Teff       logg     [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
+                print('-' * 99)
             else:
-                step_i = step_i
-            parameters[3] += step_i
-            parameters[3] = 0.00 if parameters[3] < 0 else parameters[3]
-            parameters[3] = check_bounds(parameters[3], bounds, 7)
-            parameters[3] = round(parameters[3], 2)
+                print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
+                print('-' * 70)
+        else:
+            print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(self.iteration, *rest)
 
-        # Step for logg
-        if (abs(Abdiff) >= ABdiffcrit) and not fix_logg:
-            s = -np.sign(Abdiff)
-            step_i = s * step[1]/abs(np.log(abs(Abdiff)+0.0005))**3
-            if abs(step_i) < 0.01:
-                step_i = s*0.01  # Minimum logg step
-            elif abs(step_i) > 2.5:
-                step_i = s*2.5  # Maximum logg step
-            parameters[1] += step_i
-            parameters[1] = check_bounds(parameters[1], bounds, 3)
-            parameters[1] = round(parameters[1], 2)
 
-        # Step for [Fe/H]
-        if not fix_feh:
-            parameters[2] = abundances[0]-7.47
-            parameters[2] = check_bounds(parameters[2], bounds, 5)
-            parameters[2] = round(parameters[2], 2)
+    def check_bounds(self, i):
+        """
+        Function which checks if parameters are within bounds.
+        Input - parameter: what we want to check; bounds: ze bounds;
+        i: the index of the bounds we want to check"""
+        if self.x0[int((i-1)/2)] < self.bounds[i-1]:
+            self.x0[int((i-1)/2)] = self.bounds[i-1]
+        elif self.x0[int((i-1)/2)] > self.bounds[i]:
+            self.x0[int((i-1)/2)] = self.bounds[i]
+        return self.x0[int((i-1)/2)]
 
-        if fix_vt:
-            parameters[3] = _getMic(parameters[0], parameters[1])
-            parameters[3] = check_bounds(parameters[3], bounds, 7)
-            parameters[3] = round(parameters[3], 2)
 
-        if parameters in all_params:
-            alpha = [0] * 4
-            alpha[0] = abs(slopeEP) if not fix_teff else 0
-            alpha[1] = abs(Abdiff) if not fix_logg else 0
-            alpha[2] = 0.01 if not fix_feh else 0
-            alpha[3] = abs(slopeRW) if not fix_vt else 0
-            parameters = _bump(parameters, alpha)
-            parameters[0] = int(check_bounds(parameters[0], bounds, 1))
-            parameters[1] = check_bounds(parameters[1], bounds, 3)
-            parameters[2] = check_bounds(parameters[2], bounds, 5)
-            parameters[3] = check_bounds(parameters[3], bounds, 7)
-        all_params.append(copy(parameters))
+    def check_convergence(self, fe_input):
+        """Check the convergence criteria"""
+        self.slopeEP = 0.00 if self.fix_teff else self.slopeEP
+        self.slopeRW = 0.00 if self.fix_vt else self.slopeRW
+        self.Abdiff = 0.00 if self.fix_logg else self.Abdiff
+        self.x0[2] = fe_input+7.47 if self.fix_feh else self.x0[2]
 
-        res, slopeEP, slopeRW, abundances = func(parameters, weights=weights, version=MOOGv)
-        Abdiff = np.diff(abundances)[0]
-        N += 1
-        print_format(N, parameters, (slopeEP, slopeRW, Abdiff), GUI)
+        cond1 = abs(self.slopeRW) <= self.RWcrit
+        cond2 = abs(self.Abdiff) <= self.ABdiffcrit
+        cond3 = abs(self.slopeEP) <= self.EPcrit
+        cond4 = round(fe_input, 2) == round(self.x0[2]+7.47, 2)
+        return cond1 and cond2 and cond3 and cond4
 
-        if check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0]):
-            print 'Stopped in %i iterations' % N
-            return parameters, True
 
-    print 'Stopped in %i iterations' % N
-    c = check_convergence(slopeRW, slopeEP, Abdiff, parameters[2], abundances[0])
-    return parameters, c
+    def _bump(self, alpha):
+        """Bump to the values in the list, x"""
+        for i, X in enumerate(zip(alpha, self.x0)):
+            ai, xi = X
+            sig = 0.01 if ai*xi == 0 else ai*xi
+            if ai:
+                self.x0[i] = np.random.normal(xi, abs(sig))
+        self.x0[0] = int(self.x0[0])
+        self.x0[1] = round(self.x0[1], 2)
+        self.x0[2] = round(self.x0[2], 2)
+        self.x0[3] = abs(round(self.x0[3], 2))
+
+
+    def minimize(self):
+        step = (700, 1.50, 0.50)
+
+        res, self.slopeEP, self.slopeRW, abundances = self.func(self.x0, version=self.MOOGv)
+        self.Abdiff = np.diff(abundances)[0]
+        self.x0 = list(self.x0)
+
+        if self.check_convergence(abundances[0]):
+            return self.x0, True
+
+        parameters = [copy(self.x0)]
+        best = {}
+        # Print the header before starting
+        self.print_format()
+
+        while self.iteration < self.maxiterations:
+            # Step for Teff
+            if (abs(self.slopeEP) >= self.EPcrit) and not self.fix_teff:
+                s = np.sign(self.slopeEP)
+                step_i = s * step[0]/abs(np.log(abs(self.slopeEP)+0.0005))**3
+                step_i = s*1 if abs(step_i) < 1 else step_i
+                self.x0[0] += step_i
+                self.x0[0] = self.check_bounds(1)
+                self.x0[0] = int(self.x0[0])
+
+            # Step for VT
+            if (abs(self.slopeRW) >= self.RWcrit) and not self.fix_vt:
+                s = np.sign(self.slopeRW)
+                step_i = s * step[2]/abs(np.log(abs(self.slopeRW)+0.0005))**3
+                step_i = s*0.01 if abs(step_i) < 0.01 else step_i
+                self.x0[3] += step_i
+                self.x0[3] = self.check_bounds(7)
+                self.x0[3] = round(self.x0[3], 2)
+
+            # Step for logg
+            if (abs(self.Abdiff) >= self.ABdiffcrit) and not self.fix_logg:
+                s = -np.sign(self.Abdiff)
+                step_i = s * step[1]/abs(np.log(abs(self.Abdiff)+0.0005))**3
+                step_i = s*0.01 if abs(step_i) < 0.01 else step_i
+                self.x0[1] += step_i
+                self.x0[1] = self.check_bounds( 3)
+                self.x0[1] = round(self.x0[1], 2)
+
+            # Step for [Fe/H]
+            if not self.fix_feh:
+                self.x0[2] = abundances[0]-7.47
+                self.x0[2] = self.check_bounds(5)
+                self.x0[2] = round(self.x0[2], 2)
+
+            if self.fix_vt:
+                self._getMic()  # Reset the microturbulence
+                self.x0[3] = self.check_bounds(7)
+
+            if self.x0 in parameters:
+                alpha = [0] * 4
+                alpha[0] = abs(self.slopeEP) if not self.fix_teff else 0
+                alpha[1] = abs(self.Abdiff) if not self.fix_logg else 0
+                alpha[2] = 0.01 if not self.fix_feh else 0
+                alpha[3] = abs(self.slopeRW) if not self.fix_vt else 0
+                self._bump(alpha)
+                self.x0[0] = int(self.check_bounds(1))
+                self.x0[1] = self.check_bounds(3)
+                self.x0[2] = self.check_bounds(5)
+                self.x0[3] = self.check_bounds(7)
+            parameters.append(copy(self.x0))
+
+            res, self.slopeEP, self.slopeRW, abundances = self.func(self.x0, weights=self.weights, version=self.MOOGv)
+            self.Abdiff = np.diff(abundances)[0]
+            self.iteration += 1
+            self.print_format()
+            best[res] = parameters[-1]
+            if self.check_convergence(abundances[0]):
+                print 'Stopped in %i iterations' % self.iteration
+                return self.x0, True
+
+        print 'Stopped in %i iterations' % self.iteration
+        if self.check_convergence(abundances[0]):
+            return self.x0, True
+        else:
+            # Return the best solution rather than the last iteration
+            _ = self.func(best[min(best.keys())], weights=self.weights, version=self.MOOGv)
+            return best[min(best.keys())], False
 
 
 def chi2(obs, theory):
@@ -334,13 +331,14 @@ def mcmc_synth(x0, observed, limits):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    x0 = [5777, 4.44, 0.0, 1.0]
-    fname = 'spectra/solar_synthetic.txt'
-    limits = (6444.672, 6447.340)
-
-    # MCMC example
-    mcmc_synth([5777, 4.44], fname, limits)
+    a = None
+    # import matplotlib.pyplot as plt
+    # x0 = [5777, 4.44, 0.0, 1.0]
+    # fname = 'spectra/solar_synthetic.txt'
+    # limits = (6444.672, 6447.340)
+    #
+    # # MCMC example
+    # mcmc_synth([5777, 4.44], fname, limits)
 
 
 

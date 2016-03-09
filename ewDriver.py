@@ -19,7 +19,7 @@ from interpolation import interpolator
 from interpolation import save_model
 from utils import fun_moog
 from utils import error
-from minimization import minimize
+from minimization import Minimize
 
 
 def _getSpt(spt):
@@ -64,8 +64,6 @@ def _renaming(linelist, converged):
         cmd = 'cp summary.out results/%s.out' % linelist
     else:
         cmd = 'cp summary.out results/%s.NC.out' % linelist
-        # os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
-
     os.system(cmd)
 
 
@@ -263,25 +261,27 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             fix_feh = options.pop('feh')
             fix_vt = options.pop('vt')
             loggLC = options.pop('loggLC')
-            parameters, converged = minimize(initial, fun_moog,
-                                             fix_teff=fix_teff, fix_logg=fix_logg,
-                                             fix_feh=fix_feh, fix_vt=fix_vt, **options)
+
+            fff = Minimize(initial, fun_moog,
+                           fix_teff=fix_teff, fix_logg=fix_logg,
+                           fix_feh=fix_feh, fix_vt=fix_vt, **options)
+            parameters, converged = fff.minimize()
 
             logger.info('Finished minimization procedure')
-            if converged:
-                if refine:
-                    logger.info('Refining the parameters')
-                    print('\nRefining the parameters')
-                    print('This might take some time...')
-                    options['EPcrit'] = 0.001
-                    options['RWcrit'] = 0.001
-                    options['ABdiffcrit'] = 0.01
-                    p1, converged = minimize(parameters, fun_moog,
-                                             fix_teff=fix_teff, fix_logg=fix_logg,
-                                             fix_feh=fix_feh, fix_vt=fix_vt, **options)
-                    if converged:
-                        print('reseting the parameters')
-                        parameters = p1  # overwrite with new best results
+            if converged and refine:
+                logger.info('Refining the parameters')
+                print('\nRefining the parameters')
+                print('This might take some time...')
+                options['EPcrit'] = 0.001
+                options['RWcrit'] = 0.001
+                options['ABdiffcrit'] = 0.01
+                fff = Minimize(parameters, fun_moog,
+                               fix_teff=fix_teff, fix_logg=fix_logg,
+                               fix_feh=fix_feh, fix_vt=fix_vt, **options)
+                p1, converged = fff.minimize()
+                if converged:
+                    print('reseting the parameters')
+                    parameters = p1  # overwrite with new best results
             _renaming(line[0], converged)
 
             parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
