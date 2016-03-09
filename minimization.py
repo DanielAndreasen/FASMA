@@ -37,9 +37,9 @@ class Minimize:
     def _getMic(self):
         """Get the microturbulence if this is fixed"""
         if self.x0[1] >= 3.95:
-            self.x0[3] = round(6.932*self.x0[0]/1000 - 0.348*self.x0[1] - 1.437, 2)
+            self.x0[3] = round(6.932*self.x0[0]/10000 - 0.348*self.x0[1] - 1.437, 2)
         else:
-            self.x0[3] = round(3.7 - 5.1*self.x0[0]/1000, 2)
+            self.x0[3] = round(3.7 - 5.1*self.x0[0]/10000, 2)
 
 
     def print_format(self):
