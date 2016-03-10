@@ -37,9 +37,9 @@ class Minimize:
     def _getMic(self):
         """Get the microturbulence if this is fixed"""
         if self.x0[1] >= 3.95:
-            self.x0[3] = round(6.932*self.x0[0]/10000 - 0.348*self.x0[1] - 1.437, 2)
+            self.x0[3] = 6.932*self.x0[0]/10000 - 0.348*self.x0[1] - 1.437
         else:
-            self.x0[3] = round(3.7 - 5.1*self.x0[0]/10000, 2)
+            self.x0[3] = 3.7 - 5.1*self.x0[0]/10000
 
 
     def print_format(self):
@@ -65,7 +65,6 @@ class Minimize:
             self.x0[int((i-1)/2)] = self.bounds[i-1]
         elif self.x0[int((i-1)/2)] > self.bounds[i]:
             self.x0[int((i-1)/2)] = self.bounds[i]
-        return self.x0[int((i-1)/2)]
 
 
     def check_convergence(self, fe_input):
@@ -89,15 +88,20 @@ class Minimize:
             sig = 0.01 if ai*xi == 0 else ai*xi
             if ai:
                 self.x0[i] = np.random.normal(xi, abs(sig))
+
+
+    def _format_x0(self):
+        """Format the values in x0, so first value is an integer"""
         self.x0[0] = int(self.x0[0])
         self.x0[1] = round(self.x0[1], 2)
         self.x0[2] = round(self.x0[2], 2)
-        self.x0[3] = abs(round(self.x0[3], 2))
+        self.x0[3] = round(self.x0[3], 2)
 
 
     def minimize(self):
         step = (700, 1.50, 0.50)
 
+        self._format_x0()
         res, self.slopeEP, self.slopeRW, abundances = self.func(self.x0, version=self.MOOGv)
         self.Abdiff = np.diff(abundances)[0]
         self.x0 = list(self.x0)
@@ -117,8 +121,7 @@ class Minimize:
                 step_i = s * step[0]/abs(np.log(abs(self.slopeEP)+0.0005))**3
                 step_i = s*1 if abs(step_i) < 1 else step_i
                 self.x0[0] += step_i
-                self.x0[0] = self.check_bounds(1)
-                self.x0[0] = int(self.x0[0])
+                self.check_bounds(1)
 
             # Step for VT
             if (abs(self.slopeRW) >= self.RWcrit) and not self.fix_vt:
@@ -126,8 +129,7 @@ class Minimize:
                 step_i = s * step[2]/abs(np.log(abs(self.slopeRW)+0.0005))**3
                 step_i = s*0.01 if abs(step_i) < 0.01 else step_i
                 self.x0[3] += step_i
-                self.x0[3] = self.check_bounds(7)
-                self.x0[3] = round(self.x0[3], 2)
+                self.check_bounds(7)
 
             # Step for logg
             if (abs(self.Abdiff) >= self.ABdiffcrit) and not self.fix_logg:
@@ -135,18 +137,16 @@ class Minimize:
                 step_i = s * step[1]/abs(np.log(abs(self.Abdiff)+0.0005))**3
                 step_i = s*0.01 if abs(step_i) < 0.01 else step_i
                 self.x0[1] += step_i
-                self.x0[1] = self.check_bounds( 3)
-                self.x0[1] = round(self.x0[1], 2)
+                self.check_bounds( 3)
 
             # Step for [Fe/H]
             if not self.fix_feh:
                 self.x0[2] = abundances[0]-7.47
-                self.x0[2] = self.check_bounds(5)
-                self.x0[2] = round(self.x0[2], 2)
+                self.check_bounds(5)
 
             if self.fix_vt:
                 self._getMic()  # Reset the microturbulence
-                self.x0[3] = self.check_bounds(7)
+                self.check_bounds(7)
 
             if self.x0 in parameters:
                 alpha = [0] * 4
@@ -155,12 +155,13 @@ class Minimize:
                 alpha[2] = 0.01 if not self.fix_feh else 0
                 alpha[3] = abs(self.slopeRW) if not self.fix_vt else 0
                 self._bump(alpha)
-                self.x0[0] = int(self.check_bounds(1))
-                self.x0[1] = self.check_bounds(3)
-                self.x0[2] = self.check_bounds(5)
-                self.x0[3] = self.check_bounds(7)
+                self.check_bounds(1)
+                self.check_bounds(3)
+                self.check_bounds(5)
+                self.check_bounds(7)
             parameters.append(copy(self.x0))
 
+            self._format_x0()
             res, self.slopeEP, self.slopeRW, abundances = self.func(self.x0, weights=self.weights, version=self.MOOGv)
             self.Abdiff = np.diff(abundances)[0]
             self.iteration += 1
