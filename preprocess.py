@@ -77,6 +77,7 @@ def _parser():
     parser.add_argument('-c', '--convergence', help='Only plot converged results', default=True, action='store_false')
     parser.add_argument('-ix', help='Inverse x axis', default=False, action='store_true')
     parser.add_argument('-iy', help='Inverse y axis', default=False, action='store_true')
+    parser.add_argument('-iz', help='Inverse z axis', default=False, action='store_true')
     args = parser.parse_args()
     return args
 
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
     df = pd.read_csv(args.input, delimiter=r'\s+')
     m_ = ['mass', 'masserr', 'lum']
-    if (args.x in m_) or (args.y in m_):
+    if (args.x in m_) or (args.y in m_) or (args.z in m_):
         params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
         m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
         df['mass'] = pd.Series(np.asarray(m)[:, 0])
@@ -95,7 +96,8 @@ if __name__ == '__main__':
         df['lum'] = (df.teff/5777)**4 * df.mass
 
     r_ = ['radius', 'radiuserr']
-    if (args.x in r_) or (args.y in r_):
+    if (args.x in r_) or (args.y in r_) or (args.z in r_):
+        params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
         r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
         df['radius'] = pd.Series(np.asarray(r)[:, 0])
         df['radiuserr'] = pd.Series(np.asarray(r)[:, 1])
@@ -106,7 +108,10 @@ if __name__ == '__main__':
     # Plot the results
     plt.figure()
     if args.z:
-        z = df1[args.z].values
+        if args.iz:
+            z = 1/df1[args.z].values
+        else:
+            z = df1[args.z].values
         color = df1[args.z].values
         size = (z-z.min())/(z.max()-z.min())*100
         size[np.argmin(size)] = 10  # Be sure to see the "smallest" point
