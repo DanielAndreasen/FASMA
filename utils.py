@@ -502,12 +502,12 @@ class Readmoog:
             # Get the average abundance
             if line.startswith('average abundance'):
                 line = filter(None, line.split('abundance =')[1].split(' '))
-                self.abundances.append(float(line[0]))
+                abundances.append(float(line[0]))
               # Get element
             elif line.startswith('Abundance'):
                 line = filter(None, line.split(' '))
-                self.element.append(str(line[4])+str(line[5]))
-        return self.element, self.abundances
+                element.append(str(line[4])+str(line[5]))
+        return element, abundances
 
 
 def _slopeSigma(x, y, weights):
