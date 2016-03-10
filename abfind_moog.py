@@ -12,6 +12,7 @@ sns.set_style('dark')
 sns.set_context('notebook', font_scale=1.5)
 c = sns.color_palette()
 from utils import Readmoog
+import statsmodels.formula.api as sm
 
 # Path to the interpolation code
 path = '/home/daniel/Software/SPECPAR/interpol_models/'
@@ -54,16 +55,23 @@ def _update_batch(linelist=False):
 def plot_data(data, outlier=False, version=2014):
     idx = 1 if version > 2013 else 0
     c = sns.color_palette()
+    wave = data[:, 0]
     EP = data[:, 1+idx]
     logRW = data[:, 4+idx]
     abund = data[:, 5+idx]
+    sig = data[:, 6+idx]
     m = np.mean(abund)
     s = 3*np.std(abund)
 
-    z1 = np.polyfit(EP, abund, 1)
+    data = {'EP': EP, 'logRW': logRW, 'abund': abund, 'sig': sig, 'wave': wave}
+    w = np.ones(len(data['abund']))
+
+    z1 = sm.wls('abund ~ EP', data=data, weights=w).fit().params
+    z1 = [z1[1], z1[0]]
     p1 = np.poly1d(z1)
 
-    z2 = np.polyfit(logRW, abund, 1)
+    z2 = sm.wls('abund ~ logRW', data=data, weights=w).fit().params
+    z2 = [z2[1], z2[0]]
     p2 = np.poly1d(z2)
 
     plt.figure(figsize=(8, 9))
@@ -103,11 +111,10 @@ def plot_data(data, outlier=False, version=2014):
     plt.xlabel(r'Reduced EW: $\log RW$')
     plt.ylabel('Abundance')
     if outlier:
-        indc = abs(data[:, 6+idx]) > s  # deviation larger than 3 sigma
+        indc = abs(data['sig']) > s  # deviation larger than 3 sigma
         if True in indc:
-            for i, w in enumerate(data[indc, 0]):
-                ai = abund[indc][i]
-                std = abs((ai-m)/s)
+            for ai, w in zip(data['abund'][indc], data['wave'][indc]):
+                std = 3*abs((ai-m)/s)
                 print('Line at: %.3f is %.2f sigma away' % (w, std))
     return z1[0], z2[0]
 
@@ -135,8 +142,9 @@ if __name__ == '__main__':
 
     # Prepare the data
     m = Readmoog(fname='summary.out', version=int(args.version))
-    _, _, _, _, _, _, data, _ = m.fe_statistics()
-    c1, c2 = plot_data(data, args.outlier, int(args.version))
+    _, _, _, _, _, _, fe1, fe2 = m.fe_statistics()
+    c1, c2 = plot_data(fe1, args.outlier, int(args.version))
+    c1, c2 = plot_data(fe2, args.outlier, int(args.version))
     if args.plot:
         plt.tight_layout()
         plt.show()
