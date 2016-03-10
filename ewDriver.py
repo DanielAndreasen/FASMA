@@ -301,17 +301,17 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 else:
                     print('\nSorry, you did not win. However, your final parameters are:')
                 try:
-                    print(u' Teff:    %i\u00B1%i\n logg:    %.2f\u00B1%.2f\n [Fe/H]: %.2f\u00B1%.2f\n vt:      %.2f\u00B1%.2f\n' %
+                    print(u' Teff:    %i\u00B1%i\n logg:    %.2f\u00B1%.2f\n [Fe/H]: %.2f\u00B1%.2f\n vt:      %.2f\u00B1%.2f\n\n\n\n' %
                         (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
                 except UnicodeEncodeError:
-                    print('Teff:      %i(%i)\nlogg:    %.2f(%.2f)\n[Fe/H]:  %.2f(%.2f)\nvt:        %.2f(%.2f)\n' %
+                    print('Teff:      %i(%i)\nlogg:    %.2f(%.2f)\n[Fe/H]:  %.2f(%.2f)\nvt:        %.2f(%.2f)\n\n\n\n' %
                          (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
             elif __name__ == 'ewDriver':
                 if converged:
                     print('\nCongratulation, you have won! Your final parameters are:')
                 else:
                     print('\nSorry, you did not win. However, your final parameters are:')
-                print('Teff:      %i+/-%i\nlogg:    %.2f+/-%.2f\n[Fe/H]:  %.2f+/-%.2f\nvt:        %.2f+/-%.2f\n' %
+                print('Teff:      %i+/-%i\nlogg:    %.2f+/-%.2f\n[Fe/H]:  %.2f+/-%.2f\nvt:        %.2f+/-%.2f\n\n\n\n' %
                      (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
     return parameters
 
