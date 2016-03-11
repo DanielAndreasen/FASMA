@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 # My imports
-from __future__ import division, print_function
+from __future__ import division
 import logging
 import os
 import numpy as np
@@ -10,25 +10,77 @@ from utils import _get_model, _update_par
 from interpolation import interpolator
 from interpolation import save_model
 from utils import _run_moog, Readmoog
+import pandas as pd
 
 
-def save(dic):
+def save(dic, overwrite):
     """Write results"""
-    linelists = dic.pop('linelist')
+    linelist = dic.pop('linelist')
     teff = dic.pop('Temperature')
     logg = dic.pop('Gravity')
     feh = dic.pop('[Fe/H]')
     vt = dic.pop('microturbulence')
     elements = dic.keys()
-    header = 'linelist,temperature,logg,[Fe/H],vt,' + ','.join(elements)
 
-    with open('abundances.csv', 'w') as fout:
-        fout.writelines(header + '\n')
-        for i, linelist in enumerate(linelists):
-            line = '%s,%i,%.2f,%.2f,%.2f' % (linelist, teff[i], logg[i], feh[i], vt[i])
+
+    def _get_header(elements):
+        """Get the header and append new elements to it"""
+        with open('abundances.csv', 'r') as f:
+            header = f.readline()
+        header = header.strip('\n').split(',')
+        for element in elements:
+            if element not in header:
+                header.append(element)
+        return ','.join(header)
+
+
+    if not os.path.isfile('abundances.csv'):
+        # The file does not exists, so create it and return from here
+        header = 'linelist,temperature,logg,[Fe/H],vt,' + ','.join(elements)
+        with open('abundances.csv', 'w') as fout:
+            fout.writelines(header + '\n')
+            line = '%s,%i,%.2f,%.2f,%.2f' % (linelist, teff, logg, feh, vt)
             for element in elements:
-                line += ',%s' % dic[element][i]
+                line += ',%s' % dic[element]
             fout.writelines(line + '\n')
+        return
+    else:
+        header = _get_header(elements)
+
+    if overwrite:
+        with open('abundances.csv', 'w') as fout:
+            fout.writelines(header + '\n')
+    else:
+        try:
+            df = pd.read_csv('abundances.csv', na_values='...')
+            header = header.split(',')
+            for key in header:
+                if key not in df.columns:
+                    df[key] = np.nan
+            df.to_csv(path_or_buf='abundances.csv', header=header, index=False, na_rep='...')
+        except IOError:
+            # It does not exists yet, so create the file from scratch
+            with open('abundances.csv', 'w') as fout:
+                fout.writelines(header + '\n')
+
+
+    df = pd.read_csv('abundances.csv', na_values='...')
+    rows = df.shape[0]
+    for element in header[5:]:
+        if element in elements:
+            df[element] = dic[element]
+        else:
+            df[element] = np.nan
+    df['linelist'] = linelist
+    df['temperature'] = teff
+    df['logg'] = logg
+    df['[Fe/H]'] = feh
+    df['vt'] = vt
+
+    if rows:
+        df.drop(df.index[range(rows-1)], inplace=True)
+
+    df.to_csv(path_or_buf='abundances.csv', header=False, index=False, mode='a', na_rep='...')
 
 
 def _options(options=False):
@@ -50,7 +102,7 @@ def _options(options=False):
         return defaults
 
 
-def abundancedriver(starLines='StarMe.cfg'):
+def abundancedriver(starLines='StarMe.cfg', overwrite=False):
     """The function that glues everything together
 
     Input:
@@ -85,12 +137,8 @@ def abundancedriver(starLines='StarMe.cfg'):
         logger.info('results directory was created')
 
     with open(starLines, 'r') as lines:
-        # TODO: We should not remove this file from previous runs. New standard is to append.
-        if os.path.isfile('results.csv'):
-            os.remove('results.csv')
-        counter = 0
-        abundance_dict = {}
         for line in lines:
+            abundance_dict = {}
             if not line[0].isalpha():
                 logger.debug('Skipping header: %s' % line.strip())
                 continue
@@ -138,44 +186,33 @@ def abundancedriver(starLines='StarMe.cfg'):
                 initial[1] = 4.99
             models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
             logger.info('Initial interpolation of model...')
-            inter_model = interpolator(models,
-                                       teff=(initial[0], nt),
-                                       logg=(initial[1], nl),
-                                       feh=(initial[2], nf))
+            inter_model = interpolator(models, teff=(initial[0], nt), logg=(initial[1], nl), feh=(initial[2], nf))
             save_model(inter_model, params=initial)
             logger.info('Interpolation successful.')
             _run_moog()
 
             m = Readmoog()
             elements, abundances = m.elements()
-            if not counter:
-                abundance_dict={'linelist':[line[0]],
-                                'Temperature':[initial[0]],
-                                'Gravity': [initial[1]],
-                                '[Fe/H]':[initial[2]],
-                                'microturbulence':[initial[3]]}
-            else:
-                abundance_dict['linelist'].append(line[0])
-                abundance_dict['Temperature'].append(initial[0])
-                abundance_dict['Gravity'].append(initial[1])
-                abundance_dict['[Fe/H]'].append(initial[2])
-                abundance_dict['microturbulence'].append(initial[3])
+            abundance_dict={'linelist': line[0],
+                            'Temperature': initial[0],
+                            'Gravity': initial[1],
+                            '[Fe/H]': initial[2],
+                            'microturbulence': initial[3]}
 
-            N = len(abundance_dict['linelist'])
             for element, abundance in zip(elements, abundances):
-                print('Element: ', element, 'Abundance:', abundance)
-                if element in abundance_dict.keys():
-                    abundance_dict[element].append(abundance)
-                else:
-                    abundance_dict[element]=[np.nan]*counter+[abundance]
+                abundance_dict[element] = abundance
 
-            for key in abundance_dict.keys():
-                if len(abundance_dict[key]) < N:
-                    abundance_dict[key].append(np.nan)
-            counter += 1
-
-    save(abundance_dict)
+            save(abundance_dict, overwrite=overwrite)
 
 
 if __name__ == '__main__':
     abundancedriver()
+    pd.set_option('display.max_rows', 500)
+    pd.set_option('display.max_columns', 500)
+    pd.set_option('display.width', 1000)
+    df = pd.read_csv('abundances.csv')
+    print df.to_string(index=False, justify='right')
+    # print '\n\n ---------------'
+    # print '|Some statistics|'
+    # print ' ---------------\n'
+    # print df.describe()
