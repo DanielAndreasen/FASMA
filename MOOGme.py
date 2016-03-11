@@ -81,7 +81,7 @@ def abund(args):
     with open('StarMe.cfg', 'w') as f:
         f.writelines(fout)
 
-    abundancedriver()
+    abundancedriver(overwrite=args.overwrite)
 
 
 def ares(args):
@@ -170,7 +170,8 @@ def main():
 
     # For calculating the abundances
     abund_parser = subparsers.add_parser('abund', parents=[parent_parser], help='Abundances')
-    abund_parser.add_argument('linelist', help='Input linelist file', widget='FileChooser')
+    abund_parser.add_argument('linelist',    help='Input linelist file', widget='FileChooser')
+    abund_parser.add_argument('--overwrite', help='Overwrite results.csv', action='store_true', default=False)
     abund_parser.set_defaults(driver=abund)
 
     # Driver for ARES
