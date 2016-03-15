@@ -115,6 +115,8 @@ def ares(args):
         fout += ',output:%s' % args.output
     if rvmask:
         fout += ',rvmask:%s' % rvmask
+    if args.force:
+        fout += ',force'
 
     with open('StarMe_ares.cfg', 'w') as f:
         f.writelines(fout)
@@ -190,6 +192,7 @@ def main():
     ares_parser.add_argument('--SNR',       help='If specified, the rejt is calculated', type=float)
     ares_parser.add_argument('--EWcut',     help='Cut for the maximum EW value',      default=200.0, type=float)
     ares_parser.add_argument('--RVmask',    help='RV of spectrum (km/s)',             default='0.0', type=float)
+    ares_parser.add_argument('--force',     help='Remove troublesome lines automatically', default=False, action='store_true', metavar='Force finish')
     ares_parser.set_defaults(driver=ares)
 
     args = parser.parse_args()

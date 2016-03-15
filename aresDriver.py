@@ -5,6 +5,8 @@
 from __future__ import division, print_function
 import logging
 import os
+from shutil import copyfile
+from glob import glob
 import numpy as np
 
 
@@ -79,12 +81,13 @@ def _options(options=False):
                 'smoothder': '4',
                 'space': '2.0',
                 'rejt': '0.995',
-                'lineresol' : '0.07',
-                'miniline' : '2.0',
+                'lineresol': '0.07',
+                'miniline': '2.0',
                 'plots_flag': False,
                 'EWcut': '200.0',
                 'snr': False,
-                'rvmask' : '"0,0"'
+                'rvmask': '"0,0"',
+                'force': False
                 }
     if not options:
         return defaults
@@ -146,6 +149,31 @@ def update_ares(line_list, spectrum, out, options):
         f.writelines(fout)
 
 
+def findBadLine():
+    """Read logARES.txt and return the last measured line (the bad one)"""
+    with open('logARES.txt', 'r') as lines:
+        for line in lines:
+            if line.startswith('line result'):
+                line = line.split(':')
+                badLine = float(line[-1])
+    return badLine
+
+
+def cleanLineList(linelist, badline):
+    badline = str(round(badline, 2))
+    with open(linelist, 'r') as lines:
+        fout = ''
+        for line in lines:
+            if line.startswith(badline):
+                continue
+            fout += line
+    with open(linelist, 'w') as f:
+        f.writelines(fout)
+
+
+
+
+
 def aresdriver(starLines='StarMe_ares.cfg'):
     """The function that glues everything together
 
@@ -167,7 +195,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    #Check if there is a directory called linelist, if not create it and ask the user to put files there
+    # Check if there is a directory called linelist, if not create it and ask the user to put files there
     if not os.path.isdir('linelist'):
         os.mkdir('linelist')
         logger.info('linelist directory was created')
@@ -195,7 +223,24 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             else:
                 logger.error('Could not process information for this line: %s' % line)
                 continue
-            _run_ares()
+            if options['force']:
+                index = 1
+                while True:
+                    _run_ares()
+                    if os.path.isfile('linelist/'+out):
+                        break
+                    else:
+                        atomicLine = findBadLine()
+                        print('Removing line: %.2f' % atomicLine)
+                        copyfile('rawLinelist/'+line_list, 'rawLinelist/tmp%i' % index)
+                        line_list = 'tmp%i' % index
+                        cleanLineList('rawLinelist/'+line_list, atomicLine)
+                        update_ares(line_list, spectrum, out, options)
+                        index += 1
+                for tmp in glob('rawLinelist/tmp*'):
+                    os.remove(tmp)
+            else:
+                _run_ares()
             line_list = line[0]
             try:
                 make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
