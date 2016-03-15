@@ -137,7 +137,7 @@ class Minimize:
                 step_i = s * step[1]/abs(np.log(abs(self.Abdiff)+0.0005))**3
                 step_i = s*0.01 if abs(step_i) < 0.01 else step_i
                 self.x0[1] += step_i
-                self.check_bounds( 3)
+                self.check_bounds(3)
 
             # Step for [Fe/H]
             if not self.fix_feh:

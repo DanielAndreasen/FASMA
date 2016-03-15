@@ -14,7 +14,7 @@ except ImportError:
     print('install seaborn for nice plots (pip install seaborn)')
 import yaml
 
-from utils import _get_model, _update_par
+from utils import GetModels, _update_par
 from interpolation import interpolator
 from interpolation import save_model
 from utils import fun_moog
@@ -238,7 +238,8 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             # TODO: Fix the interpolation please!
             if initial[1] > 4.99:  # quick fix
                 initial[1] = 4.99
-            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
+            grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
+            models, nt, nl, nf = grid.getmodels()
             logger.info('Initial interpolation of model...')
             inter_model = interpolator(models,
                                        teff=(initial[0], nt),

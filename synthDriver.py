@@ -6,7 +6,7 @@ from __future__ import division, print_function
 import logging
 import os
 
-from utils import _get_model, _update_par_synth
+from utils import GetModels, _update_par_synth
 from interpolation import interpolator
 from interpolation import save_model
 from utils import read_observations, _run_moog, plot_synthetic

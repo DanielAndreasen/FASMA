@@ -30,7 +30,7 @@ kurucz08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 
-def _get_model(teff, logg, feh, atmtype='kurucz95'):
+class GetModels:
     """
     Find the names of the closest grid points for a given effective
     temperature, surface gravity, and iron abundance (proxy for metallicity).
@@ -58,97 +58,130 @@ def _get_model(teff, logg, feh, atmtype='kurucz95'):
 
     """
 
-    def _model_path(atmpath, feh, teff, logg):
-        name = 'models/%s/' % atmpath
-        if feh < 0:
-            name += 'm%s/' % str(abs(feh)).replace('.', '')
+
+    def __init__(self, teff, logg, feh, atmtype='kurucz95'):
+        self.teff = teff
+        self.logg = logg
+        self.feh = feh
+        self.atmtype = atmtype
+
+        atmmodels = {'kurucz95': [kurucz95, 'kurucz95'], 'kurucz08': [kurucz08, 'kurucz08']}
+        if atmtype in atmmodels.keys():
+            self.grid = atmmodels[atmtype][0]
         else:
-            name += 'p%s/' % str(abs(feh)).replace('.', '')
-        name += '%ig%s.' % (teff, str(logg).replace('.', ''))
-        if feh < 0:
-            name += 'm%s.gz' % str(abs(feh)).replace('.', '')
+            raise NotImplementedError('You request for atmospheric models: %s is not available' % atmtype)
+        self.grid['teff'] = np.asarray(self.grid['teff'])
+        self.grid['logg'] = np.asarray(self.grid['logg'])
+        self.grid['feh'] = np.asarray(self.grid['feh'])
+
+        # Checking for bounds in Teff, logg, and [Fe/H]
+        if (self.teff < self.grid['teff'][0]) or (self.teff > self.grid['teff'][-1]):
+            raise ValueError('Teff out of bounds: %s' % self.teff)
+        if (self.logg < self.grid['logg'][0]) or (self.logg > self.grid['logg'][-1]):
+            raise ValueError('logg out of bounds: %s' % self.logg)
+        if (self.feh < self.grid['feh'][0]) or (self.feh > self.grid['feh'][-1]):
+            raise ValueError('[Fe/H] out of bounds: %s' % self.feh)
+
+
+    def _model_path(self, teff_model, logg_model, feh_model):
+        """Create the path given Teff, logg, and [Fe/H]"""
+        name = 'models/%s/' % self.atmtype
+        if feh_model < 0:
+            name += 'm%s/' % str(abs(feh_model)).replace('.', '')
         else:
-            name += 'p%s.gz' % str(abs(feh)).replace('.', '')
+            name += 'p%s/' % str(abs(feh_model)).replace('.', '')
+        name += '%ig%s.' % (teff_model, str(logg_model).replace('.', ''))
+        if feh_model < 0:
+            name += 'm%s.gz' % str(abs(feh_model)).replace('.', '')
+        else:
+            name += 'p%s.gz' % str(abs(feh_model)).replace('.', '')
         return name
 
-    # Using the correct model atmosphere
-    atmmodels = {'kurucz95': [kurucz95, 'kurucz95'], 'kurucz08': [kurucz08, 'kurucz08']}
-    if atmtype in atmmodels.keys():
-        grid = atmmodels[atmtype][0]
-    else:
-        raise NotImplementedError('You request for atmospheric models: %s is not available' % atmtype)
 
-    # Checking for bounds in Teff, logg, and [Fe/H]
-    if (teff < grid['teff'][0]) or (teff > grid['teff'][-1]):
-        raise ValueError('Teff out of bounds: %s' % teff)
-    if (logg < grid['logg'][0]) or (logg > grid['logg'][-1]):
-        raise ValueError('logg out of bounds: %s' % logg)
-    if (feh < grid['feh'][0]) or (feh > grid['feh'][-1]):
-        raise ValueError('[Fe/H] out of bounds: %s' % feh)
+    def _model_exists(self, teff_model, logg_model, feh_model, upper=True):
+        """Check if a model exists. If not lower/raise Teff
 
-    if teff in grid['teff']:
-        for i, Ti in enumerate(grid['teff']):
-            if Ti - teff == 0:
-                break
-        try:
-            # teff_model = [grid['teff'][i], grid['teff'][i+1]]
-            teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
-        except IndexError:
-            teff_model = [grid['teff'][i-1], grid['teff'][i]]
-    else:
-        for i, Ti in enumerate(grid['teff']):
-            if Ti - teff > 0:
-                break
-        try:
-            # teff_model = [grid['teff'][i-1], grid['teff'][i]]
-            teff_model = [grid['teff'][i-1], grid['teff'][i], grid['teff'][i+1], grid['teff'][i+2]]
-        except IndexError:
-            teff_model = [grid['teff'][i], grid['teff'][i+1]]
+        Inputs
+        ------
+            upper : If True, then search for Teff higher than previous.
+                    Lower if False
+        Outputs
+        -------
+            fname      : Path for the model
+            teff_model : The new effective temperature
+        """
 
-    if logg in grid['logg']:
-        for i, li in enumerate(grid['logg']):
-            if li - logg == 0:
-                break
-        try:
-            logg_model = [grid['logg'][i], grid['logg'][i+1]]
-        except IndexError:
-            logg_model = [grid['logg'][i-1], grid['logg'][i]]
-    else:
-        for i, li in enumerate(grid['logg']):
-            if li - logg > 0:
-                break
-        try:
-            logg_model = [grid['logg'][i-1], grid['logg'][i]]
-        except IndexError:
-            logg_model = [grid['logg'][i], grid['logg'][i+1]]
+        fname = self._model_path(teff_model, logg_model, feh_model)
+        if os.path.isfile(fname):
+            return fname, teff_model
 
-    if feh in grid['feh']:
-        for i, fi in enumerate(grid['feh']):
-            if fi - feh == 0:
-                break
-        try:
-            feh_model = [grid['feh'][i], grid['feh'][i+1]]
-        except IndexError:
-            feh_model = [grid['feh'][i-1], grid['feh'][i]]
-    else:
-        for i, fi in enumerate(grid['feh']):
-            if fi - feh > 0:
-                break
-        try:
-            feh_model = [grid['feh'][i-1], grid['feh'][i]]
-        except IndexError:
-            feh_model = [grid['feh'][i], grid['feh'][i+1]]
+        while True:
+            idx = np.where(teff_model == self.grid['teff'])[0][0]
+            idx = idx+1 if upper else idx-1
+            teff_model = self.grid['teff'][idx]
+            fname = self._model_path(teff_model, logg_model, feh_model)
+            if os.path.isfile(fname):
+                return fname, teff_model
 
-    if not os.path.isdir('models'):
-        raise IOError('The models have to be inside a folder called models.')
 
-    models = []
-    for teff_m in teff_model:
-        for logg_m in logg_model:
-            for feh_m in feh_model:
-                models.append(_model_path(atmmodels[atmtype][1], feh_m, teff_m, logg_m))
+    def getmodels(self):
 
-    return models, teff_model, logg_model, feh_model
+        def _create_grid(type):
+            """Some text about type (teff, logg, feh)"""
+            if type == 'teff':
+                value = self.teff
+            elif type == 'logg':
+                value = self.logg
+            else:
+                value = self.feh
+
+            if type == 'teff':
+                if value in self.grid[type]:
+                    i = np.where(value == self.grid[type])[0][0]
+                    try:
+                        return [self.grid[type][i-1], self.grid[type][i], self.grid[type][i+1], self.grid[type][i+2]]
+                    except IndexError:
+                        return [self.grid[type][i-1], self.grid[type][i]]
+                else:
+                    i = np.argmin(abs(self.grid[type]-value))
+                    try:
+                        return [self.grid[type][i-1], self.grid[type][i], self.grid[type][i+1], self.grid[type][i+2]]
+                    except IndexError:
+                        return [self.grid[type][i], self.grid[type][i+1]]
+
+            else:
+                if value in self.grid[type]:
+                    for i, li in enumerate(self.grid[type]):
+                        if li - value == 0:
+                            break
+                    try:
+                        return [self.grid[type][i], self.grid[type][i+1]]
+                    except IndexError:
+                        return [self.grid[type][i-1], self.grid[type][i]]
+                else:
+                    for i, li in enumerate(self.grid[type]):
+                        if li - value > 0:
+                            break
+                    try:
+                        return [self.grid[type][i-1], self.grid[type][i]]
+                    except IndexError:
+                        return [self.grid[type][i], self.grid[type][i+1]]
+
+        # Get list of parameter values
+        teff_model = _create_grid('teff')
+        logg_model = _create_grid('logg')
+        feh_model = _create_grid('feh')
+
+        models = []
+        for i, teff_m in enumerate(teff_model):
+            for logg_m in logg_model:
+                for feh_m in feh_model:
+                    upper = True if self.teff > teff_m else False
+                    fname, Te = self._model_exists(teff_m, logg_m, feh_m, upper)
+                    teff_model[i] = Te
+                    models.append(fname)
+
+        return models, teff_model, logg_model, feh_model
 
 
 def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
@@ -340,7 +373,6 @@ def _run_moog(par='batch.par', driver='abfind'):
     """Run MOOGSILENT with the given parameter file"""
     if driver == 'abfind':
         os.system('MOOGSILENT > /dev/null')
-        # os.system('/home/daniel/Software/moogjul2014/MOOGSILENT > /dev/null')
     elif driver == 'synth':
         with open('stupid.tmp', 'w') as f:
             f.writelines('batch.par\nq')
@@ -372,7 +404,8 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null',
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
-    models, nt, nl, nf = _get_model(teff=teff, logg=logg, feh=feh)
+    grid = GetModels(teff, logg, feh)
+    models, nt, nl, nf = grid.getmodels()
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
     save_model(model, x)
 
@@ -421,6 +454,8 @@ class Readmoog:
     def fe_statistics(self):
         """Get statistics on Fe lines"""
         self.readdata = False
+        self.slopeEP = False
+        self.slopeRW = False
         self.Fe1Lines = []
         self.Fe2Lines = []
         for line in self.lines:

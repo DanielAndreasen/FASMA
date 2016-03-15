@@ -36,7 +36,7 @@ def interpolator(mnames, teff, logg, feh):
     """This is a new approach based on a scipy interpolator.
     Resembles the original interpolator we used but with a change
 
-    :mnames: As generated from _get_models
+    :mnames: As generated from GetModels
     :teff: Requested Effective Temperature and the two closest models in
            the gridpoints
     :logg: Requested Surface gravity and the two closest models

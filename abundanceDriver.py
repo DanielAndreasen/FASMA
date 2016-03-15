@@ -6,7 +6,7 @@ from __future__ import division
 import logging
 import os
 import numpy as np
-from utils import _get_model, _update_par
+from utils import GetModels, _update_par
 from interpolation import interpolator
 from interpolation import save_model
 from utils import _run_moog, Readmoog
@@ -184,7 +184,8 @@ def abundancedriver(starLines='StarMe.cfg', overwrite=False):
             # TODO: Fix the interpolation please!
             if initial[1] > 4.99:  # quick fix
                 initial[1] = 4.99
-            models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
+            grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
+            models, nt, nl, nf = grid.getmodels()
             logger.info('Initial interpolation of model...')
             inter_model = interpolator(models, teff=(initial[0], nt), logg=(initial[1], nl), feh=(initial[2], nf))
             save_model(inter_model, params=initial)
