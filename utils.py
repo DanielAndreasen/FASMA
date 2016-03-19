@@ -3,6 +3,7 @@
 
 from __future__ import division
 import os
+from itertools import islice
 from interpolation import save_model, interpolator
 import numpy as np
 from glob import glob
@@ -47,7 +48,7 @@ class GetModels:
     output
     ------
     models      : List with path to 8 models the two closest in each parameter
-                  space (2x2x2)
+                  space (4x2x2)
     teff_model  : The two closest effective temperatures in the grid
     logg_model  : The two closest surface gravities in the grid
     feh_model   : The two closest metallicities in the grid
@@ -55,7 +56,6 @@ class GetModels:
     The last three return values are used for the interpolation to do some
     mapping. If only the paths to the models are needed, do not pay attention
     to them.
-
     """
 
 
@@ -124,53 +124,22 @@ class GetModels:
                 return fname, teff_model
 
 
+    def kneigbour(self, arr, val, k=2):
+        """Return the K surrounding neigbours of an array, given a certain value."""
+        for idx, (l1, l2) in enumerate(zip(arr, islice(arr, 1, None))):
+            if l1 <= val <= l2:
+                break
+        if k == 2:
+            return arr[idx:idx+2]
+        elif k == 4:
+            return arr[idx-1:idx+3]
+
+
     def getmodels(self):
-
-        def _create_grid(type):
-            """Some text about type (teff, logg, feh)"""
-            if type == 'teff':
-                value = self.teff
-            elif type == 'logg':
-                value = self.logg
-            else:
-                value = self.feh
-
-            if type == 'teff':
-                if value in self.grid[type]:
-                    i = np.where(value == self.grid[type])[0][0]
-                    try:
-                        return [self.grid[type][i-1], self.grid[type][i], self.grid[type][i+1], self.grid[type][i+2]]
-                    except IndexError:
-                        return [self.grid[type][i-1], self.grid[type][i]]
-                else:
-                    i = np.argmin(abs(self.grid[type]-value))
-                    try:
-                        return [self.grid[type][i-1], self.grid[type][i], self.grid[type][i+1], self.grid[type][i+2]]
-                    except IndexError:
-                        return [self.grid[type][i], self.grid[type][i+1]]
-
-            else:
-                if value in self.grid[type]:
-                    for i, li in enumerate(self.grid[type]):
-                        if li - value == 0:
-                            break
-                    try:
-                        return [self.grid[type][i], self.grid[type][i+1]]
-                    except IndexError:
-                        return [self.grid[type][i-1], self.grid[type][i]]
-                else:
-                    for i, li in enumerate(self.grid[type]):
-                        if li - value > 0:
-                            break
-                    try:
-                        return [self.grid[type][i-1], self.grid[type][i]]
-                    except IndexError:
-                        return [self.grid[type][i], self.grid[type][i+1]]
-
         # Get list of parameter values
-        teff_model = _create_grid('teff')
-        logg_model = _create_grid('logg')
-        feh_model = _create_grid('feh')
+        teff_model = self.kneigbour(self.grid['teff'], self.teff, k=4)
+        logg_model = self.kneigbour(self.grid['logg'], self.logg, k=2)
+        feh_model = self.kneigbour(self.grid['feh'], self.feh, k=2)
 
         models = []
         for i, teff_m in enumerate(teff_model):
