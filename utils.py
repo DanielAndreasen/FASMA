@@ -138,6 +138,8 @@ class GetModels:
     def getmodels(self):
         # Get list of parameter values
         teff_model = self.kneigbour(self.grid['teff'], self.teff, k=4)
+        if len(teff_model) < 2:  # Means we are close to an edge
+            teff_model = self.kneigbour(self.grid['teff'], self.teff, k=2)
         logg_model = self.kneigbour(self.grid['logg'], self.logg, k=2)
         feh_model = self.kneigbour(self.grid['feh'], self.feh, k=2)
 
