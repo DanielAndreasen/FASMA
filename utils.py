@@ -7,6 +7,7 @@ from itertools import islice
 from interpolation import save_model, interpolator
 import numpy as np
 from glob import glob
+from copy import copy
 
 kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
@@ -115,8 +116,8 @@ class GetModels:
         if os.path.isfile(fname):
             return fname, teff_model
 
+        idx = np.where(teff_model == self.grid['teff'])[0][0]
         while True:
-            idx = np.where(teff_model == self.grid['teff'])[0][0]
             idx = idx+1 if upper else idx-1
             teff_model = self.grid['teff'][idx]
             fname = self._model_path(teff_model, logg_model, feh_model)
@@ -130,15 +131,15 @@ class GetModels:
             if l1 <= val <= l2:
                 break
         if k == 2:
-            return arr[idx:idx+2]
+            return [ai for ai in arr[idx:idx+2]]
         elif k == 4:
-            return arr[idx-1:idx+3]
+            return [ai for ai in arr[idx-1:idx+3]]
 
 
     def getmodels(self):
         # Get list of parameter values
         teff_model = self.kneigbour(self.grid['teff'], self.teff, k=4)
-        if len(teff_model) < 2:  # Means we are close to an edge
+        if len(teff_model) < 4:  # Means we are close to an edge
             teff_model = self.kneigbour(self.grid['teff'], self.teff, k=2)
         logg_model = self.kneigbour(self.grid['logg'], self.logg, k=2)
         feh_model = self.kneigbour(self.grid['feh'], self.feh, k=2)
