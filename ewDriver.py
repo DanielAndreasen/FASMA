@@ -171,7 +171,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 _update_par(line_list='linelist/%s' % line[0])
 
             if len(line) == 1:
-                initial = (5777, 4.44, 0.00, 1.00)
+                initial = [5777, 4.44, 0.00, 1.00]
                 options = _options()
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
 
@@ -190,7 +190,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                     mic = _getMic(Teff, logg)
                     initial = (Teff, logg, 0.00, mic)
                 else:
-                    initial = (5777, 4.44, 0.00, 1.00)
+                    initial = [5777, 4.44, 0.00, 1.00]
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 fix_teff = options['teff']
                 fix_logg = options['logg']
