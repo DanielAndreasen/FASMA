@@ -86,7 +86,7 @@ def save(dic, overwrite):
 def _options(options=False):
     '''Reads the options inside the config file'''
     defaults = {'model':'kurucz95',
-                'MOOGv': 2013
+                'MOOGv': 2014
                 }
     if not options:
         return defaults

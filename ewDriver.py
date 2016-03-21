@@ -81,7 +81,7 @@ def _options(options=False):
                 'EPcrit': 0.001,
                 'RWcrit': 0.001,
                 'ABdiffcrit': 0.01,
-                'MOOGv': 2013,
+                'MOOGv': 2014,
                 'loggLC': False
                 }
     if not options:

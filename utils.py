@@ -361,7 +361,7 @@ def _read_smooth(fname='smooth.out'):
 
 
 def fun_moog(x, par='batch.par', results='summary.out', weights='null',
-             driver='abfind', version=2013):
+             driver='abfind', version=2014):
     """Run MOOG and return slopes for abfind mode.
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt)
@@ -400,7 +400,7 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null',
 
 class Readmoog:
 
-    def __init__(self, fname='summary.out', version=2013):
+    def __init__(self, fname='summary.out', version=2014):
         self.fname = fname
         self.nelements = 1
         self.idx = 1 if version > 2013 else 0
@@ -525,7 +525,7 @@ def _slopeSigma(x, y, weights):
     return np.sqrt(chi2/((N-2)*sxx))
 
 
-def error(linelist, converged, version=2013, weights='null'):
+def error(linelist, converged, version=2014, weights='null'):
     """linelist to give error estimation on"""
     # Find the output file and read the current state of it
     idx = 1 if version > 2013 else 0
