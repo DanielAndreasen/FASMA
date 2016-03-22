@@ -87,6 +87,16 @@ if __name__ == '__main__':
     args = _parser()
 
     df = pd.read_csv(args.input, delimiter=r'\s+')
+    df = df[(df.convergence == True) | (df.convergence == False)]  # Remove blank lines and comments
+    df.teff = pd.to_numeric(df.teff, errors='coarse')
+    df.tefferr = pd.to_numeric(df.tefferr, errors='coarse')
+    df.logg = pd.to_numeric(df.logg, errors='coarse')
+    df.loggerr = pd.to_numeric(df.loggerr, errors='coarse')
+    df.feh = pd.to_numeric(df.feh, errors='coarse')
+    df.feherr = pd.to_numeric(df.feherr, errors='coarse')
+    df.vt = pd.to_numeric(df.vt, errors='coarse')
+    df.vterr = pd.to_numeric(df.vterr, errors='coarse')
+
     m_ = ['mass', 'masserr', 'lum']
     if (args.x in m_) or (args.y in m_) or (args.z in m_):
         params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
@@ -102,8 +112,8 @@ if __name__ == '__main__':
         df['radius'] = pd.Series(np.asarray(r)[:, 0])
         df['radiuserr'] = pd.Series(np.asarray(r)[:, 1])
 
-    df1 = df[df.convergence]
-    df2 = df[~df.convergence]
+    df1 = df[df.convergence == True]
+    df2 = df[df.convergence == False]
 
     # Plot the results
     plt.figure()
