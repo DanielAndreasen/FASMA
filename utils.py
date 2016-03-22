@@ -7,7 +7,6 @@ from itertools import islice
 from interpolation import save_model, interpolator
 import numpy as np
 from glob import glob
-from copy import copy
 
 kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
