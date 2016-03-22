@@ -5,6 +5,7 @@ install:
 	@echo "Downloading the model atmosphere..."
 	@mkdir -p models
 	@mkdir -p linelist
+	@mkdir -p spectra
 	@wget www.astro.up.pt/~dandreasen/kurucz95.tar.gz
 	@tar zxf kurucz95.tar.gz
 	@rm -rf models/kurucz95*
