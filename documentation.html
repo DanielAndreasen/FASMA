@@ -33,6 +33,25 @@
     Here is presented how to install this software, run it, and other various topics.
 </p>
 
+
+<h3><a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h3>
+<p>
+    Simply download the repository (see link above) or make a clone (<code>git clone https://github.com/DanielAndreasen/MOOGme</code>).
+    Currently we do not have any other way to install it.
+</p>
+<p>
+
+    To prepare a run, simply run the <code>makefile</code> file with <code>make install</code>.
+</p>
+<p>    
+    This will install the required dependencies and create the necessary directories for models and linelist. 
+    At the moment we use <a href="http://kurucz.harvard.edu/">Kurucz model atmospheres</a>. <a href="http://www.as.utexas.edu/~chris/moog.html/">MOOG</a> 
+    has to be installed independently from the user. If the user wants to measure the Equivalent Widths (EW) of spectral lines, 
+    he/she has to download independently an extra software for this analysis, <a href="http://www.astro.up.pt/~sousasag/ares/">ARES</a>. 
+    MOOGme uses this code for the automatic EW measurement.
+</p>
+<p>
+
 <h3><a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h3>
 <p>
     Here we list the python packages needed to run this software. We highly recommend
@@ -56,25 +75,6 @@
     If for some reason it does not work for you, please check you have all
     the above packages installed, and report the version number as well.
 </p>
-
-
-<h3><a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h3>
-<p>
-    Simply download the repository (see link above) or make a clone (<code>git clone https://github.com/DanielAndreasen/MOOGme</code>).
-    Currently we do not have any other way to install it.
-</p>
-<p>
-
-    To prepare a run, simply run the <code>makefile</code> file with <code>make install</code>.
-</p>
-<p>    
-    This will install the required dependencies and create the necessary directories for models and linelist. 
-    At the moment we use <a href="http://kurucz.harvard.edu/">Kurucz model atmospheres</a>. <a href="http://www.as.utexas.edu/~chris/moog.html/">MOOG</a> 
-    has to be installed independently from the user. If the user wants to measure the Equivalent Widths (EW) of spectral lines, 
-    he/she has to download independently an extra software for this analysis, <a href="http://www.astro.up.pt/~sousasag/ares/">ARES</a>. 
-    MOOGme uses this code for the automatic EW measurement.
-</p>
-<p>
 
 <h3><a id="example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h3>
 <p>
