@@ -65,20 +65,20 @@
 </p>
 <p>
     To prepare a run, simply run the <code>makefile</code> file with <code>make install</code>.
-    This will install the required dependencies and create the necessary directories: models, linelist and results. 
+    This will install the required dependencies and create the necessary directories for models and linelist. 
     At the moment we use <a href="http://kurucz.harvard.edu/">Kurucz model atmospheres</a>. <a href="http://www.as.utexas.edu/~chris/moog.html/">MOOG</a> 
-    has to be installed independently from the user. 
+    has to be installed independently from the user. If the user wants to measure the Equivalent Widths (EW) of spectral lines, 
+    he/she has to download independently an extra software for this analysis, <a href="http://www.astro.up.pt/~sousasag/ares/">ARES</a>. 
+    MOOGme uses this code for the automatic EW measurement.
 </p>
 <p>
-
 
 <h3><a id="example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h3>
 <p>
 <h5>Example for the EW Driver</h5>
 </p>
 <p>
-    MOOGme supports a batch mode that performs various tasks (drivers). The main tasks are: 1) measure the Equivalent Widths (EW) 
-    of a spectrum using the ARES software, 2) derive stellar parameters from a given line list using the EWs of the given stars, 
+    MOOGme supports a batch mode that performs various tasks (drivers). The main tasks are: 1) measure the EWs of a spectrum using the ARES software, 2) derive stellar parameters from a given line list using the EWs of the given stars, 
     3) derive chemical abundances from a given line list using the EWs of a list of stars, and 4) derive stellar parameters 
     using the spectral synthesis technique (this is still under development). 
 </p>
