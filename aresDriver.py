@@ -61,10 +61,9 @@ def make_linelist(line_file, ares, cut=200):
     linelist = linelist[idx]
 
     # Merge line list data with the EW from ARES
-    # Sort the FeI and the FeII lines using the atomic number
+    # Sort the FeI and the FeII lines using the atomic number and then by wavelength
     values = np.column_stack((data[:, 0], linelist[:, 1], linelist[:, 2], linelist[:, 3], data[:, 1]))
-    idx = np.argsort(values[:, 1])
-    sorted_values = values[idx]
+    sorted_values = np.array(sorted(values, key=lambda  e: (e[1], e[0])))
 
     # Write results in MOOG readable format
     assert np.array_equal(data[:, 0], linelist[:, 0]), 'There is something wrong with the common elements of ARES and the line list'
