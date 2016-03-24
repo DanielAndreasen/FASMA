@@ -76,7 +76,7 @@ def abund(args):
         args.microturbulence = 1.00
     fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
 
-    fout += 'model:%s,MOOGv:%s' % (args.model, args.MOOGv)
+    fout += 'model:%s,MOOGv:%s\n' % (args.model, args.MOOGv)
 
     with open('StarMe.cfg', 'w') as f:
         f.writelines(fout)
@@ -173,7 +173,7 @@ def main():
     # For calculating the abundances
     abund_parser = subparsers.add_parser('abund', parents=[parent_parser], help='Abundances')
     abund_parser.add_argument('linelist',    help='Input linelist file', widget='FileChooser')
-    abund_parser.add_argument('--overwrite', help='Overwrite results.csv', action='store_true', default=False)
+    abund_parser.add_argument('--overwrite', help='Overwrite abundances.csv', action='store_true', default=False)
     abund_parser.set_defaults(driver=abund)
 
     # Driver for ARES
