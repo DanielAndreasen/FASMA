@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     args = _parser()
 
-    df = pd.read_csv(args.input, delimiter=r'\s+')
+    df = pd.read_csv(args.input, delimiter=r'\s+', comment='#')
     df = df[(df.convergence == True) | (df.convergence == False)]  # Remove blank lines and comments
     df.teff = pd.to_numeric(df.teff, errors='coarse')
     df.tefferr = pd.to_numeric(df.tefferr, errors='coarse')
