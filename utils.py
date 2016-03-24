@@ -496,7 +496,10 @@ class Readmoog:
         if not self.slopeEP:
             self.slopeEP, _ = np.polyfit(self.linesFe1[:, 1+self.idx], self.linesFe1[:, 5+self.idx], 1)
         self.sigfe1 = self.sigfe1 / np.sqrt(self.nfe1)
-        self.sigfe2 = self.sigfe2 / np.sqrt(self.nfe2)
+        try:
+            self.sigfe2 = self.sigfe2 / np.sqrt(self.nfe2)
+        except AttributeError:
+            raise ValueError('No FeII lines were measured.')
         return self.fe1-7.47, self.sigfe1, self.fe2-7.47, self.sigfe2, self.slopeEP, self.slopeRW, self.linesFe1, self.linesFe2
 
 
