@@ -170,9 +170,6 @@ def cleanLineList(linelist, badline):
         f.writelines(fout)
 
 
-
-
-
 def aresdriver(starLines='StarMe_ares.cfg'):
     """The function that glues everything together
 
@@ -213,7 +210,13 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             line = line.strip()
             line = line.split(' ')
 
-            if len(line) == 3:
+            if len(line) == 2:
+                options = _options()
+                line_list = line[0]
+                spectrum = line[1]
+                out = '%s.ares' % spectrum.rpartition('.')[0]
+                update_ares(line_list, spectrum, out, options)
+            elif len(line) == 3:
                 options = _options(line[-1])
                 line_list = line[0]
                 spectrum = line[1]
@@ -247,6 +250,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 raise IOError('ARES did not run properly. Take a look at "logARES.txt" for more help.')
 
     os.remove('logARES.txt')
+
 
 if __name__ == '__main__':
     aresdriver(starLines='StarMe_ares.cfg')
