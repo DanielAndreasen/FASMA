@@ -35,7 +35,9 @@ def make_linelist(line_file, ares, cut=200):
 
     # Cut high EW lines away
     idx = (data[:, 1] < cut) & (data[:, 1] > 5.0)
-    print('%s line(s) with EW higher than %s were deleted' % (len(data[~idx, 0]), cut))
+    N = len(data[~idx, 0])
+    if N:
+        print('\t%s line(s) with EW higher than %s were deleted' % (N, cut))
     data = data[idx]
     # Wavelength and EW taken from the ares file.
     # Test whether each element of a 1D array is also present in a second array
@@ -51,10 +53,11 @@ def make_linelist(line_file, ares, cut=200):
     linelist_index = np.in1d(linelist[:, 0], data[:, 0])
     index_lines_not_found = np.in1d(linelist[:, 0], data[:, 0])
     lines_not_found = linelist[~index_lines_not_found, 0]
-    print('ARES did not find %i lines' % len(lines_not_found))
+    if len(lines_not_found):
+        print('\tARES did not find %i lines' % len(lines_not_found))
 
     linelist = linelist[linelist_index]
-    print('Lines in the new line list: %i' % len(linelist[:, 0]))
+    print('\tLines in the new line list: %i' % len(linelist[:, 0]))
 
     # Sort common elements from line list by wavelength
     idx = np.argsort(linelist[:, 0])
@@ -225,6 +228,8 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             else:
                 logger.error('Could not process information for this line: %s' % line)
                 continue
+            print('Using linelist: %s' % line_list)
+            print('Using spectrum: %s' % spectrum)
             if options['force']:
                 index = 1
                 while True:
@@ -233,7 +238,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                         break
                     else:
                         atomicLine = findBadLine()
-                        print('Removing line: %.2f' % atomicLine)
+                        print('\tRemoving line: %.2f' % atomicLine)
                         copyfile('rawLinelist/'+line_list, 'rawLinelist/tmp%i' % index)
                         line_list = 'tmp%i' % index
                         cleanLineList('rawLinelist/'+line_list, atomicLine)
@@ -248,6 +253,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
             except IOError:
                 raise IOError('ARES did not run properly. Take a look at "logARES.txt" for more help.')
+            print('\n\n')
 
     os.remove('logARES.txt')
 
