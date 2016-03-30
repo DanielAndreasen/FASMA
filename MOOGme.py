@@ -6,7 +6,6 @@ from ewDriver import ewdriver
 from synthDriver import synthdriver
 from abundanceDriver import abundancedriver
 from aresDriver import aresdriver
-import argparse
 from gooey import Gooey, GooeyParser
 
 
