@@ -238,7 +238,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                         break
                     else:
                         atomicLine = findBadLine()
-                        print('\tRemoving line: %.2f' % atomicLine)
+                        print('Removing line: %.2f' % atomicLine)
                         copyfile('rawLinelist/'+line_list, 'rawLinelist/tmp%i' % index)
                         line_list = 'tmp%i' % index
                         cleanLineList('rawLinelist/'+line_list, atomicLine)
