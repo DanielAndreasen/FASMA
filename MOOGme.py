@@ -13,6 +13,7 @@ def ew(args):
     '''Driver for the EW method'''
     fout = ''
     linelist = args.linelist.rpartition('/')[-1]
+    args.outlier = False if args.outlier == 'False' else args.outlier
     if args.spectralType:
         if not args.temperature and not args.surfacegravity:
             fout += '%s spt:%s,' % (linelist, args.spectralType)
@@ -33,6 +34,8 @@ def ew(args):
         fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
 
     fout += 'model:%s,iterations:%s,weights:%s,RWcrit:%s,EPcrit:%s,ABdiffcrit:%s,MOOGv:%s' % (args.model, args.Iterations, args.weights, args.RWslope, args.EPslope, args.Fedifference, args.MOOGv)
+    if args.outlier:
+        fout += ',outlier:%s' % args.outlier
     if args.refine:
         fout += ',refine'
     if args.Fixteff:
@@ -156,6 +159,7 @@ def main():
     ew_parser.add_argument('--Fixmicroturbulence', help='Fix microturbulence', action='store_true', metavar='Fix microturbulence')
     ew_parser.add_argument('--refine',             help='Refine parameters',   action='store_true', metavar='Refine parameters')
     ew_parser.add_argument('--Iterations',         help='Maximum number of iterations', default=160, type=int)
+    ew_parser.add_argument('--outlier',            help='Remove outliers', default='False', choices=['False', '1Iter', '1Once', 'allIter', 'allOnce'])
     ew_parser.add_argument('--weights',            help='Calculate the slopes of EP and RW with weights', type=str, default='null', choices=['null', 'sigma', 'mad'])
     ew_parser.add_argument('--EPslope',            help='EP slope to converge', default=0.001, type=float, metavar='EP slope')
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
