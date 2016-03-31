@@ -37,7 +37,7 @@ def make_linelist(line_file, ares, cut=200):
     idx = (data[:, 1] < cut) & (data[:, 1] > 5.0)
     N = len(data[~idx, 0])
     if N:
-        print('\t%s line(s) with EW higher than %s were deleted' % (N, cut))
+        print('%s line(s) with EW higher than %s were deleted' % (N, cut))
     data = data[idx]
     # Wavelength and EW taken from the ares file.
     # Test whether each element of a 1D array is also present in a second array
@@ -54,10 +54,10 @@ def make_linelist(line_file, ares, cut=200):
     index_lines_not_found = np.in1d(linelist[:, 0], data[:, 0])
     lines_not_found = linelist[~index_lines_not_found, 0]
     if len(lines_not_found):
-        print('\tARES did not find %i lines' % len(lines_not_found))
+        print('ARES did not find %i lines' % len(lines_not_found))
 
     linelist = linelist[linelist_index]
-    print('\tLines in the new line list: %i' % len(linelist[:, 0]))
+    print('Lines in the new line list: %i' % len(linelist[:, 0]))
 
     # Sort common elements from line list by wavelength
     idx = np.argsort(linelist[:, 0])
@@ -73,7 +73,7 @@ def make_linelist(line_file, ares, cut=200):
     data = zip(sorted_values[:, 0], sorted_values[:, 1], sorted_values[:, 2], sorted_values[:, 3], sorted_values[:, 4])
     fout = '%s.moog' % ares.rpartition('.')[0]
     np.savetxt(fout, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % ares)
-    os.remove(ares)
+    #os.remove(ares)
 
 
 def _options(options=False):
