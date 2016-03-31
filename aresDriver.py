@@ -18,7 +18,7 @@ def _run_ares():
             os.remove(tmp)
 
 
-def make_linelist(line_file, ares, cut=200):
+def make_linelist(line_file, ares, cut):
     """This function creates a MOOG readable file from the ARES output using the
     line list and atomic data of make_linelist.dat file"""
 
@@ -34,7 +34,7 @@ def make_linelist(line_file, ares, cut=200):
     data = data[idx]
 
     # Cut high EW lines away
-    idx = (data[:, 1] < cut) & (data[:, 1] > 5.0)
+    idx = (data[:, 1] < float(cut)) & (data[:, 1] > 5.0)
     N = len(data[~idx, 0])
     if N:
         print('%s line(s) with EW higher than %s were deleted' % (N, cut))
@@ -71,7 +71,7 @@ def make_linelist(line_file, ares, cut=200):
     # Write results in MOOG readable format
     assert np.array_equal(data[:, 0], linelist[:, 0]), 'There is something wrong with the common elements of ARES and the line list'
     data = zip(sorted_values[:, 0], sorted_values[:, 1], sorted_values[:, 2], sorted_values[:, 3], sorted_values[:, 4])
-    fout = '%s.moog' % ares.rpartition('.')[0]
+    fout = '%s.moog' % ares
     np.savetxt(fout, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % ares)
     #os.remove(ares)
 
@@ -88,6 +88,7 @@ def _options(options=False):
                 'plots_flag': False,
                 'EWcut': '200.0',
                 'snr': False,
+                'output': False,
                 'rvmask': '"0,0"',
                 'force': False
                 }
@@ -133,6 +134,11 @@ def update_ares(line_list, spectrum, out, options):
         rejt = options['rejt']
     rejt = 0.999 if rejt > 0.999 else rejt
     plot = 1 if options['plots_flag'] else 0
+    
+    if options['output']:
+        out = options['output']
+    else: 
+        out = '%s.ares' % spectrum.rpartition('.')[0]
 
     fout = 'specfits=\'spectra/%s\'\n' % spectrum
     fout += 'readlinedat=\'rawLinelist/%s\'\n' % line_list
@@ -223,18 +229,28 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 options = _options(line[-1])
                 line_list = line[0]
                 spectrum = line[1]
-                out = '%s.ares' % spectrum.rpartition('.')[0]
+                if options['output']:
+                    out = options['output']
+                else: 
+                    out = '%s.ares' % spectrum.rpartition('.')[0]
                 update_ares(line_list, spectrum, out, options)
             else:
                 logger.error('Could not process information for this line: %s' % line)
                 continue
             print('Using linelist: %s' % line_list)
             print('Using spectrum: %s' % spectrum)
+            if options['output']:
+                out = options['output']
+                print('Your ARES output: linelist/%s' % out)
+            else: 
+                out = '%s.ares' % spectrum.rpartition('.')[0]
+                print('Your ARES output: linelist/%s' % out)
+
             if options['force']:
                 index = 1
                 while True:
                     _run_ares()
-                    if os.path.isfile('linelist/'+out):
+                    if os.path.isfile('linelist/'+out) or os.path.isfile('linelist/'+options['output']):
                         break
                     else:
                         atomicLine = findBadLine()
@@ -250,6 +266,10 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 _run_ares()
             line_list = line[0]
             try:
+                if options['output']:
+                    out = options['output']
+                else: 
+                    out = '%s.ares' % spectrum.rpartition('.')[0]
                 make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
             except IOError:
                 raise IOError('ARES did not run properly. Take a look at "logARES.txt" for more help.')
