@@ -125,7 +125,7 @@ def update_ares(line_list, spectrum, out, options):
 
     def rejt_from_snr(snr):
         """Calculate rejt from SNR"""
-        return 1.0-(1.0/snr)
+        return 1.0-(1.0/float(snr))
 
     if options['snr']:
         rejt = rejt_from_snr(options['snr'])
