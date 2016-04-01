@@ -141,6 +141,7 @@ def removeOutlier(fname, wavelength):
     with open(fname, 'r') as lines:
         fout = ''
         for line in lines:
+            # print(wavelength, line.strip())
             if line.replace(' ','').startswith(wavelength):
                 continue
             fout += line
@@ -321,24 +322,22 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             logger.info('Finished minimization procedure')
 
             # [False, '1Iter', '1Once', 'allIter', 'allOnce']
-            print(outlier)
             if outlier:
                 tmpll = 'linelist/tmplinelist.moog'
                 Noutlier = 0
+                newLineList = False
+                outliers = hasOutlier()
                 if outlier == '1Iter':
                     # Remove one outlier above 3 sigma iteratively
-                    outliers = hasOutlier()
-                    newLineList = False
                     while outliers:
                         Noutlier += 1
                         newLineList = True  # At the end, create a new linelist
                         if not os.path.isfile(tmpll):
                             copyfile('linelist/'+line[0], tmpll)
+                            _update_par(line_list=tmpll)
                         wavelength = outliers[max(outliers.keys())]
                         removeOutlier(tmpll, wavelength)
-                        print('Outliers removed: %d' % Noutlier)
-                        print(outliers)
-                        print(wavelength)
+                        print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
                         print('Restarting the minimization routine...')
                         fff = Minimize(parameters, fun_moog,
                                        fix_teff=fix_teff, fix_logg=fix_logg,
@@ -346,8 +345,65 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                         parameters, converged = fff.minimize()
                         outliers = hasOutlier()
 
-                    copyfile(tmpll, 'linelist/'+line[0].replace('.moog', '_outlier.moog'))
+                if outlier == '1Once':
+                    # Remove one outlier above 3 sigma once
+                    if outliers:
+                        Noutlier += 1
+                        newLineList = True  # At the end, create a new linelist
+                        if not os.path.isfile(tmpll):
+                            copyfile('linelist/'+line[0], tmpll)
+                            _update_par(line_list=tmpll)
+                        wavelength = outliers[max(outliers.keys())]
+                        removeOutlier(tmpll, wavelength)
+                        print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
+                        print('Restarting the minimization routine...')
+                        fff = Minimize(parameters, fun_moog,
+                                       fix_teff=fix_teff, fix_logg=fix_logg,
+                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
+                        parameters, converged = fff.minimize()
+                        outliers = hasOutlier()
 
+                if outlier == 'allIter':
+                    # Remove all outliers above 3 sigma iteratively
+                    while outliers:
+                        newLineList = True  # At the end, create a new linelist
+                        if not os.path.isfile(tmpll):
+                            copyfile('linelist/'+line[0], tmpll)
+                            _update_par(line_list=tmpll)
+                        for wavelength in outliers.itervalues():
+                            removeOutlier(tmpll, wavelength)
+                            Noutlier += 1
+                            print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
+                        print('Restarting the minimization routine...')
+                        fff = Minimize(parameters, fun_moog,
+                                       fix_teff=fix_teff, fix_logg=fix_logg,
+                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
+                        parameters, converged = fff.minimize()
+                        outliers = hasOutlier()
+
+                if outlier == 'allOnce':
+                    # Remove all outliers above 3 sigma once
+                    if outliers:
+                        newLineList = True  # At the end, create a new linelist
+                        if not os.path.isfile(tmpll):
+                            copyfile('linelist/'+line[0], tmpll)
+                            _update_par(line_list=tmpll)
+                        for wavelength in outliers.itervalues():
+                            removeOutlier(tmpll, wavelength)
+                            Noutlier += 1
+                            print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
+                        print('Restarting the minimization routine...')
+                        fff = Minimize(parameters, fun_moog,
+                                       fix_teff=fix_teff, fix_logg=fix_logg,
+                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
+                        parameters, converged = fff.minimize()
+                        outliers = hasOutlier()
+
+
+                if newLineList:
+                    newName = line[0].replace('.moog', '_outlier.moog')
+                    copyfile(tmpll, 'linelist/'+newName)
+                    _update_par(line_list='linelist/'+newName)
 
                 if os.path.isfile(tmpll):
                     os.remove(tmpll)
@@ -373,7 +429,10 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                     parameters = p1  # overwrite with new best results
             _renaming(line[0], converged)
 
-            parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
+            if newLineList:
+                parameters = error(newName, converged, version=options['MOOGv'], weights=options['weights'])
+            else:
+                parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
             if loggLC:
                 parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
