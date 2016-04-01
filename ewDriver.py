@@ -5,19 +5,13 @@
 from __future__ import division, print_function
 import logging
 import os
-import argparse
-try:
-    import seaborn as sns
-    sns.set_style('dark')
-    sns.set_context('talk')
-except ImportError:
-    print('install seaborn for nice plots (pip install seaborn)')
+from shutil import copyfile
 import yaml
-
+import numpy as np
 from utils import GetModels, _update_par
 from interpolation import interpolator
 from interpolation import save_model
-from utils import fun_moog
+from utils import fun_moog, Readmoog
 from utils import error
 from minimization import Minimize
 
@@ -82,7 +76,8 @@ def _options(options=False):
                 'RWcrit': 0.001,
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
-                'loggLC': False
+                'loggLC': False,
+                'outlier': False
                 }
     if not options:
         return defaults
@@ -101,7 +96,61 @@ def _options(options=False):
         defaults['RWcrit'] = float(defaults['RWcrit'])
         defaults['ABdiffcrit'] = float(defaults['ABdiffcrit'])
         defaults['MOOGv'] = int(defaults['MOOGv'])
+        if defaults['outlier'] not in [False, '1Iter', '1Once', 'allIter', 'allOnce']:
+            print('Invalid option set for option "outlier"')
+            defaults['outlier'] = False
         return defaults
+
+
+def hasOutlier(MOOGv=2014):
+    """Function that reads the summary.out file and return a dictionary
+    with key being the deviation (above 3 sigma), and value the wavelength"""
+
+    idx = 1 if MOOGv > 2013 else 0
+    s = Readmoog(version=MOOGv)
+    d = s.fe_statistics()
+    fe1 = d[-2]  # All the FeI lines
+    fe2 = d[-1]  # All the FeII lines
+    m1, m2 = np.mean(fe1[:, 5+idx]), np.mean(fe2[:, 5+idx])
+    s1, s2 = 3*np.std(fe1[:, 5+idx]), 3*np.std(fe2[:, 5+idx])
+
+    d = {}
+    for i, fe1i in enumerate(fe1[:, 5+idx]):
+        dev = abs(fe1i-m1)
+        if dev >= s1:
+            d[dev] = fe1[i, 0]
+    for i, fe2i in enumerate(fe2[:, 5+idx]):
+        dev = abs(fe2i-m2)
+        if dev >= s2:
+            d[dev] = fe2[i, 0]
+
+    if len(d.keys()):
+        return d
+    else:
+        return False
+
+
+def removeOutlier(fname, wavelength):
+    """Remove an outlier from the linelist fname, and save it in the same name
+
+    Input:
+    fname      -- Name of the linelist
+    wavelength -- The wavelength of the line to remove
+    """
+    wavelength = str(round(wavelength, 2))
+    with open(fname, 'r') as lines:
+        fout = ''
+        for line in lines:
+            if line.replace(' ','').startswith(wavelength):
+                continue
+            fout += line
+    with open(fname, 'w') as f:
+        f.writelines(fout)
+
+
+
+
+
 
 
 def ewdriver(starLines='StarMe.cfg', overwrite=False):
@@ -262,6 +311,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             fix_feh = options.pop('feh')
             fix_vt = options.pop('vt')
             loggLC = options.pop('loggLC')
+            outlier = options.pop('outlier')
 
             fff = Minimize(initial, fun_moog,
                            fix_teff=fix_teff, fix_logg=fix_logg,
@@ -269,6 +319,44 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             parameters, converged = fff.minimize()
 
             logger.info('Finished minimization procedure')
+
+            # [False, '1Iter', '1Once', 'allIter', 'allOnce']
+            print(outlier)
+            if outlier:
+                tmpll = 'linelist/tmplinelist.moog'
+                Noutlier = 0
+                if outlier == '1Iter':
+                    # Remove one outlier above 3 sigma iteratively
+                    outliers = hasOutlier()
+                    newLineList = False
+                    while outliers:
+                        Noutlier += 1
+                        newLineList = True  # At the end, create a new linelist
+                        if not os.path.isfile(tmpll):
+                            copyfile('linelist/'+line[0], tmpll)
+                        wavelength = outliers[max(outliers.keys())]
+                        removeOutlier(tmpll, wavelength)
+                        print('Outliers removed: %d' % Noutlier)
+                        print(outliers)
+                        print(wavelength)
+                        print('Restarting the minimization routine...')
+                        fff = Minimize(parameters, fun_moog,
+                                       fix_teff=fix_teff, fix_logg=fix_logg,
+                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
+                        parameters, converged = fff.minimize()
+                        outliers = hasOutlier()
+
+                    copyfile(tmpll, 'linelist/'+line[0].replace('.moog', '_outlier.moog'))
+
+
+                if os.path.isfile(tmpll):
+                    os.remove(tmpll)
+
+
+
+
+
+
             if converged and refine:
                 logger.info('Refining the parameters')
                 print('\nRefining the parameters')
