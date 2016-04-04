@@ -138,7 +138,7 @@ if __name__ == '__main__':
     labels = {'teff': r'$T_\mathrm{eff}$ [K]',
               'tefferr': r'$\sigma T_\mathrm{eff}$ [K]',
               'logg': r'$\log(g)$ [cgs]',
-              'loggerr': r'\sigma $\log(g)$ [cgs]',
+              'loggerr': r'$\sigma \log(g)$ [cgs]',
               'feh': '[Fe/H]',
               'feherr': r'$\sigma$ [Fe/H]',
               'vt': r'$\xi_\mathrm{micro}$ [km/s]',
