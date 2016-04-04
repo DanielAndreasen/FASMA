@@ -37,7 +37,7 @@ def make_linelist(line_file, ares, cut):
     idx = (data[:, 1] < float(cut)) & (data[:, 1] > 5.0)
     N = len(data[~idx, 0])
     if N:
-        print('%s line(s) with EW higher than %s were deleted' % (N, cut))
+        print('\t%s line(s) with EW higher than %s were deleted' % (N, cut))
     data = data[idx]
     # Wavelength and EW taken from the ares file.
     # Test whether each element of a 1D array is also present in a second array
@@ -54,10 +54,10 @@ def make_linelist(line_file, ares, cut):
     index_lines_not_found = np.in1d(linelist[:, 0], data[:, 0])
     lines_not_found = linelist[~index_lines_not_found, 0]
     if len(lines_not_found):
-        print('ARES did not find %i lines' % len(lines_not_found))
+        print('\tARES did not find %i lines' % len(lines_not_found))
 
     linelist = linelist[linelist_index]
-    print('Lines in the new line list: %i' % len(linelist[:, 0]))
+    print('\tLines in the new line list: %i' % len(linelist[:, 0]))
 
     # Sort common elements from line list by wavelength
     idx = np.argsort(linelist[:, 0])
@@ -134,10 +134,10 @@ def update_ares(line_list, spectrum, out, options):
         rejt = options['rejt']
     rejt = 0.999 if rejt > 0.999 else rejt
     plot = 1 if options['plots_flag'] else 0
-    
+
     if options['output']:
         out = options['output']
-    else: 
+    else:
         out = '%s.ares' % spectrum.rpartition('.')[0]
 
     fout = 'specfits=\'spectra/%s\'\n' % spectrum
@@ -231,7 +231,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 spectrum = line[1]
                 if options['output']:
                     out = options['output']
-                else: 
+                else:
                     out = '%s.ares' % spectrum.rpartition('.')[0]
                 update_ares(line_list, spectrum, out, options)
             else:
@@ -242,7 +242,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             if options['output']:
                 out = options['output']
                 print('Your ARES output: linelist/%s' % out)
-            else: 
+            else:
                 out = '%s.ares' % spectrum.rpartition('.')[0]
                 print('Your ARES output: linelist/%s' % out)
 
@@ -254,7 +254,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                         break
                     else:
                         atomicLine = findBadLine()
-                        print('Removing line: %.2f' % atomicLine)
+                        print('\tRemoving line: %.2f' % atomicLine)
                         copyfile('rawLinelist/'+line_list, 'rawLinelist/tmp%i' % index)
                         line_list = 'tmp%i' % index
                         cleanLineList('rawLinelist/'+line_list, atomicLine)
@@ -268,7 +268,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             try:
                 if options['output']:
                     out = options['output']
-                else: 
+                else:
                     out = '%s.ares' % spectrum.rpartition('.')[0]
                 make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
             except IOError:
