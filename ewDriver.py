@@ -314,8 +314,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                            fix_feh=fix_feh, fix_vt=fix_vt, **options)
             parameters, converged = fff.minimize()
 
-            logger.info('Finished minimization procedure')
-
             if outlier:
                 tmpll = 'linelist/tmplinelist.moog'
                 Noutlier = 0
@@ -415,6 +413,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 if converged:
                     print('reseting the parameters')
                     parameters = p1  # overwrite with new best results
+            logger.info('Finished minimization procedure')
 
             if newLineList:
                 _renaming(newName, converged)
