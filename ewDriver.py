@@ -149,11 +149,6 @@ def removeOutlier(fname, wavelength):
         f.writelines(fout)
 
 
-
-
-
-
-
 def ewdriver(starLines='StarMe.cfg', overwrite=False):
     """The function that glues everything together
 
@@ -201,7 +196,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
 
     with open(starLines, 'r') as lines:
         for line in lines:
-            if not line[0].isalpha():
+            if not line[0].isalnum():
                 logger.debug('Skipping header: %s' % line.strip())
                 continue
             logger.info('Line list: %s' % line.strip())
