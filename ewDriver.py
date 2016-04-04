@@ -321,7 +321,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
 
             logger.info('Finished minimization procedure')
 
-            # [False, '1Iter', '1Once', 'allIter', 'allOnce']
             if outlier:
                 tmpll = 'linelist/tmplinelist.moog'
                 Noutlier = 0
@@ -399,7 +398,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                         parameters, converged = fff.minimize()
                         outliers = hasOutlier()
 
-
                 if newLineList:
                     newName = line[0].replace('.moog', '_outlier.moog')
                     copyfile(tmpll, 'linelist/'+newName)
@@ -407,11 +405,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
 
                 if os.path.isfile(tmpll):
                     os.remove(tmpll)
-
-
-
-
-
 
             if converged and refine:
                 logger.info('Refining the parameters')
@@ -427,21 +420,23 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 if converged:
                     print('reseting the parameters')
                     parameters = p1  # overwrite with new best results
-            _renaming(line[0], converged)
 
             if newLineList:
+                _renaming(newName, converged)
                 parameters = error(newName, converged, version=options['MOOGv'], weights=options['weights'])
             else:
+                _renaming(line[0], converged)
                 parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
             if loggLC:
                 parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
             with open('results.csv', 'a') as output:
-                tmp = [line[0]] + parameters + [converged]
+                if newLineList:
+                    tmp = [newName] + parameters + [converged]
+                else:
+                    tmp = [line[0]] + parameters + [converged]
                 output.write('\t'.join(map(str, tmp))+'\n')
             logger.info('Saved results to: results.csv')
-
-
 
             if __name__ == '__main__':
                 if converged:
