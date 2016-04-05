@@ -314,10 +314,10 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                            fix_feh=fix_feh, fix_vt=fix_vt, **options)
             parameters, converged = fff.minimize()
 
+            newLineList = False
             if outlier:
                 tmpll = 'linelist/tmplinelist.moog'
                 Noutlier = 0
-                newLineList = False
                 outliers = hasOutlier()
                 if outlier == '1Iter':
                     # Remove one outlier above 3 sigma iteratively
