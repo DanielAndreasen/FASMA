@@ -124,8 +124,11 @@ def ares(args):
         f.writelines(fout)
 
     aresdriver()
-    linelist_out = 'linelist/%s.moog' % args.spectrum.rpartition('/')[2].rpartition('.')[0]
-    print('Congratulations! The final line list are here: %s' % linelist_out)
+    if args.output:
+        print('Congratulations! The final line list are here: linelist/%s.moog' % args.output)
+    else:
+        linelist_out = 'linelist/%s.moog' % args.spectrum.rpartition('/')[2].rpartition('.')[0]
+        print('Congratulations! The final line list are here: %s' % linelist_out)
 
 
 @Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
