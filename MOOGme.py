@@ -149,7 +149,7 @@ def main():
     parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float, metavar='[Fe/H]')
     parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
     parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2014', choices=['2013', '2014'], type=str, metavar='MOOG version')
-    parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'kurucz08', 'marcs', 'PHOENIX'])
+    parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'apogee_kurucz', 'kurucz08', 'marcs', 'PHOENIX'])
 
 
     # For the EW method
