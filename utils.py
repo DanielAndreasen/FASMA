@@ -18,6 +18,16 @@ kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
        'feh': (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
                0.1, 0.2, 0.3, 0.5, 1.0),
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+       
+apogee_kurucz = {'teff': (3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
+                6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
+                8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
+                11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
+                14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
+                23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000),
+       'feh': (-5.0, -4.5, -4.0, -3.5, -3.0, -2.75, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.5),
+       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+
 
 kurucz08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
@@ -59,13 +69,13 @@ class GetModels:
     """
 
 
-    def __init__(self, teff, logg, feh, atmtype='kurucz95'):
+    def __init__(self, teff, logg, feh, atmtype):
         self.teff = teff
         self.logg = logg
         self.feh = feh
         self.atmtype = atmtype
 
-        atmmodels = {'kurucz95': [kurucz95, 'kurucz95'], 'kurucz08': [kurucz08, 'kurucz08']}
+        atmmodels = {'kurucz95': [kurucz95, 'kurucz95'], 'apogee_kurucz': [apogee_kurucz, 'apogee_kurucz'], 'kurucz08': [kurucz08, 'kurucz08']}
         if atmtype in atmmodels.keys():
             self.grid = atmmodels[atmtype][0]
         else:
@@ -124,8 +134,8 @@ class GetModels:
                 return fname, teff_model
 
 
-    def kneigbour(self, arr, val, k=2):
-        """Return the K surrounding neigbours of an array, given a certain value."""
+    def kneighbour(self, arr, val, k=2):
+        """Return the K surrounding neighbours of an array, given a certain value."""
         for idx, (l1, l2) in enumerate(zip(arr, islice(arr, 1, None))):
             if l1 <= val <= l2:
                 break
@@ -137,11 +147,11 @@ class GetModels:
 
     def getmodels(self):
         # Get list of parameter values
-        teff_model = self.kneigbour(self.grid['teff'], self.teff, k=4)
+        teff_model = self.kneighbour(self.grid['teff'], self.teff, k=4)
         if len(teff_model) < 4:  # Means we are close to an edge
-            teff_model = self.kneigbour(self.grid['teff'], self.teff, k=2)
-        logg_model = self.kneigbour(self.grid['logg'], self.logg, k=2)
-        feh_model = self.kneigbour(self.grid['feh'], self.feh, k=2)
+            teff_model = self.kneighbour(self.grid['teff'], self.teff, k=2)
+        logg_model = self.kneighbour(self.grid['logg'], self.logg, k=2)
+        feh_model = self.kneighbour(self.grid['feh'], self.feh, k=2)
 
         models = []
         for i, teff_m in enumerate(teff_model):
@@ -360,7 +370,7 @@ def _read_smooth(fname='smooth.out'):
     return wavelength, flux
 
 
-def fun_moog(x, par='batch.par', results='summary.out', weights='null',
+def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
              driver='abfind', version=2014):
     """Run MOOG and return slopes for abfind mode.
 
@@ -375,7 +385,7 @@ def fun_moog(x, par='batch.par', results='summary.out', weights='null',
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
-    grid = GetModels(teff, logg, feh)
+    grid = GetModels(teff, logg, feh, atmtype)
     models, nt, nl, nf = grid.getmodels()
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
     save_model(model, x)
@@ -528,7 +538,7 @@ def _slopeSigma(x, y, weights):
     return np.sqrt(chi2/((N-2)*sxx))
 
 
-def error(linelist, converged, version=2014, weights='null'):
+def error(linelist, converged, atmtype, version=2014, weights='null'):
     """linelist to give error estimation on"""
     # Find the output file and read the current state of it
     idx = 1 if version > 2013 else 0
@@ -553,7 +563,7 @@ def error(linelist, converged, version=2014, weights='null'):
     siga2 = _slopeSigma(Fe1[:, 1+idx], Fe1[:, 5+idx], weights=weights)
 
     # Error om microturbulence
-    fun_moog((teff, logg, feh, vt+0.1), results='error_summary.out', version=version)
+    fun_moog((teff, logg, feh, vt+0.1), atmtype, results='error_summary.out', version=version)
     sumvt = Readmoog(fname='error_summary.out', version=version).fe_statistics()
     slopeEP, slopeRW = sumvt[4], sumvt[5]
     if slopeRW == 0:
@@ -567,7 +577,7 @@ def error(linelist, converged, version=2014, weights='null'):
     # Error on Teff
     slopes = errormicro/0.10 * slopeEP
     errorslopeEP = np.hypot(slopes, siga2)
-    fun_moog((teff+100, logg, feh, vt), results='error_summary.out', version=version)
+    fun_moog((teff+100, logg, feh, vt), atmtype, results='error_summary.out', version=version)
     sumteff = Readmoog(fname='error_summary.out', version=version).fe_statistics()
 
     errorteff = abs(errorslopeEP/sumteff[4]) * 100
@@ -576,7 +586,7 @@ def error(linelist, converged, version=2014, weights='null'):
     # Error on logg
     fe2error = abs(errorteff/100 * (sumteff[2]-feh))
     sigmafe2total = np.hypot(sigmafe2, fe2error)
-    fun_moog((teff, logg-0.20, feh, vt), results='error_summary.out', version=version)
+    fun_moog((teff, logg-0.20, feh, vt), atmtype, results='error_summary.out', version=version)
     sumlogg = Readmoog(fname='error_summary.out', version=version).fe_statistics()
     errorlogg = abs(sigmafe2total/(sumlogg[2]-feh)*0.20)
 
