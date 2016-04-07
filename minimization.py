@@ -11,7 +11,7 @@ from copy import copy
 class Minimize:
     """Minimize for best parameters given a line list"""
 
-    def __init__(self, x0, func, model="kurucz95", weights='null',
+    def __init__(self, x0, func, model, weights='null',
                  fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
                  iterations=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
                  MOOGv=2014, GUI=True):
@@ -32,6 +32,8 @@ class Minimize:
         self.GUI = GUI
         if self.model.lower() == 'kurucz95':
             self.bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
+        if self.model.lower() == 'apogee_kurucz':
+            self.bounds = [3500, 30000, 0.0, 5.0, -5, 1.5, 0, 9.99]
 
 
     def _getMic(self):
