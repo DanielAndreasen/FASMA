@@ -34,7 +34,7 @@ def make_linelist(line_file, ares, cut):
     data = data[idx]
 
     # Cut high EW lines away
-    idx = (data[:, 1] < float(cut)) & (data[:, 1] > 5.0)
+    idx = (data[:, 1] < float(cut))
     N = len(data[~idx, 0])
     if N:
         print('\t%s line(s) with EW higher than %s were deleted' % (N, cut))
