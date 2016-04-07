@@ -160,5 +160,6 @@ if __name__ == '__main__':
     if args.iy:
         plt.ylim(plt.ylim()[::-1])
 
+    plt.grid(True)
     plt.tight_layout()
     plt.show()
