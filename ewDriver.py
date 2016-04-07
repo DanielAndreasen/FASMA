@@ -274,7 +274,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 continue
 
             # Setting the models to use
-            if options['model'] != 'kurucz95' and options['model'] != 'kurucz08':
+            if options['model'] != 'kurucz95' and options['model'] != 'apogee_kurucz':
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
@@ -417,10 +417,10 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
 
             if newLineList:
                 _renaming(newName, converged)
-                parameters = error(newName, converged, version=options['MOOGv'], weights=options['weights'])
+                parameters = error(newName, converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
             else:
                 _renaming(line[0], converged)
-                parameters = error(line[0], converged, version=options['MOOGv'], weights=options['weights'])
+                parameters = error(line[0], converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
             if loggLC:
                 parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
