@@ -89,7 +89,7 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
         header = 'KURUCZ\n'\
                  'Teff= %i   log g= %.2f\n'\
                  'NTAU        %i' % (teff, logg, model.shape[0])
-    elif type.lower() == 'marcz':  # How to spell this?
+    elif type.lower() == 'marcs': 
         raise NotImplementedError('Patience is the key. Wait a bit more for %s\
                                    models to be implemented.' % type)
     else:
