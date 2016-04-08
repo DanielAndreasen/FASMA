@@ -171,15 +171,15 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-
+    
     if overwrite:
         with open('results.csv', 'w') as output:
-            tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
+            tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence',  'fixteff',  'fixlogg', 'fixfeh',  'fixvt','loggLC','outlier', 'weights',  'model',  'refine', 'EPcrit', 'RWcrit',  'ABdiffcrit'] 
             output.write('\t'.join(tmp)+'\n')
     else:
         if not os.path.isfile('results.csv'):
             with open('results.csv', 'w') as output:
-                tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence']
+                tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence',  'fixteff',  'fixlogg', 'fixfeh',  'fixvt','loggLC','outlier', 'weights',  'model',  'refine', 'EPcrit', 'RWcrit',  'ABdiffcrit'] 
                 output.write('\t'.join(tmp)+'\n')
 
     #Check if there is a directory called linelist, if not create it and ask the user to put files there
@@ -424,11 +424,14 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             parameters = list(parameters)
             if loggLC:
                 parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
+
+            _ = options.pop('MOOGv')
+            _ = options.pop('iterations')
             with open('results.csv', 'a') as output:
                 if newLineList:
-                    tmp = [newName] + parameters + [converged]
+                    tmp = [newName] + parameters + [converged, fix_teff, fix_logg,fix_feh,fix_vt,loggLC,outlier] +[options['weights'], options['model'], refine, options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
                 else:
-                    tmp = [line[0]] + parameters + [converged]
+                    tmp = [line[0]] + parameters +  [converged, fix_teff, fix_logg,fix_feh,fix_vt,loggLC,outlier] + [options['weights'], options['model'], refine, options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
                 output.write('\t'.join(map(str, tmp))+'\n')
             logger.info('Saved results to: results.csv')
 
