@@ -18,7 +18,7 @@ kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
        'feh': (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
                0.1, 0.2, 0.3, 0.5, 1.0),
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
-       
+
 apogee_kurucz = {'teff': (3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
                 8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
@@ -134,7 +134,7 @@ class GetModels:
                 return fname, teff_model
 
 
-    def kneighbour(self, arr, val, k=2):
+    def neighbour(self, arr, val, k=2):
         """Return the K surrounding neighbours of an array, given a certain value."""
         for idx, (l1, l2) in enumerate(zip(arr, islice(arr, 1, None))):
             if l1 <= val <= l2:
@@ -147,11 +147,11 @@ class GetModels:
 
     def getmodels(self):
         # Get list of parameter values
-        teff_model = self.kneighbour(self.grid['teff'], self.teff, k=4)
+        teff_model = self.neighbour(self.grid['teff'], self.teff, k=4)
         if len(teff_model) < 4:  # Means we are close to an edge
-            teff_model = self.kneighbour(self.grid['teff'], self.teff, k=2)
-        logg_model = self.kneighbour(self.grid['logg'], self.logg, k=2)
-        feh_model = self.kneighbour(self.grid['feh'], self.feh, k=2)
+            teff_model = self.neighbour(self.grid['teff'], self.teff, k=2)
+        logg_model = self.neighbour(self.grid['logg'], self.logg, k=2)
+        feh_model = self.neighbour(self.grid['feh'], self.feh, k=2)
 
         models = []
         for i, teff_m in enumerate(teff_model):
