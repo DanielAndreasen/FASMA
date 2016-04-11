@@ -55,14 +55,13 @@ def _getMic(teff, logg):
 def _renaming(linelist, converged):
     """Save the output in a file related to the linelist"""
     if converged:
-        cmd = 'cp summary.out results/%s.out' % linelist
+        copyfile('summary.out', 'results/%s.out' % linelist)
     else:
-        cmd = 'cp summary.out results/%s.NC.out' % linelist
-    os.system(cmd)
+        copyfile('summary.out', 'results/%s.NC.out' % linelist)
 
 
 def _options(options=False):
-    '''Reads the options inside the config file'''
+    """Reads the options inside the config file"""
     defaults = {'spt': False,
                 'weights': 'null',
                 'model':'kurucz95',
@@ -82,8 +81,7 @@ def _options(options=False):
     if not options:
         return defaults
     else:
-        options = options.split(',')
-        for option in options:
+        for option in options.split(','):
             if ':' in option:
                 option = option.split(':')
                 defaults[option[0]] = option[1]
@@ -102,10 +100,34 @@ def _options(options=False):
         return defaults
 
 
+def _output(overwrite=None, header=None, parameters=None):
+    """Create the output file 'results.csv'
+
+    Input
+    -----
+    overwrite - Overwrite the file
+    header    - Only use True if this is for the file to be created
+    """
+    if header:
+        hdr = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
+               'vt', 'vterr', 'convergence', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt',
+               'loggLC','outlier', 'weights', 'model', 'refine', 'EPcrit', 'RWcrit',
+               'ABdiffcrit']
+        if overwrite:
+            with open('results.csv', 'w') as output:
+                output.write('\t'.join(hdr)+'\n')
+        else:
+            if not os.path.isfile('results.csv'):
+                with open('results.csv', 'w') as output:
+                    output.write('\t'.join(hdr)+'\n')
+    else:
+        with open('results.csv', 'a') as output:
+            output.write('\t'.join(map(str, parameters))+'\n')
+
+
 def hasOutlier(MOOGv=2014):
     """Function that reads the summary.out file and return a dictionary
     with key being the deviation (above 3 sigma), and value the wavelength"""
-
     idx = 1 if MOOGv > 2013 else 0
     s = Readmoog(version=MOOGv)
     d = s.fe_statistics()
@@ -141,7 +163,6 @@ def removeOutlier(fname, wavelength):
     with open(fname, 'r') as lines:
         fout = ''
         for line in lines:
-            # print(wavelength, line.strip())
             if line.replace(' ','').startswith(wavelength):
                 continue
             fout += line
@@ -157,7 +178,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
     overwrite   -   Overwrite the results.csv file (default: False)
 
     Output:
-    <linelist>.(NC).out     -   NC=not converget.
+    <linelist>.(NC).out     -   NC=not converged.
     results.csv             -   Easy readable table with results from many linelists
     """
     try:  # Cleaning from previous runs
@@ -171,28 +192,21 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    
-    if overwrite:
-        with open('results.csv', 'w') as output:
-            tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence',  'fixteff',  'fixlogg', 'fixfeh',  'fixvt','loggLC','outlier', 'weights',  'model',  'refine', 'EPcrit', 'RWcrit',  'ABdiffcrit'] 
-            output.write('\t'.join(tmp)+'\n')
-    else:
-        if not os.path.isfile('results.csv'):
-            with open('results.csv', 'w') as output:
-                tmp = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence',  'fixteff',  'fixlogg', 'fixfeh',  'fixvt','loggLC','outlier', 'weights',  'model',  'refine', 'EPcrit', 'RWcrit',  'ABdiffcrit'] 
-                output.write('\t'.join(tmp)+'\n')
 
-    #Check if there is a directory called linelist, if not create it and ask the user to put files there
+    # Check if there is a directory called linelist, if not create it and ask the user to put files there
     if not os.path.isdir('linelist'):
         logger.error('Error: The directory linelist does not exist!')
         os.mkdir('linelist')
         logger.info('linelist directory was created')
         raise IOError('linelist directory did not exist! Put the linelists inside that directory, please.')
 
-    #Create results directory
+    # Create results directory
     if not os.path.isdir('results'):
         os.mkdir('results')
         logger.info('results directory was created')
+
+    # Creating the output file
+    _output(overwrite=overwrite, header=True)
 
     with open(starLines, 'r') as lines:
         for line in lines:
@@ -416,23 +430,20 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             logger.info('Finished minimization procedure')
 
             if newLineList:
-                _renaming(newName, converged)
-                parameters = error(newName, converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
-            else:
-                _renaming(line[0], converged)
-                parameters = error(line[0], converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
+                line[0] = newName
+            _renaming(line[0], converged)
+            parameters = error(line[0], converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
             if loggLC:
                 parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
 
             _ = options.pop('MOOGv')
             _ = options.pop('iterations')
-            with open('results.csv', 'a') as output:
-                if newLineList:
-                    tmp = [newName] + parameters + [converged, fix_teff, fix_logg,fix_feh,fix_vt,loggLC,outlier] +[options['weights'], options['model'], refine, options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
-                else:
-                    tmp = [line[0]] + parameters +  [converged, fix_teff, fix_logg,fix_feh,fix_vt,loggLC,outlier] + [options['weights'], options['model'], refine, options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
-                output.write('\t'.join(map(str, tmp))+'\n')
+            tmp = [line[0]] + parameters +\
+                  [converged, fix_teff, fix_logg,fix_feh,fix_vt,loggLC,outlier]+\
+                  [options['weights'], options['model'], refine,
+                  options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
+            _output(parameters=tmp)
             logger.info('Saved results to: results.csv')
 
             if __name__ == '__main__':
