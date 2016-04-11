@@ -175,15 +175,13 @@ def abundancedriver(starLines='StarMe.cfg', overwrite=False):
                 continue
 
             # Setting the models to use
-            if (options['model'] != 'kurucz95') and (options['model'] != 'kurucz08'):
+            if options['model'] not in ['kurucz95', 'apogee_kurucz']:
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
             # Get the initial grid models
             logger.info('Getting initial model grid')
-            # TODO: Fix the interpolation please!
-            if initial[1] > 4.99:  # quick fix
-                initial[1] = 4.99
+
             grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
             models, nt, nl, nf = grid.getmodels()
             logger.info('Initial interpolation of model...')
@@ -212,8 +210,16 @@ if __name__ == '__main__':
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)
     df = pd.read_csv('abundances.csv')
-    print df.to_string(index=False, justify='right')
-    # print '\n\n ---------------'
-    # print '|Some statistics|'
-    # print ' ---------------\n'
-    # print df.describe()
+
+    teff_fmt = lambda x: '%d' % x
+    par_fmt = lambda x: '%.2f' % x
+    s = df.to_string(justify='right', formatters={'temperature': teff_fmt,
+                                                   'logg': par_fmt,
+                                                   '[Fe/H]': par_fmt,
+                                                   'vt': par_fmt})
+    for i, line in enumerate(s.split('\n')):
+        if i == 0:
+            print line
+            continue
+        val = len(str(i-1))
+        print ' '*val + line[val::]
