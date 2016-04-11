@@ -65,10 +65,10 @@ def _options(options=False):
     defaults = {'spt': False,
                 'weights': 'null',
                 'model':'kurucz95',
-                'teff': False,
-                'logg': False,
-                'feh': False,
-                'vt': False,
+                'fix_teff': False,
+                'fix_logg': False,
+                'fix_feh': False,
+                'fix_vt': False,
                 'refine': False,
                 'iterations': 160,
                 'EPcrit': 0.001,
@@ -87,6 +87,8 @@ def _options(options=False):
                 defaults[option[0]] = option[1]
             else:
                 # Clever way to change the boolean
+                if option in ['teff', 'logg', 'feh', 'vt']:
+                    option = 'fix_%s' % option
                 defaults[option] = False if defaults[option] else True
         defaults['model'] = defaults['model'].lower()
         defaults['iterations'] = int(defaults['iterations'])
@@ -123,6 +125,30 @@ def _output(overwrite=None, header=None, parameters=None):
     else:
         with open('results.csv', 'a') as output:
             output.write('\t'.join(map(str, parameters))+'\n')
+
+
+def _setup(line):
+    """Do the setup with initial parameters and options"""
+    if len(line) == 1:
+        initial = [5777, 4.44, 0.00, 1.00]
+        options = _options()
+    elif len(line) == 5:
+        initial = map(float, line[1::])
+        initial[0] = int(initial[0])
+        options = _options()
+    elif len(line) == 2:
+        options = _options(line[1])
+        if options['spt']:
+            Teff, logg = _getSpt(options['spt'])
+            mic = _getMic(Teff, logg)
+            initial = (Teff, logg, 0.00, mic)
+        else:
+            initial = [5777, 4.44, 0.00, 1.00]
+    elif len(line) == 6:
+        initial = map(float, line[1:-1])
+        initial[0] = int(initial[0])
+        options = _options(line[-1])
+    return initial, options
 
 
 def hasOutlier(MOOGv=2014):
@@ -220,8 +246,10 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             fix_vt = False
             line = line.strip()
             line = line.split(' ')
-
-            #Check if the linelist is inside the directory if not log it and pass to next linelist
+            if len(line) not in [1, 2, 5, 6]:
+                logger.error('Could not process information for this line list: %s' % line)
+                continue
+            # Check if the linelist is inside the directory if not log it and pass to next linelist
             if not os.path.isfile('linelist/%s' % line[0]):
                 logger.error('Error: linelist/%s not found.' % line[0])
                 parameters = None
@@ -229,74 +257,24 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             else:
                 _update_par(line_list='linelist/%s' % line[0])
 
-            if len(line) == 1:
-                initial = [5777, 4.44, 0.00, 1.00]
-                options = _options()
-                logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
-
-            elif len(line) == 5:
-                logger.info('Initial parameters given by the user.')
-                initial = map(float, line[1::])
-                initial[0] = int(initial[0])
-                options = _options()
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-
-            elif len(line) == 2:
-                logger.info('Spectral type given: %s' % line[1])
-                options = _options(line[1])
-                if options['spt']:
-                    Teff, logg = _getSpt(options['spt'])
-                    mic = _getMic(Teff, logg)
-                    initial = (Teff, logg, 0.00, mic)
-                else:
-                    initial = [5777, 4.44, 0.00, 1.00]
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                fix_teff = options['teff']
-                fix_logg = options['logg']
-                fix_feh  = options['feh']
-                fix_vt   = options['vt']
-                if fix_teff:
-                    logger.info('Effective temperature fixed at: %i' % initial[0])
-                elif fix_logg:
-                    logger.info('Surface gravity fixed at: %s' % initial[1])
-                elif fix_feh:
-                    logger.info('Metallicity fixed at: %s' % initial[2])
-                elif fix_vt:
-                    logger.info('Micro turbulence fixed at: %s' % initial[3])
-
-            elif len(line) == 6:
-                logger.info('Initial parameters given by user and some parameters fixed.')
-                initial = map(float, line[1:-1])
-                initial[0] = int(initial[0])
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                options = _options(line[-1])
-                fix_teff = options['teff']
-                fix_logg = options['logg']
-                fix_feh  = options['feh']
-                fix_vt   = options['vt']
-                if fix_teff:
-                    logger.info('Effective temperature fixed at: %i' % initial[0])
-                elif fix_logg:
-                    logger.info('Surface gravity fixed at: %s' % initial[1])
-                elif fix_feh:
-                    logger.info('Metallicity fixed at: %s' % initial[2])
-                elif fix_vt:
-                    logger.info('Micro turbulence fixed at: %s' % initial[3])
-
-            else:
-                logger.error('Could not process information for this line list: %s' % line)
-                continue
+            initial, options = _setup(line)
+            logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+            if options['fix_teff']:
+                logger.info('Effective temperature fixed at: %i' % initial[0])
+            elif options['fix_logg']:
+                logger.info('Surface gravity fixed at: %s' % initial[1])
+            elif options['fix_feh']:
+                logger.info('Metallicity fixed at: %s' % initial[2])
+            elif options['fix_vt']:
+                logger.info('Micro turbulence fixed according to an emperical relation')
 
             # Setting the models to use
-            if options['model'] != 'kurucz95' and options['model'] != 'apogee_kurucz':
+            if options['model'] not in ['kurucz95', 'apogee_kurucz']:
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
             # Get the initial grid models
             logger.info('Getting initial model grid')
-            # TODO: Fix the interpolation please!
-            if initial[1] > 4.99:  # quick fix
-                initial[1] = 4.99
             grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
             models, nt, nl, nf = grid.getmodels()
             logger.info('Initial interpolation of model...')
@@ -307,26 +285,20 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             save_model(inter_model, params=initial)
             logger.info('Interpolation successful.')
 
-            logger.info('Starting the minimization procedure...')
-            # Options not in use will be removed
+            # Adjusting the options for the minimization routine
             if __name__ == '__main__':
                 options['GUI'] = False  # Running batch mode
             else:
                 options['GUI'] = True  # Running GUI mode
-            options.pop('spt')
+            # Options not in use will be removed
+            _ = options.pop('spt')
             refine = options.pop('refine')
-            # Fixing parameters
-            fix_teff = options.pop('teff')
-            fix_logg = options.pop('logg')
-            fix_feh = options.pop('feh')
-            fix_vt = options.pop('vt')
             loggLC = options.pop('loggLC')
             outlier = options.pop('outlier')
 
-            fff = Minimize(initial, fun_moog,
-                           fix_teff=fix_teff, fix_logg=fix_logg,
-                           fix_feh=fix_feh, fix_vt=fix_vt, **options)
-            parameters, converged = fff.minimize()
+            logger.info('Starting the minimization procedure...')
+            function = Minimize(initial, fun_moog, **options)
+            parameters, converged = function.minimize()
 
             newLineList = False
             if outlier:
@@ -344,14 +316,12 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                         wavelength = outliers[max(outliers.keys())]
                         removeOutlier(tmpll, wavelength)
                         print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-                        print('Restarting the minimization routine...')
-                        fff = Minimize(parameters, fun_moog,
-                                       fix_teff=fix_teff, fix_logg=fix_logg,
-                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
-                        parameters, converged = fff.minimize()
+                        print('Restarting the minimization routine...\n')
+                        function = Minimize(parameters, fun_moog, **options)
+                        parameters, converged = function.minimize()
                         outliers = hasOutlier()
 
-                if outlier == '1Once':
+                elif outlier == '1Once':
                     # Remove one outlier above 3 sigma once
                     if outliers:
                         Noutlier += 1
@@ -363,13 +333,11 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                         removeOutlier(tmpll, wavelength)
                         print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
                         print('Restarting the minimization routine...')
-                        fff = Minimize(parameters, fun_moog,
-                                       fix_teff=fix_teff, fix_logg=fix_logg,
-                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
-                        parameters, converged = fff.minimize()
+                        function = Minimize(parameters, fun_moog, **options)
+                        parameters, converged = function.minimize()
                         outliers = hasOutlier()
 
-                if outlier == 'allIter':
+                elif outlier == 'allIter':
                     # Remove all outliers above 3 sigma iteratively
                     while outliers:
                         newLineList = True  # At the end, create a new linelist
@@ -381,13 +349,11 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                             Noutlier += 1
                             print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
                         print('Restarting the minimization routine...')
-                        fff = Minimize(parameters, fun_moog,
-                                       fix_teff=fix_teff, fix_logg=fix_logg,
-                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
-                        parameters, converged = fff.minimize()
+                        function = Minimize(parameters, fun_moog, **options)
+                        parameters, converged = function.minimize()
                         outliers = hasOutlier()
 
-                if outlier == 'allOnce':
+                elif outlier == 'allOnce':
                     # Remove all outliers above 3 sigma once
                     if outliers:
                         newLineList = True  # At the end, create a new linelist
@@ -399,17 +365,14 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                             Noutlier += 1
                             print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
                         print('Restarting the minimization routine...')
-                        fff = Minimize(parameters, fun_moog,
-                                       fix_teff=fix_teff, fix_logg=fix_logg,
-                                       fix_feh=fix_feh, fix_vt=fix_vt, **options)
-                        parameters, converged = fff.minimize()
+                        function = Minimize(parameters, fun_moog, **options)
+                        parameters, converged = function.minimize()
                         outliers = hasOutlier()
 
                 if newLineList:
                     newName = line[0].replace('.moog', '_outlier.moog')
                     copyfile(tmpll, 'linelist/'+newName)
                     _update_par(line_list='linelist/'+newName)
-
                 if os.path.isfile(tmpll):
                     os.remove(tmpll)
 
@@ -420,12 +383,10 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 options['EPcrit'] = 0.001
                 options['RWcrit'] = 0.001
                 options['ABdiffcrit'] = 0.01
-                fff = Minimize(parameters, fun_moog,
-                               fix_teff=fix_teff, fix_logg=fix_logg,
-                               fix_feh=fix_feh, fix_vt=fix_vt, **options)
-                p1, converged = fff.minimize()
+                function = Minimize(parameters, fun_moog, **options)
+                p1, converged = function.minimize()
                 if converged:
-                    print('reseting the parameters')
+                    print('Adjusting the final parameters')
                     parameters = p1  # overwrite with new best results
             logger.info('Finished minimization procedure')
 
@@ -437,8 +398,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             if loggLC:
                 parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
 
-            _ = options.pop('MOOGv')
-            _ = options.pop('iterations')
             tmp = [line[0]] + parameters +\
                   [converged, fix_teff, fix_logg,fix_feh,fix_vt,loggLC,outlier]+\
                   [options['weights'], options['model'], refine,
@@ -452,18 +411,15 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 else:
                     print('\nSorry, you did not win. However, your final parameters are:')
                 try:
-                    print(u' Teff:    %i\u00B1%i\n logg:    %.2f\u00B1%.2f\n [Fe/H]: %.2f\u00B1%.2f\n vt:      %.2f\u00B1%.2f\n\n\n\n' %
-                        (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
+                    print(u' Teff:{:>8d}\u00B1{:d}\n logg:{:>8.2f}\u00B1{:1.2f}\n [Fe/H]:{:>+6.2f}\u00B1{:1.2f}\n vt:{:>10.2f}\u00B1{:1.2f}\n\n\n\n'.format(*parameters))
                 except UnicodeEncodeError:
-                    print('Teff:      %i(%i)\nlogg:    %.2f(%.2f)\n[Fe/H]:  %.2f(%.2f)\nvt:        %.2f(%.2f)\n\n\n\n' %
-                         (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
+                    print(' Teff:{:>8d}({:d})\n logg:{:>8.2f}({:1.2f})\n [Fe/H]:{:>+6.2f}({:1.2f})\n vt:{:>10.2f}({:1.2f})\n\n\n\n'.format(*parameters))
             elif __name__ == 'ewDriver':
                 if converged:
                     print('\nCongratulation, you have won! Your final parameters are:')
                 else:
                     print('\nSorry, you did not win. However, your final parameters are:')
-                print('Teff:      %i+/-%i\nlogg:    %.2f+/-%.2f\n[Fe/H]:  %.2f+/-%.2f\nvt:        %.2f+/-%.2f\n\n\n\n' %
-                     (parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],parameters[6],parameters[7]))
+                print(u' Teff:{:>8d}+/-{:d}\n logg:{:>8.2f}+/-{:1.2f}\n [Fe/H]:{:>+6.2f}+/-{:1.2f}\n vt:{:>10.2f}+/-{:1.2f}\n\n\n\n'.format(*parameters))
     return parameters
 
 
