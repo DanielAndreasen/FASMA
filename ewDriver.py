@@ -151,6 +151,91 @@ def _setup(line):
     return initial, options
 
 
+def _outlierRunner(type):
+    """Remove the potential outliers based on a given type
+
+    Input
+    -----
+    type - Can be '1Iter', '1Once', 'allIter', or 'allOnce'
+    """
+    tmpll = 'linelist/tmplinelist.moog'
+    newLineList = False
+    Noutlier = 0
+    outliers = hasOutlier()
+    if type == '1Iter':
+        # Remove one outlier above 3 sigma iteratively
+        while outliers:
+            Noutlier += 1
+            newLineList = True  # At the end, create a new linelist
+            if not os.path.isfile(tmpll):
+                copyfile('linelist/'+line[0], tmpll)
+                _update_par(line_list=tmpll)
+            wavelength = outliers[max(outliers.keys())]
+            removeOutlier(tmpll, wavelength)
+            print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
+            print('Restarting the minimization routine...\n')
+            function = Minimize(parameters, fun_moog, **options)
+            parameters, converged = function.minimize()
+            outliers = hasOutlier()
+
+    elif type == '1Once':
+        # Remove one outlier above 3 sigma once
+        if outliers:
+            Noutlier += 1
+            newLineList = True  # At the end, create a new linelist
+            if not os.path.isfile(tmpll):
+                copyfile('linelist/'+line[0], tmpll)
+                _update_par(line_list=tmpll)
+            wavelength = outliers[max(outliers.keys())]
+            removeOutlier(tmpll, wavelength)
+            print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
+            print('Restarting the minimization routine...')
+            function = Minimize(parameters, fun_moog, **options)
+            parameters, converged = function.minimize()
+            outliers = hasOutlier()
+
+    elif type == 'allIter':
+        # Remove all outliers above 3 sigma iteratively
+        while outliers:
+            newLineList = True  # At the end, create a new linelist
+            if not os.path.isfile(tmpll):
+                copyfile('linelist/'+line[0], tmpll)
+                _update_par(line_list=tmpll)
+            for wavelength in outliers.itervalues():
+                removeOutlier(tmpll, wavelength)
+                Noutlier += 1
+                print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
+            print('Restarting the minimization routine...')
+            function = Minimize(parameters, fun_moog, **options)
+            parameters, converged = function.minimize()
+            outliers = hasOutlier()
+
+    elif type == 'allOnce':
+        # Remove all outliers above 3 sigma once
+        if outliers:
+            newLineList = True  # At the end, create a new linelist
+            if not os.path.isfile(tmpll):
+                copyfile('linelist/'+line[0], tmpll)
+                _update_par(line_list=tmpll)
+            for wavelength in outliers.itervalues():
+                removeOutlier(tmpll, wavelength)
+                Noutlier += 1
+                print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
+            print('Restarting the minimization routine...')
+            function = Minimize(parameters, fun_moog, **options)
+            parameters, converged = function.minimize()
+            outliers = hasOutlier()
+
+    if newLineList:
+        newName = line[0].replace('.moog', '_outlier.moog')
+        copyfile(tmpll, 'linelist/'+newName)
+        os.remove(tmpll)
+        _update_par(line_list='linelist/'+newName)
+        return newLineList, newName
+    return newLineList, None
+
+
+
 def hasOutlier(MOOGv=2014):
     """Function that reads the summary.out file and return a dictionary
     with key being the deviation (above 3 sigma), and value the wavelength"""
@@ -300,81 +385,10 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
             function = Minimize(initial, fun_moog, **options)
             parameters, converged = function.minimize()
 
-            newLineList = False
             if outlier:
-                tmpll = 'linelist/tmplinelist.moog'
-                Noutlier = 0
-                outliers = hasOutlier()
-                if outlier == '1Iter':
-                    # Remove one outlier above 3 sigma iteratively
-                    while outliers:
-                        Noutlier += 1
-                        newLineList = True  # At the end, create a new linelist
-                        if not os.path.isfile(tmpll):
-                            copyfile('linelist/'+line[0], tmpll)
-                            _update_par(line_list=tmpll)
-                        wavelength = outliers[max(outliers.keys())]
-                        removeOutlier(tmpll, wavelength)
-                        print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-                        print('Restarting the minimization routine...\n')
-                        function = Minimize(parameters, fun_moog, **options)
-                        parameters, converged = function.minimize()
-                        outliers = hasOutlier()
-
-                elif outlier == '1Once':
-                    # Remove one outlier above 3 sigma once
-                    if outliers:
-                        Noutlier += 1
-                        newLineList = True  # At the end, create a new linelist
-                        if not os.path.isfile(tmpll):
-                            copyfile('linelist/'+line[0], tmpll)
-                            _update_par(line_list=tmpll)
-                        wavelength = outliers[max(outliers.keys())]
-                        removeOutlier(tmpll, wavelength)
-                        print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-                        print('Restarting the minimization routine...')
-                        function = Minimize(parameters, fun_moog, **options)
-                        parameters, converged = function.minimize()
-                        outliers = hasOutlier()
-
-                elif outlier == 'allIter':
-                    # Remove all outliers above 3 sigma iteratively
-                    while outliers:
-                        newLineList = True  # At the end, create a new linelist
-                        if not os.path.isfile(tmpll):
-                            copyfile('linelist/'+line[0], tmpll)
-                            _update_par(line_list=tmpll)
-                        for wavelength in outliers.itervalues():
-                            removeOutlier(tmpll, wavelength)
-                            Noutlier += 1
-                            print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-                        print('Restarting the minimization routine...')
-                        function = Minimize(parameters, fun_moog, **options)
-                        parameters, converged = function.minimize()
-                        outliers = hasOutlier()
-
-                elif outlier == 'allOnce':
-                    # Remove all outliers above 3 sigma once
-                    if outliers:
-                        newLineList = True  # At the end, create a new linelist
-                        if not os.path.isfile(tmpll):
-                            copyfile('linelist/'+line[0], tmpll)
-                            _update_par(line_list=tmpll)
-                        for wavelength in outliers.itervalues():
-                            removeOutlier(tmpll, wavelength)
-                            Noutlier += 1
-                            print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-                        print('Restarting the minimization routine...')
-                        function = Minimize(parameters, fun_moog, **options)
-                        parameters, converged = function.minimize()
-                        outliers = hasOutlier()
-
-                if newLineList:
-                    newName = line[0].replace('.moog', '_outlier.moog')
-                    copyfile(tmpll, 'linelist/'+newName)
-                    _update_par(line_list='linelist/'+newName)
-                if os.path.isfile(tmpll):
-                    os.remove(tmpll)
+                newLineList, newName = _outlierRunner(outlier)
+            else:
+                newLineList = False
 
             if converged and refine:
                 logger.info('Refining the parameters')
