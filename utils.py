@@ -49,10 +49,10 @@ class GetModels:
     Inputs
     -----
 
-    teff  :   The effective temperature(K) for the model atmosphere
-    logg  :   The surface gravity (logarithmic in cgs) for the model atmosphere
-    feh   :   The metallicity for the model atmosphere
-    type  :   The type of atmosphere models to use. Currently only Kurucz from
+    teff     :   The effective temperature(K) for the model atmosphere
+    logg     :   The surface gravity (logarithmic in cgs) for the model atmosphere
+    feh      :   The metallicity for the model atmosphere
+    atmtype  :   The type of atmosphere models to use. Currently only Kurucz from
               '95 is supported.
 
     output
