@@ -168,7 +168,7 @@ def main():
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
     ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|Fel-Fell|')
     ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
-    ew_parser.add_argument('--logg',               help='Correct for logg (Mortier 2009+)', action='store_true', default=True, metavar='logg correction')
+    ew_parser.add_argument('--logg',               help='Correct for logg (Mortier 2009+)', action='store_true', default=False, metavar='logg correction')
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method
