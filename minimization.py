@@ -170,10 +170,10 @@ class Minimize:
             self.print_format()
             best[res] = parameters[-1]
             if self.check_convergence(abundances[0]):
-                print 'Stopped in %i iterations' % self.iteration
+                print '\nStopped in %i iterations' % self.iteration
                 return self.x0, True
 
-        print 'Stopped in %i iterations' % self.iteration
+        print '\nStopped in %i iterations' % self.iteration
         if self.check_convergence(abundances[0]):
             return self.x0, True
         else:
