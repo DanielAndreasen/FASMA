@@ -151,7 +151,7 @@ def _setup(line):
     return initial, options
 
 
-def _outlierRunner(type):
+def _outlierRunner(type, linelist, parameters, options):
     """Remove the potential outliers based on a given type
 
     Input
@@ -168,7 +168,7 @@ def _outlierRunner(type):
             Noutlier += 1
             newLineList = True  # At the end, create a new linelist
             if not os.path.isfile(tmpll):
-                copyfile('linelist/'+line[0], tmpll)
+                copyfile('linelist/'+linelist, tmpll)
                 _update_par(line_list=tmpll)
             wavelength = outliers[max(outliers.keys())]
             removeOutlier(tmpll, wavelength)
@@ -184,7 +184,7 @@ def _outlierRunner(type):
             Noutlier += 1
             newLineList = True  # At the end, create a new linelist
             if not os.path.isfile(tmpll):
-                copyfile('linelist/'+line[0], tmpll)
+                copyfile('linelist/'+linelist, tmpll)
                 _update_par(line_list=tmpll)
             wavelength = outliers[max(outliers.keys())]
             removeOutlier(tmpll, wavelength)
@@ -199,7 +199,7 @@ def _outlierRunner(type):
         while outliers:
             newLineList = True  # At the end, create a new linelist
             if not os.path.isfile(tmpll):
-                copyfile('linelist/'+line[0], tmpll)
+                copyfile('linelist/'+linelist, tmpll)
                 _update_par(line_list=tmpll)
             for wavelength in outliers.itervalues():
                 removeOutlier(tmpll, wavelength)
@@ -215,7 +215,7 @@ def _outlierRunner(type):
         if outliers:
             newLineList = True  # At the end, create a new linelist
             if not os.path.isfile(tmpll):
-                copyfile('linelist/'+line[0], tmpll)
+                copyfile('linelist/'+linelist, tmpll)
                 _update_par(line_list=tmpll)
             for wavelength in outliers.itervalues():
                 removeOutlier(tmpll, wavelength)
@@ -227,13 +227,12 @@ def _outlierRunner(type):
             outliers = hasOutlier()
 
     if newLineList:
-        newName = line[0].replace('.moog', '_outlier.moog')
+        newName = linelist.replace('.moog', '_outlier.moog')
         copyfile(tmpll, 'linelist/'+newName)
         os.remove(tmpll)
         _update_par(line_list='linelist/'+newName)
         return newLineList, newName
     return newLineList, None
-
 
 
 def hasOutlier(MOOGv=2014):
@@ -386,7 +385,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
             parameters, converged = function.minimize()
 
             if outlier:
-                newLineList, newName = _outlierRunner(outlier)
+                newLineList, newName = _outlierRunner(outlier, line[0], parameters, options)
             else:
                 newLineList = False
 
