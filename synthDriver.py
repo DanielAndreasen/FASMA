@@ -34,7 +34,7 @@ def _renaming(linelist, converged):
     os.system(cmd)
 
 
-def _options(options=False):
+def _options(options=None):
     '''Reads the options inside the config file'''
     defaults = {'spt': False,
                 'weights': 'null',

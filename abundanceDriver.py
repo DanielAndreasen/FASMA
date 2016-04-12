@@ -83,7 +83,7 @@ def save(dic, overwrite):
     df.to_csv(path_or_buf='abundances.csv', header=False, index=False, mode='a', na_rep='...')
 
 
-def _options(options=False):
+def _options(options=None):
     '''Reads the options inside the config file'''
     defaults = {'model':'kurucz95',
                 'MOOGv': 2014
@@ -102,7 +102,7 @@ def _options(options=False):
         return defaults
 
 
-def abundancedriver(starLines='StarMe.cfg', overwrite=False):
+def abundancedriver(starLines='StarMe.cfg', overwrite=None):
     """The function that glues everything together
 
     Input:

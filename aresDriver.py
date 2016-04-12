@@ -76,7 +76,7 @@ def make_linelist(line_file, ares, cut):
     #os.remove(ares)
 
 
-def _options(options=False):
+def _options(options=None):
     '''Reads the options inside the config file'''
     defaults = {'lambdai':'3900.0',
                 'lambdaf': '25000.0',

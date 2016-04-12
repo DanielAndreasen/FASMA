@@ -60,7 +60,7 @@ def _renaming(linelist, converged):
         copyfile('summary.out', 'results/%s.NC.out' % linelist)
 
 
-def _options(options=False):
+def _options(options=None):
     """Reads the options inside the config file"""
     defaults = {'spt': False,
                 'weights': 'null',
@@ -281,7 +281,7 @@ def removeOutlier(fname, wavelength):
         f.writelines(fout)
 
 
-def ewdriver(starLines='StarMe.cfg', overwrite=False):
+def ewdriver(starLines='StarMe.cfg', overwrite=None):
     """The function that glues everything together
 
     Input:
