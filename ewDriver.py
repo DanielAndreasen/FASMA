@@ -223,7 +223,7 @@ def _outlierRunner(type, linelist, parameters, options):
         os.remove(tmpll)
         _update_par(line_list='linelist/'+newName)
         return newLineList, newName
-    _update_par(line_list=linelist)
+    _update_par(line_list='linelist/'+linelist)
     os.remove(tmpll)
     return newLineList, linelist
 
