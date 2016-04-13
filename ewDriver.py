@@ -223,8 +223,9 @@ def _outlierRunner(type, linelist, parameters, options):
         os.remove(tmpll)
         _update_par(line_list='linelist/'+newName)
         return newLineList, newName
+    _update_par(line_list=linelist)
     os.remove(tmpll)
-    return newLineList, None
+    return newLineList, linelist
 
 
 def hasOutlier(MOOGv=2014):
@@ -380,15 +381,16 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                 newLineList = False
 
             if options['teffrange']:
-                d = np.loadtxt('coolNormalDiff.lines')
+                d = np.loadtxt('rawLinelist/coolNormalDiff.lines')
                 ll = np.loadtxt('linelist/%s' % line[0], skiprows=1, usecols=(0,))
-                normalLL = np.in1d(d, ll)
+                normalLL = np.in1d(ll, d)
                 if np.any(normalLL) and (parameters[0] > 7000):
                     logger.warning('Effective temperature probably to high for this line list')
                 elif np.any(normalLL) and (parameters[0] < 5200):
                     logger.info('Removing lines from the line list to compensate for the low Teff')
+                    print('Removing lines to compensate for low Teff\n')
                     for li in ll[normalLL]:
-                        removeOutlier(line[0], li)
+                        removeOutlier('linelist/%s' % line[0], li)
 
                     # Restart the minimization procedure from the last best point
                     function = Minimize(parameters, fun_moog, **options)
@@ -398,7 +400,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                         print('No FeII lines were measured.')
                         print('Skipping to next linelist..\n')
                         logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
-                        continue
                     if options['outlier']:
                         newLineList, newName = _outlierRunner(options['outlier'], line[0], parameters, options)
                         line[0] = newName
