@@ -382,7 +382,13 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
 
             logger.info('Starting the minimization procedure...')
             function = Minimize(initial, fun_moog, **options)
-            parameters, converged = function.minimize()
+            try:
+                parameters, converged = function.minimize()
+            except ValueError:
+                print('No FeII lines were measured.')
+                print('Skipping to next linelist..\n')
+                logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
+                continue
 
             if outlier:
                 newLineList, newName = _outlierRunner(outlier, line[0], parameters, options)
