@@ -48,6 +48,8 @@ def ew(args):
         fout += ',vt'
     if args.logg:
         fout += ',loggLC'
+    if args.teffrange:
+        fout += ',teffrage'
     with open('StarMe.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
@@ -169,6 +171,7 @@ def main():
     ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|Fel-Fell|')
     ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
     ew_parser.add_argument('--logg',               help='Correct for logg (Mortier 2009+)', action='store_true', default=False, metavar='logg correction')
+    ew_parser.add_argument('--teffrange',          help='Give warning at high Teff, and remove lines at low Teff', action='store_true', default=False, metavar='Teff range')
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method

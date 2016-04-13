@@ -14,7 +14,7 @@ class Minimize:
     def __init__(self, x0, func, model, weights='null',
                  fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
                  iterations=160, EPcrit=0.001, RWcrit=0.003, ABdiffcrit=0.01,
-                 MOOGv=2014, GUI=True):
+                 MOOGv=2014, GUI=True, **kwargs):
         self.x0 = x0
         self.func = func
         self.model = model

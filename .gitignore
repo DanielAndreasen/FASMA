@@ -8,6 +8,7 @@ spectra/
 !rawLinelist/optical_cool.moog
 !rawLinelist/optical_solar.moog
 !rawLinelist/nir_solar.moog
+!rawLinelist/coolNormalDiff.lines
 results.csv
 abundances.csv
 logARES.txt

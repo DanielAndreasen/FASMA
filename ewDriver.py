@@ -76,7 +76,8 @@ def _options(options=None):
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
                 'loggLC': False,
-                'outlier': False
+                'outlier': False,
+                'teffrange': False
                 }
     if not options:
         return defaults
@@ -113,7 +114,7 @@ def _output(overwrite=None, header=None, parameters=None):
     if header:
         hdr = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
                'vt', 'vterr', 'convergence', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt',
-               'loggLC','outlier', 'weights', 'model', 'refine', 'EPcrit', 'RWcrit',
+               'loggLC', 'outlier', 'weights', 'model', 'refine', 'EPcrit', 'RWcrit',
                'ABdiffcrit']
         if overwrite:
             with open('results.csv', 'w') as output:
@@ -222,8 +223,9 @@ def _outlierRunner(type, linelist, parameters, options):
         os.remove(tmpll)
         _update_par(line_list='linelist/'+newName)
         return newLineList, newName
+    _update_par(line_list=linelist)
     os.remove(tmpll)
-    return newLineList, None
+    return newLineList, linelist
 
 
 def hasOutlier(MOOGv=2014):
@@ -315,10 +317,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                 logger.debug('Skipping header: %s' % line.strip())
                 continue
             logger.info('Line list: %s' % line.strip())
-            fix_teff = False
-            fix_logg = False
-            fix_feh = False
-            fix_vt = False
             line = line.strip()
             line = line.split(' ')
             if len(line) not in [1, 2, 5, 6]:
@@ -365,11 +363,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                 options['GUI'] = False  # Running batch mode
             else:
                 options['GUI'] = True  # Running GUI mode
-            # Options not in use will be removed
-            _ = options.pop('spt')
-            refine = options.pop('refine')
-            loggLC = options.pop('loggLC')
-            outlier = options.pop('outlier')
 
             logger.info('Starting the minimization procedure...')
             function = Minimize(initial, fun_moog, **options)
@@ -381,12 +374,40 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                 logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
                 continue
 
-            if outlier:
-                newLineList, newName = _outlierRunner(outlier, line[0], parameters, options)
+            if options['outlier']:
+                newLineList, newName = _outlierRunner(options['outlier'], line[0], parameters, options)
+                line[0] = newName
             else:
                 newLineList = False
 
-            if converged and refine:
+            if options['teffrange']:
+                d = np.loadtxt('rawLinelist/coolNormalDiff.lines')
+                ll = np.loadtxt('linelist/%s' % line[0], skiprows=1, usecols=(0,))
+                normalLL = np.in1d(ll, d)
+                if np.any(normalLL) and (parameters[0] > 7000):
+                    logger.warning('Effective temperature probably to high for this line list')
+                elif np.any(normalLL) and (parameters[0] < 5200):
+                    logger.info('Removing lines from the line list to compensate for the low Teff')
+                    print('Removing lines to compensate for low Teff\n')
+                    for li in ll[normalLL]:
+                        removeOutlier('linelist/%s' % line[0], li)
+
+                    # Restart the minimization procedure from the last best point
+                    function = Minimize(parameters, fun_moog, **options)
+                    try:
+                        parameters, converged = function.minimize()
+                    except ValueError:
+                        print('No FeII lines were measured.')
+                        print('Skipping to next linelist..\n')
+                        logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
+                    if options['outlier']:
+                        newLineList, newName = _outlierRunner(options['outlier'], line[0], parameters, options)
+                        line[0] = newName
+                    else:
+                        newLineList = False
+
+            # Refine the parameters
+            if converged and options['refine']:
                 logger.info('Refining the parameters')
                 print('\nRefining the parameters')
                 print('This might take some time...')
@@ -400,18 +421,17 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                     parameters = p1  # overwrite with new best results
             logger.info('Finished minimization procedure')
 
-            if newLineList:
-                line[0] = newName
             _renaming(line[0], converged)
             parameters = error(line[0], converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
-            if loggLC:
+            if options['loggLC']:
                 parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
 
             tmp = [line[0]] + parameters +\
-                  [converged, fix_teff, fix_logg,fix_feh,fix_vt,loggLC,outlier]+\
-                  [options['weights'], options['model'], refine,
-                  options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
+                  [converged, options['fix_teff'], options['fix_logg'],
+                  options['fix_feh'], options['fix_vt'], options['loggLC'],
+                  options['outlier']]+[options['weights'], options['model'],
+                  options['refine'], options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
             _output(parameters=tmp)
             logger.info('Saved results to: results.csv')
 
