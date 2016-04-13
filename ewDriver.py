@@ -382,8 +382,31 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
 
             if options['teffrange']:
                 d = np.loadtxt('coolNormalDiff.lines')
+                ll = np.loadtxt('linelist/%s' % line[0], skiprows=1, usecols=(0,))
+                normalLL = np.in1d(d, ll)
+                if np.any(normalLL) and (parameters[0] > 7000):
+                    logger.warning('Effective temperature probably to high for this line list')
+                elif np.any(normalLL) and (parameters[0] < 5200):
+                    logger.info('Removing lines from the line list to compensate for the low Teff')
+                    for li in ll[normalLL]:
+                        removeOutlier(line[0], li)
 
+                    # Restart the minimization procedure from the last best point
+                    function = Minimize(parameters, fun_moog, **options)
+                    try:
+                        parameters, converged = function.minimize()
+                    except ValueError:
+                        print('No FeII lines were measured.')
+                        print('Skipping to next linelist..\n')
+                        logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
+                        continue
+                    if options['outlier']:
+                        newLineList, newName = _outlierRunner(options['outlier'], line[0], parameters, options)
+                        line[0] = newName
+                    else:
+                        newLineList = False
 
+            # Refine the parameters
             if converged and options['refine']:
                 logger.info('Refining the parameters')
                 print('\nRefining the parameters')
