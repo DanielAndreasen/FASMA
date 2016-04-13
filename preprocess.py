@@ -78,6 +78,8 @@ def _parser():
     parser.add_argument('-ix', help='Inverse x axis', default=False, action='store_true')
     parser.add_argument('-iy', help='Inverse y axis', default=False, action='store_true')
     parser.add_argument('-iz', help='Inverse z axis', default=False, action='store_true')
+    parser.add_argument('-lx', help='Logarithmic x axis', default=False, action='store_true')
+    parser.add_argument('-ly', help='Logarithmic y axis', default=False, action='store_true')
     args = parser.parse_args()
     return args
 
@@ -97,20 +99,16 @@ if __name__ == '__main__':
     df.vt = pd.to_numeric(df.vt, errors='coarse')
     df.vterr = pd.to_numeric(df.vterr, errors='coarse')
 
-    m_ = ['mass', 'masserr', 'lum']
+    m_ = ['mass', 'masserr', 'lum', 'radius', 'radiuserr']
     if (args.x in m_) or (args.y in m_) or (args.z in m_):
         params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
         m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
+        r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
         df['mass'] = pd.Series(np.asarray(m)[:, 0])
         df['masserr'] = pd.Series(np.asarray(m)[:, 1])
-        df['lum'] = (df.teff/5777)**4 * df.mass
-
-    r_ = ['radius', 'radiuserr']
-    if (args.x in r_) or (args.y in r_) or (args.z in r_):
-        params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
-        r = [radTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
         df['radius'] = pd.Series(np.asarray(r)[:, 0])
         df['radiuserr'] = pd.Series(np.asarray(r)[:, 1])
+        df['lum'] = (df.teff/5777)**4 * df.radius**2
 
     df1 = df[df.convergence == True]
     df2 = df[df.convergence == False]
@@ -159,6 +157,11 @@ if __name__ == '__main__':
         plt.xlim(plt.xlim()[::-1])
     if args.iy:
         plt.ylim(plt.ylim()[::-1])
+
+    if args.lx:
+        plt.xscale('log')
+    if args.ly:
+        plt.yscale('log')
 
     plt.grid(True)
     plt.tight_layout()
