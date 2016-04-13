@@ -362,7 +362,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                 options['GUI'] = False  # Running batch mode
             else:
                 options['GUI'] = True  # Running GUI mode
-            # Options not in use will be removed
 
             logger.info('Starting the minimization procedure...')
             function = Minimize(initial, fun_moog, **options)
