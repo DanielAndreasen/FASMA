@@ -159,6 +159,8 @@ def _outlierRunner(type, linelist, parameters, options):
     type - Can be '1Iter', '1Once', 'allIter', or 'allOnce'
     """
     tmpll = 'linelist/tmplinelist.moog'
+    copyfile('linelist/'+linelist, tmpll)
+    _update_par(line_list=tmpll)
     newLineList = False
     Noutlier = 0
     outliers = hasOutlier()
@@ -167,9 +169,6 @@ def _outlierRunner(type, linelist, parameters, options):
         while outliers:
             Noutlier += 1
             newLineList = True  # At the end, create a new linelist
-            if not os.path.isfile(tmpll):
-                copyfile('linelist/'+linelist, tmpll)
-                _update_par(line_list=tmpll)
             wavelength = outliers[max(outliers.keys())]
             removeOutlier(tmpll, wavelength)
             print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
@@ -183,9 +182,6 @@ def _outlierRunner(type, linelist, parameters, options):
         if outliers:
             Noutlier += 1
             newLineList = True  # At the end, create a new linelist
-            if not os.path.isfile(tmpll):
-                copyfile('linelist/'+linelist, tmpll)
-                _update_par(line_list=tmpll)
             wavelength = outliers[max(outliers.keys())]
             removeOutlier(tmpll, wavelength)
             print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
@@ -198,9 +194,6 @@ def _outlierRunner(type, linelist, parameters, options):
         # Remove all outliers above 3 sigma iteratively
         while outliers:
             newLineList = True  # At the end, create a new linelist
-            if not os.path.isfile(tmpll):
-                copyfile('linelist/'+linelist, tmpll)
-                _update_par(line_list=tmpll)
             for wavelength in outliers.itervalues():
                 removeOutlier(tmpll, wavelength)
                 Noutlier += 1
@@ -214,9 +207,6 @@ def _outlierRunner(type, linelist, parameters, options):
         # Remove all outliers above 3 sigma once
         if outliers:
             newLineList = True  # At the end, create a new linelist
-            if not os.path.isfile(tmpll):
-                copyfile('linelist/'+linelist, tmpll)
-                _update_par(line_list=tmpll)
             for wavelength in outliers.itervalues():
                 removeOutlier(tmpll, wavelength)
                 Noutlier += 1
@@ -232,6 +222,7 @@ def _outlierRunner(type, linelist, parameters, options):
         os.remove(tmpll)
         _update_par(line_list='linelist/'+newName)
         return newLineList, newName
+    os.remove(tmpll)
     return newLineList, None
 
 
