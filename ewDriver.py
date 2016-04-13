@@ -376,8 +376,13 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
 
             if options['outlier']:
                 newLineList, newName = _outlierRunner(options['outlier'], line[0], parameters, options)
+                line[0] = newName
             else:
                 newLineList = False
+
+            if options['teffrange']:
+                d = np.loadtxt('coolNormalDiff.lines')
+
 
             if converged and options['refine']:
                 logger.info('Refining the parameters')
@@ -393,8 +398,6 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                     parameters = p1  # overwrite with new best results
             logger.info('Finished minimization procedure')
 
-            if newLineList:
-                line[0] = newName
             _renaming(line[0], converged)
             parameters = error(line[0], converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
