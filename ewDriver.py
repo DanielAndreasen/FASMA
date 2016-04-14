@@ -71,9 +71,9 @@ def _options(options=False):
                 'feh': False,
                 'vt': False,
                 'refine': False,
-                'iterations': 160,
-                'EPcrit': 0.001,
-                'RWcrit': 0.001,
+                'iterations': 180,
+                'EPcrit': 0.003,
+                'RWcrit': 0.004,
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
                 'loggLC': False,
@@ -274,7 +274,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=False):
                 continue
 
             # Setting the models to use
-            if options['model'] != 'kurucz95' and options['model'] != 'apogee_kurucz':
+            if options['model'] != 'kurucz95' and options['model'] != 'apogee_kurucz' and options['model'] != 'marcs':
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
