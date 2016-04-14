@@ -17,7 +17,7 @@ import argparse
 
 def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
     """Calculate a mass using the Torres calibration"""
-    ntrials = 10000
+    ntrials = 1000
     randomteff = teff + erteff * np.random.randn(ntrials)
     randomlogg = logg + erlogg * np.random.randn(ntrials)
     randomfeh = feh + erfeh * np.random.randn(ntrials)
@@ -42,7 +42,7 @@ def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
 
 
 def radTorres(teff, erteff, logg, erlogg, feh, erfeh):
-    ntrials = 10000
+    ntrials = 1000
     randomteff = teff + erteff*np.random.randn(ntrials)
     randomlogg = logg + erlogg*np.random.randn(ntrials)
     randomfeh = feh + erfeh*np.random.randn(ntrials)
@@ -69,7 +69,7 @@ def radTorres(teff, erteff, logg, erlogg, feh, erfeh):
 def _parser():
     parser = argparse.ArgumentParser(description='Preprocess the results')
     p = ['teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr']
-    p += ['lum', 'mass', 'masserr', 'radius', 'radiuserr']
+    p += ['lum', 'mass', 'masserr', 'radius', 'radiuserr', 'age']
     parser.add_argument('x', choices=p)
     parser.add_argument('y', choices=p)
     parser.add_argument('-z', help='Color scale', choices=p, default=None)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     df.vt = pd.to_numeric(df.vt, errors='coarse')
     df.vterr = pd.to_numeric(df.vterr, errors='coarse')
 
-    m_ = ['mass', 'masserr', 'lum', 'radius', 'radiuserr']
+    m_ = ['mass', 'masserr', 'lum', 'radius', 'radiuserr', 'age']
     if (args.x in m_) or (args.y in m_) or (args.z in m_):
         params = zip(df.teff, df.tefferr, df.logg, df.loggerr, df.feh, df.feherr)
         m = [massTorres(t, et, l, el, f, ef) for t, et, l, el, f, ef in params]
@@ -109,6 +109,14 @@ if __name__ == '__main__':
         df['radius'] = pd.Series(np.asarray(r)[:, 0])
         df['radiuserr'] = pd.Series(np.asarray(r)[:, 1])
         df['lum'] = (df.teff/5777)**4 * df.radius**2
+
+    if (args.x == 'age') or (args.y == 'age') or (args.z == 'age'):
+        from isochrones.dartmouth import Dartmouth_Isochrone
+        dar = Dartmouth_Isochrone()
+        age = np.zeros(df.shape[0])
+        for i, (mass, feh) in enumerate(df[['mass', 'feh']].values):
+            age[i] = np.mean(dar.agerange(mass, feh))
+        df['age'] = pd.Series(age)
 
     df1 = df[df.convergence == True]
     df2 = df[df.convergence == False]
@@ -145,7 +153,8 @@ if __name__ == '__main__':
               'mass': r'$M_\odot$',
               'masserr': r'$\sigma M_\odot$',
               'radius': r'$R_\odot$',
-              'radiuserr': r'$\sigma R_\odot$'}
+              'radiuserr': r'$\sigma R_\odot$',
+              'age': r'Age $[\log(yr)]$'}
 
     plt.xlabel(labels[args.x])
     plt.ylabel(labels[args.y])
