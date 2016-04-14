@@ -80,18 +80,15 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
 
     :model: The interpolated model atmosphere
     :params: Atmospheric parameters in usual order
-    :type: Type of model atmosphere (onyl kurucz95 at the moment)
+    :type: Type of model atmosphere
     :fout: Which place to save to
     """
     model = model[:, 0:7]
     teff, logg, feh, vt = params
-    if type == 'kurucz95':
+    if type == 'kurucz95' or type == 'apogee_kurucz' or type == 'marcs':
         header = 'KURUCZ\n'\
                  'Teff= %i   log g= %.2f\n'\
                  'NTAU        %i' % (teff, logg, model.shape[0])
-    elif type.lower() == 'marcs': 
-        raise NotImplementedError('Patience is the key. Wait a bit more for %s\
-                                   models to be implemented.' % type)
     else:
         raise NameError('Could not find %s models' % type)
 
