@@ -8,4 +8,5 @@ statsmodels
 patsy
 argparse
 pandas
+isochrones
 # emcee
