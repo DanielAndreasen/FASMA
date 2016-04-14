@@ -29,6 +29,10 @@ apogee_kurucz = {'teff': (3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 
+marcs = {'teff': (2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000),
+       'feh': (-5.0, -4.0, -3.0, -2.5, -2.0, -1.5, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0),
+       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+
 kurucz08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
                 8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
@@ -75,7 +79,7 @@ class GetModels:
         self.feh = feh
         self.atmtype = atmtype
 
-        atmmodels = {'kurucz95': [kurucz95, 'kurucz95'], 'apogee_kurucz': [apogee_kurucz, 'apogee_kurucz'], 'kurucz08': [kurucz08, 'kurucz08']}
+        atmmodels = {'kurucz95': [kurucz95, 'kurucz95'], 'apogee_kurucz': [apogee_kurucz, 'apogee_kurucz'], 'marcs': [marcs, 'marcs'], 'kurucz08': [kurucz08, 'kurucz08']}
         if atmtype in atmmodels.keys():
             self.grid = atmmodels[atmtype][0]
         else:
@@ -161,7 +165,6 @@ class GetModels:
                     fname, Te = self._model_exists(teff_m, logg_m, feh_m, upper)
                     teff_model[i] = Te
                     models.append(fname)
-
         return models, teff_model, logg_model, feh_model
 
 
