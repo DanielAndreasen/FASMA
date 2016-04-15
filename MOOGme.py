@@ -46,8 +46,10 @@ def ew(args):
         fout += ',feh'
     if args.Fixmicroturbulence:
         fout += ',vt'
-    if args.logg:
+    if args.loggLC:
         fout += ',loggLC'
+    if args.loggastero:
+        fout += ',loggastero'
     if args.teffrange:
         fout += ',teffrage'
     with open('StarMe_ew.cfg', 'w') as f:
@@ -170,7 +172,8 @@ def main():
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
     ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|Fel-Fell|')
     ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
-    ew_parser.add_argument('--logg',               help='Correct for logg (Mortier 2009+)', action='store_true', default=False, metavar='logg correction')
+    ew_parser.add_argument('--loggLC',               help='Correct logg from LC (Mortier 2013+)', action='store_true', default=False, metavar='loggLC correction')
+    ew_parser.add_argument('--loggastero',               help='Correct logg from asteroseismology (Mortier 2013+)', action='store_true', default=False, metavar='loggastero correction')
     ew_parser.add_argument('--teffrange',          help='Give warning at high Teff, and remove lines at low Teff', action='store_true', default=False, metavar='Teff range')
     ew_parser.set_defaults(driver=ew)
 
