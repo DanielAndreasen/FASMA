@@ -80,7 +80,7 @@ def _options(options=None):
         return defaults
 
 
-def synthdriver(starLines='StarMe.cfg'):
+def synthdriver(starLines='StarMe_synth.cfg'):
     """The function that glues everything together
 
     Input:

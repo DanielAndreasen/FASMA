@@ -50,7 +50,7 @@ def ew(args):
         fout += ',loggLC'
     if args.teffrange:
         fout += ',teffrage'
-    with open('StarMe.cfg', 'w') as f:
+    with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
 
@@ -82,7 +82,7 @@ def abund(args):
 
     fout += 'model:%s,MOOGv:%s\n' % (args.model, args.MOOGv)
 
-    with open('StarMe.cfg', 'w') as f:
+    with open('StarMe_abund.cfg', 'w') as f:
         f.writelines(fout)
 
     abundancedriver(overwrite=args.overwrite)

@@ -273,7 +273,7 @@ def removeOutlier(fname, wavelength):
         f.writelines(fout)
 
 
-def ewdriver(starLines='StarMe.cfg', overwrite=None):
+def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
     """The function that glues everything together
 
     Input:

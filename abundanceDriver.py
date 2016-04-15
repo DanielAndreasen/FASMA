@@ -102,7 +102,7 @@ def _options(options=None):
         return defaults
 
 
-def abundancedriver(starLines='StarMe.cfg', overwrite=None):
+def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
     """The function that glues everything together
 
     Input:
