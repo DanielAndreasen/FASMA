@@ -116,7 +116,7 @@ def _options(options=None):
         return defaults
 
 
-def update_ares(line_list, spectrum, out, options):
+def update_ares(line_list, spectrum, out, options, fullpath):
     """Driver for ARES"""
 
     default_options = options
@@ -140,7 +140,10 @@ def update_ares(line_list, spectrum, out, options):
     else:
         out = '%s.ares' % spectrum.rpartition('.')[0]
 
-    fout = 'specfits=\'spectra/%s\'\n' % spectrum
+    if fullpath:
+        fout = 'specfits=\'%s\'\n' % spectrum
+    else:
+        fout = 'specfits=\'spectra/%s\'\n' % spectrum
     fout += 'readlinedat=\'rawLinelist/%s\'\n' % line_list
     fout += 'fileout=\'linelist/%s\'\n' % out
     fout += 'lambdai=%s\n' % options['lambdai']
@@ -223,25 +226,31 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 options = _options()
                 line_list = line[0]
                 spectrum = line[1]
-                out = '%s.ares' % spectrum.rpartition('.')[0]
-                update_ares(line_list, spectrum, out, options)
             elif len(line) == 3:
                 options = _options(line[-1])
                 line_list = line[0]
                 spectrum = line[1]
-                if options['output']:
-                    out = options['output']
-                else:
-                    out = '%s.ares' % spectrum.rpartition('.')[0]
-                update_ares(line_list, spectrum, out, options)
             else:
                 logger.error('Could not process information for this line: %s' % line)
                 continue
+
+            if options['output']:
+                out = options['output']
+            else:
+                out = '%s.ares' % spectrum.rpartition('/')[2].rpartition('.')[0]
+                options['output'] = out
+            if os.path.isfile('spectra/%s' % spectrum):
+                update_ares(line_list, spectrum, out, options, fullpath=False)
+            elif os.path.isfile(spectrum):
+                 update_ares(line_list, spectrum, out, options, fullpath=True)
+            else:
+                 continue
+
             print('Using linelist: %s' % line_list)
             print('Using spectrum: %s' % spectrum)
             if options['output']:
                 out = options['output']
-                print('Your ARES output: linelist/%s' % out)
+                print('Your ARES output: linelist/%s' % out.replace('.ares', '.moog'))
             else:
                 out = '%s.ares' % spectrum.rpartition('.')[0]
                 print('Your ARES output: linelist/%s' % out.replace('.ares', '.moog'))

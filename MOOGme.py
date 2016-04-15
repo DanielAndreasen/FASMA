@@ -105,7 +105,7 @@ def ares(args):
 
     # Make the StarMe_ares.cfg file from Gooey
     fout = args.linelist.rpartition('/')[2]
-    fout += ' %s' % args.spectrum.rpartition('/')[2]
+    fout += ' %s' % args.spectrum
     fout += ' lambdai:%s,lambdaf:%s,smoothder:%s' % (args.lambdai, args.lambdaf, args.smoothder)
     fout += ',space:%s,lineresol:%s' % (args.space, args.lineresol)
     fout += ',miniline:%s,EWcut:%s' % (args.miniline, args.EWcut)
