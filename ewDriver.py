@@ -42,13 +42,13 @@ def _getSpt(spt):
     return teff, logg
 
 
-def _getMic(teff, logg):
-    """Calculate micro turbulence. REF? Doyle 2014"""
-    if logg >= 3.95:  # Dwarfs
+def _getMic(teff, logg, feh):
+    """Calculate micro turbulence."""
+    if logg >= 3.95:  # Dwarfs Tsantaki 2013
         mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
         return round(mic, 2)
-    else:  # Giants
-        mic = 3.7 - (5.1 * teff * (10**(-4)))
+    else:  # Giants Adibekyan 2015
+        mic = 2.72 - (0.457 * logg) + (0.072 * feh)
         return round(mic, 2)
 
 
@@ -76,6 +76,7 @@ def _options(options=None):
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
                 'loggLC': False,
+                'loggastero': False,
                 'outlier': False,
                 'teffrange': False
                 }
@@ -112,10 +113,7 @@ def _output(overwrite=None, header=None, parameters=None):
     header    - Only use True if this is for the file to be created
     """
     if header:
-        hdr = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
-               'vt', 'vterr', 'convergence', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt',
-               'loggLC', 'outlier', 'weights', 'model', 'refine', 'EPcrit', 'RWcrit',
-               'ABdiffcrit']
+        hdr = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt', 'loggastero', 'loggLC', 'outlier', 'weights', 'model', 'refine', 'EPcrit', 'RWcrit', 'ABdiffcrit']
         if overwrite:
             with open('results.csv', 'w') as output:
                 output.write('\t'.join(hdr)+'\n')
@@ -141,7 +139,7 @@ def _setup(line):
         options = _options(line[1])
         if options['spt']:
             Teff, logg = _getSpt(options['spt'])
-            mic = _getMic(Teff, logg)
+            mic = _getMic(Teff, logg, 0.00)
             initial = (Teff, logg, 0.00, mic)
         else:
             initial = [5777, 4.44, 0.00, 1.00]
@@ -424,14 +422,18 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
             _renaming(line[0], converged)
             parameters = error(line[0], converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
+            """Correct logg according to Mortier et al. 2014 using light curve and asteroseismic data
+            Valid for 5000 < teff < 6500"""
             if options['loggLC']:
-                parameters[2] = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
+                loggLC = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
+                error_loggLC = round(np.sqrt((4.57e-4*parameters[1])**2 + (parameters[3])**2),2)
+                options['loggLC'] = (loggLC, error_loggLC) 
+            if options['loggastero']:
+                loggastero = round(parameters[2] - 3.89E-4*parameters[0] + 2.10, 2)
+                error_loggastero = round(np.sqrt((3.89e-4*parameters[1])**2 + (parameters[3])**2),2)
+                options['loggastero'] = (loggastero, error_loggastero) 
 
-            tmp = [line[0]] + parameters +\
-                  [converged, options['fix_teff'], options['fix_logg'],
-                  options['fix_feh'], options['fix_vt'], options['loggLC'],
-                  options['outlier']]+[options['weights'], options['model'],
-                  options['refine'], options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
+            tmp = [line[0]] + parameters + [converged, options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['loggastero'], options['loggLC'], options['outlier']]+[options['weights'], options['model'], options['refine'], options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
             _output(parameters=tmp)
             logger.info('Saved results to: results.csv')
 
