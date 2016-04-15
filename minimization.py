@@ -103,7 +103,7 @@ class Minimize:
 
 
     def minimize(self):
-        step = (700, 1.50, 0.50)
+        step = (700, 0.50, 0.50)
 
         self._format_x0()
         res, self.slopeEP, self.slopeRW, abundances = self.func(self.x0, self.model, version=self.MOOGv)
@@ -138,7 +138,7 @@ class Minimize:
             # Step for logg
             if (abs(self.Abdiff) >= self.ABdiffcrit) and not self.fix_logg:
                 s = -np.sign(self.Abdiff)
-                step_i = s * step[1]/abs(np.log(abs(self.Abdiff)+0.0005))**3
+                step_i = s * abs(self.Abdiff)
                 step_i = s*0.01 if abs(step_i) < 0.01 else step_i
                 self.x0[1] += step_i
                 self.check_bounds(3)
