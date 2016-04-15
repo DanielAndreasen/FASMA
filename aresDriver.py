@@ -71,9 +71,9 @@ def make_linelist(line_file, ares, cut):
     # Write results in MOOG readable format
     assert np.array_equal(data[:, 0], linelist[:, 0]), 'There is something wrong with the common elements of ARES and the line list'
     data = zip(sorted_values[:, 0], sorted_values[:, 1], sorted_values[:, 2], sorted_values[:, 3], sorted_values[:, 4])
-    fout = '%s.moog' % ares
-    np.savetxt(fout, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % ares)
-    #os.remove(ares)
+    fout = '%s.moog' % ares.rpartition('.')[0]
+    np.savetxt(fout, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % fout)
+    os.remove(ares)
 
 
 def _options(options=None):
@@ -244,7 +244,7 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 print('Your ARES output: linelist/%s' % out)
             else:
                 out = '%s.ares' % spectrum.rpartition('.')[0]
-                print('Your ARES output: linelist/%s' % out)
+                print('Your ARES output: linelist/%s' % out.replace('.ares', '.moog'))
 
             if options['force']:
                 index = 1
