@@ -34,6 +34,8 @@ class Minimize:
             self.bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99]
         if self.model.lower() == 'apogee_kurucz':
             self.bounds = [3500, 30000, 0.0, 5.0, -5, 1.5, 0, 9.99]
+        if self.model.lower() == 'marcs':
+            self.bounds = [2500, 8000, 0.0, 5.0, -5, 1.0, 0, 9.99]
 
 
     def _getMic(self):

@@ -72,7 +72,7 @@ def _options(options=None):
                 'refine': False,
                 'iterations': 160,
                 'EPcrit': 0.001,
-                'RWcrit': 0.001,
+                'RWcrit': 0.003
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
                 'loggLC': False,
@@ -342,7 +342,7 @@ def ewdriver(starLines='StarMe.cfg', overwrite=None):
                 logger.info('Micro turbulence fixed according to an emperical relation')
 
             # Setting the models to use
-            if options['model'] not in ['kurucz95', 'apogee_kurucz']:
+            if options['model'] not in ['kurucz95', 'apogee_kurucz', 'marcs']:
                 logger.error('Your request for type: %s is not available' % model)
                 continue
 
