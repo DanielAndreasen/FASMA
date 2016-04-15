@@ -72,7 +72,7 @@ def _options(options=None):
                 'refine': False,
                 'iterations': 160,
                 'EPcrit': 0.001,
-                'RWcrit': 0.003
+                'RWcrit': 0.003,
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
                 'loggLC': False,
