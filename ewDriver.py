@@ -75,8 +75,6 @@ def _options(options=None):
                 'RWcrit': 0.003,
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
-                'loggLC': False,
-                'loggastero': False,
                 'outlier': False,
                 'teffrange': False
                 }
@@ -113,7 +111,10 @@ def _output(overwrite=None, header=None, parameters=None):
     header    - Only use True if this is for the file to be created
     """
     if header:
-        hdr = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr', 'vt', 'vterr', 'convergence', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt', 'loggastero', 'loggLC', 'outlier', 'weights', 'model', 'refine', 'EPcrit', 'RWcrit', 'ABdiffcrit']
+        hdr = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
+               'vt', 'vterr', 'loggastero', 'dloggastero', 'loggLC', 'dloggLC',
+               'convergence', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt', 'outlier',
+               'weights', 'model', 'refine', 'EPcrit', 'RWcrit', 'ABdiffcrit']
         if overwrite:
             with open('results.csv', 'w') as output:
                 output.write('\t'.join(hdr)+'\n')
@@ -424,16 +425,16 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
             parameters = list(parameters)
             """Correct logg according to Mortier et al. 2014 using light curve and asteroseismic data
             Valid for 5000 < teff < 6500"""
-            if options['loggLC']:
-                loggLC = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
-                error_loggLC = round(np.sqrt((4.57e-4*parameters[1])**2 + (parameters[3])**2),2)
-                options['loggLC'] = (loggLC, error_loggLC) 
-            if options['loggastero']:
-                loggastero = round(parameters[2] - 3.89E-4*parameters[0] + 2.10, 2)
-                error_loggastero = round(np.sqrt((3.89e-4*parameters[1])**2 + (parameters[3])**2),2)
-                options['loggastero'] = (loggastero, error_loggastero) 
+            loggLC = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
+            error_loggLC = round(np.sqrt((4.57e-4*parameters[1])**2 + (parameters[3])**2),2)
+            loggastero = round(parameters[2] - 3.89E-4*parameters[0] + 2.10, 2)
+            error_loggastero = round(np.sqrt((3.89e-4*parameters[1])**2 + (parameters[3])**2),2)
+            parameters.append(loggastero)
+            parameters.append(error_loggastero)
+            parameters.append(loggLC)
+            parameters.append(error_loggLC)
 
-            tmp = [line[0]] + parameters + [converged, options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['loggastero'], options['loggLC'], options['outlier']]+[options['weights'], options['model'], options['refine'], options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
+            tmp = [line[0]] + parameters + [converged, options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['outlier']]+[options['weights'], options['model'], options['refine'], options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
             _output(parameters=tmp)
             logger.info('Saved results to: results.csv')
 
