@@ -262,7 +262,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         moog.writelines(moog_contents)
 
 
-def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmosphere_model='out.atm', **kwargs):
+def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
     """Update the parameter file (batch.par) with new linelists, atmosphere
     models, or others.
 
@@ -318,43 +318,63 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
         'smoothed_out': 'smooth.out',
         'summary':      'summary.out'
         }
-
     # Fill the keyword arguments with the defaults if they don't exist already
-    for key, value in default_kwargs.iteritems():
-        if key not in kwargs.keys():
-            kwargs[key] = value
-    # Generate a MOOG-compatible run file
 
+    # Generate a MOOG-compatible run file
+    out = '%s.spec' % line_list.rpartition('/')[2]
     moog_contents = "synth\n"\
                     "terminal          %s\n"\
                     "model_in          '%s'\n"\
-                    "observed_in       '%s'\n"\
                     "summary_out       '%s'\n"\
-                    "smoothed_out      'smooth.out'\n"\
+                    "smoothed_out      'results/%s'\n"\
                     "standard_out      'result.out'\n"\
                     "lines_in          '%s'\n"\
-                    "plot              1\n"\
+                    "plot              %s\n"\
                     "synlimits\n"\
                     "      %s      %s       %s      %s\n"\
                     "plotpars          %s\n"\
                     "      %s      %s       0.5      1.05\n"\
                     "      0.0     0.0      0.0       0.0\n"\
-                    "      g       %s       %s       %s       %s       %s\n" % (kwargs['terminal'], atmosphere_model,  kwargs['obfile'], kwargs['summary'],
-                                                                               line_list, start_wave, end_wave, kwargs['step_wave'], kwargs['step_flux'],
-                                                                               kwargs['plotpars'], start_wave, end_wave, kwargs['resolution'], kwargs['vsini'],
-                                                                               kwargs['limb'], kwargs['vmac'], kwargs['lorentz'])
+                    "      g       %s       %s       %s       %s       %s\n" % (default_kwargs['terminal'], default_kwargs['model_in'], default_kwargs['summary'], out, line_list,  kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['step_wave'], kwargs['options']['step_flux'], kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['resolution'], kwargs['options']['vsini'], kwargs['options']['limb'], kwargs['options']['vmac'], kwargs['options']['lorentz'])
+
+
+    # Fill the keyword arguments with the defaults if they don't exist already
+    for key, value in default_kwargs.iteritems():
+        if key not in kwargs.keys():
+            kwargs[key] = value
 
     settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
-               'units,iraf,opacity,freeform,obspectrum,histogram,'\
+               'units,iraf,opacit,freeform,observed_in,obspectrum,histogram,'\
                'synlimits'.split(',')
+
+    #plot and plotpar values are the same
+    if 'plotpars' in kwargs:
+        if kwargs['plotpars'] != 0:
+            settings.append('plot')
+            settings.append('plotpars')
+
+    #obspectrum options: 0 for no spectrum, 1 for fits file, 5 for ascii file
+    #if kwargs['options']['observations']:
+    #    obfile = str(kwargs['options']['observations'])
+
+    #    extension = ('.dat', '.txt', '.fits')
+    #    if obfile.endswith(extension):
+    #        if obfile[-4:]=='.dat' or obfile[-4:]=='.txt':
+    #            obspectrum = 5 
+    #    elif obfile.endswith(extension):
+    #        if obfile[-5:]=='.fits':
+    #            obspectrum = 1
+    #    else: 
+    #        obspectrum = 0
+    #    kwargs['observed_in'] = kwargs['options']['observations']
+    #    kwargs['obspectrum'] = obspectrum
 
     for setting in settings:
         if setting in kwargs:
-            moog_contents += "%s      %s\n" % (setting + ' ' * (14 - len(setting)), kwargs[setting])
+            moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)), kwargs[setting])
 
     with open('batch.par', 'w') as moog:
         moog.writelines(moog_contents)
-
 
 def _run_moog(par='batch.par', driver='abfind'):
     """Run MOOGSILENT with the given parameter file"""
@@ -650,31 +670,3 @@ def slope(data, weights='null'):
     wls = sm.wls('y ~ x', data=data, weights=w).fit()
     return wls.params[1], w
 
-
-def read_observations(wavelength, flux, start_synth, end_synth):
-    """Read observed spectrum and return wavelength and flux"""
-    wavelength_obs = wavelength[(wavelength >= start_synth) & (wavelength <= end_synth)]
-    flux_obs = flux[(wavelength >= start_synth) & (wavelength <= end_synth)]
-    return wavelength_obs, flux_obs
-
-
-def interpol_synthetic(wavelength, flux, start_synth, end_synth):
-    """Interpolation of the synthetic flux to the observed wavelength"""
-    from scipy.interpolate import interp1d
-    # The synthetic spectrum should be always finer
-    wave_synth, flux_synth = _read_smooth('smooth.out')
-    wavelength_obs, flux_obs = read_observations(wavelength, flux, start_synth, end_synth)
-    f = interp1d(wave_synth, flux_synth, kind='cubic')
-    flux_inter_synth = f(wavelength_obs)
-    return wavelength_obs, flux_obs, flux_inter_synth
-
-
-def plot_synthetic():
-    """Function to plot synthetic spectrum
-    """
-    import seaborn
-    import matplotlib.pyplot as plt
-    x, y = _read_smooth(fname='smooth.out')
-    plt.plot(x, y)
-    plt.show()
-    plt.close()
