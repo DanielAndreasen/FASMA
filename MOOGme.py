@@ -46,8 +46,10 @@ def ew(args):
         fout += ',feh'
     if args.Fixmicroturbulence:
         fout += ',vt'
-    if args.logg:
+    if args.loggLC:
         fout += ',loggLC'
+    if args.loggastero:
+        fout += ',loggastero'
     if args.teffrange:
         fout += ',teffrage'
     with open('StarMe_ew.cfg', 'w') as f:
@@ -57,8 +59,39 @@ def ew(args):
 
 def synth(args):
     """Driver for the synthesis method"""
-    print(args)
-    raise NotImplementedError('Patience you must have my young Padawan')
+    fout = ''
+    linelist = args.linelist.rpartition('/')[-1]
+    if args.spectralType:
+        if not args.temperature and not args.surfacegravity:
+            fout += '%s spt:%s,' % (linelist, args.spectralType)
+        else:
+            print('Temperature and/or surface gravity set. Will not use spectral type.')
+    else:
+        if not args.temperature:
+            print('Warning: Temperature was set to 5777K')
+            args.temperature = 5777
+        if not args.surfacegravity:
+            print('Warning: Surface gravity was set to 4.44')
+            args.surfacegravity = 4.44
+        if not args.FeH:
+            args.FeH = 0.0
+        if not args.microturbulence:
+            print('Warning: Microturbulence was set to 1.00')
+            args.microturbulence = 1.00
+        fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
+
+    fout += 'model:%s,plotpars:%s,step_wave:%s,step_flux:%s,resolution:%s,vmac:%s,vsini:%s,limb:%s,lorentz:%s,MOOGv:%s' % (args.model, args.plotpars, args.step_wave, args.step_flux, args.resolution, args.vmac, args.vsini, args.limb, args.lorentz, args.MOOGv)
+    if args.plot:
+        fout += ',plot'
+    if args.observations:
+        fout += ',observations:%s' % args.observations 
+    if args.start_wave:
+        fout += ',start_wave:%s' % args.start_wave 
+    if args.end_wave:
+        fout += ',end_wave:%s' % args.end_wave 
+    with open('StarMe_synth.cfg', 'w') as f:
+        f.writelines(fout)
+    synthdriver()
 
 
 def abund(args):
@@ -170,13 +203,27 @@ def main():
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
     ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|Fel-Fell|')
     ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
-    ew_parser.add_argument('--logg',               help='Correct for logg (Mortier 2009+)', action='store_true', default=False, metavar='logg correction')
+    ew_parser.add_argument('--loggLC',             help='Correct logg from LC (Mortier 2013+)', action='store_true', default=False, metavar='loggLC correction')
+    ew_parser.add_argument('--loggastero',         help='Correct logg from asteroseismology (Mortier 2013+)', action='store_true', default=False, metavar='loggastero correction')
     ew_parser.add_argument('--teffrange',          help='Give warning at high Teff, and remove lines at low Teff', action='store_true', default=False, metavar='Teff range')
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method
     synth_parser = subparsers.add_parser('synth', parents=[parent_parser], help='Synthesis method')
-    synth_parser.add_argument('--test', help='this is test')
+    synth_parser.add_argument('linelist',             help='Input linelist file', widget='FileChooser')
+    synth_parser.add_argument('--spectralType',       help='Input spectral type (optional)', default=False, metavar='Spectral type')
+    synth_parser.add_argument('--plotpars',           help='Plotpars',   default=1, type=int)
+    synth_parser.add_argument('--plot',               help='Plot',       action='store_true', default=False)
+    synth_parser.add_argument('--start_wave',         help='Start wave', default=False)
+    synth_parser.add_argument('--end_wave',           help='End wave',   default=False)
+    synth_parser.add_argument('--step_wave',          help='Step wave',  default=0.01, type=float)
+    synth_parser.add_argument('--step_flux',          help='Step flux',  default=5.0, type=float)
+    synth_parser.add_argument('--vmac',               help='Macroturbulence', default='0.0', type=float)
+    synth_parser.add_argument('--vsini',              help='rotational velocity', default='0.0', type=float)
+    synth_parser.add_argument('--lorentz',            help='Lorentz',    default='0.0', type=float)
+    synth_parser.add_argument('--limb',               help='limb darkening', default='0.0', type=float)
+    synth_parser.add_argument('--resolution',         help='Resolution', default=0.06, type=float)
+    synth_parser.add_argument('--observations',       help='observations', default=False, widget='FileChooser')
     synth_parser.set_defaults(driver=synth)
 
     # For calculating the abundances
