@@ -5,82 +5,117 @@
 from __future__ import division, print_function
 import logging
 import os
-
+from shutil import copyfile
+import yaml
+import numpy as np
 from utils import GetModels, _update_par_synth
 from interpolation import interpolator
 from interpolation import save_model
-from utils import read_observations, _run_moog, plot_synthetic
-from utils import interpol_synthetic
+from utils import _run_moog
+from observations import read_observations, plot_synth, plot_synth_obs, chi2
+import seaborn
+
+def _getSpt(spt):
+    """Get the spectral type from a string like 'F5V'."""
+    if len(spt) > 4:
+        raise ValueError('Spectral type most be of the form: F8V')
+    if '.' in spt:
+        raise ValueError('Do not use half spectral types as %s' % spt)
+    with open('SpectralTypes.yml', 'r') as f:
+        d = yaml.safe_load(f)
+    temp = spt[0:2]
+    lum = spt[2:]
+    try:
+        line = d[lum][temp]
+    except KeyError:
+        print('Was not able to find the spectral type: %s' % spt)
+        print('Teff=5777 and logg=4.44')
+        return 5777, 4.44
+    try:
+        line = line.split()
+        teff = int(line[0])
+        logg = float(line[1])
+    except AttributeError:
+        teff = line
+        logg = 4.44
+    return teff, logg
 
 
-def _getMic(teff, logg):
-    """Calculate micro turbulence. REF? Doyle 2014"""
-    if logg >= 3.95:  # Dwarfs
+def _getMic(teff, logg, feh):
+    """Calculate micro turbulence."""
+    if logg >= 3.95:  # Dwarfs Tsantaki 2013
         mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
         return round(mic, 2)
-    else:  # Giants
-        mic = 3.7 - (5.1 * teff * (10**(-4)))
+    else:  # Giants Adibekyan 2015
+        mic = 2.72 - (0.457 * logg) + (0.072 * feh)
         return round(mic, 2)
-
-
-def _renaming(linelist, converged):
-    """Save the output in a file related to the linelist"""
-    if converged:
-        cmd = 'cp summary.out results/%s.out' % linelist
-    else:
-        cmd = 'cp summary.out results/%s.NC.out' % linelist
-        # os.system('cp minimization_profile.dat %s.profile.dat' % linelist)
-
-    os.system(cmd)
 
 
 def _options(options=None):
     '''Reads the options inside the config file'''
     defaults = {'spt': False,
                 'weights': 'null',
-                'plotpars': 0,
-                'plot': 0,
+                'model': 'kurucz95',
+                'MOOGv': 2014,
+                'plotpars': 1,
+                'plot': False,  #This is irrelevant with the batch.par value
+                'start_wave': False, #if this is set by the user
+                'end_wave': False,
                 'step_wave': 0.01,
                 'step_flux': 5.0,
-                'model': 'kurucz95',
-                'observations': 'observations',
-                'resolution': 0.6,
+                'iterations': 160,
+                'observations': False,
+                'resolution': 0.06,
                 'vmac': 0.0,
                 'vsini': 0.0,
                 'limb': 0.0,
-                'lorentz': 0.0,
-                'teff': False,
-                'logg': False,
-                'feh': False,
-                'vt': False,
-                'iterations': 160,
+                'lorentz': 0.0
                 }
     if not options:
         return defaults
     else:
-        options = options.split(',')
-        for option in options:
+        for option in options.split(','):
             if ':' in option:
                 option = option.split(':')
                 defaults[option[0]] = option[1]
             else:
-                defaults[option] = True
+                # Clever way to change the boolean
+                if option in ['teff', 'logg', 'feh', 'vt']:
+                    option = 'fix_%s' % option
+                defaults[option] = False if defaults[option] else True
         defaults['model'] = defaults['model'].lower()
         defaults['iterations'] = int(defaults['iterations'])
         defaults['step_wave'] = float(defaults['step_wave'])
         defaults['step_flux'] = float(defaults['step_flux'])
         defaults['plotpars'] = int(defaults['plotpars'])
-        defaults['plot'] = int(defaults['plot'])
-        defaults['observations'] = str(defaults['observations'])
+        #defaults['plot'] = int(defaults['plot'])
+        #defaults['observations'] = str(defaults['observations'])
         defaults['resolution'] = float(defaults['resolution'])
         defaults['vmac'] = float(defaults['vmac'])
         defaults['vsini'] = float(defaults['vsini'])
         defaults['limb'] = float(defaults['limb'])
         defaults['lorentz'] = float(defaults['lorentz'])
+        defaults['MOOGv'] = int(defaults['MOOGv'])
         return defaults
 
+def read_wave(linelist): 
+    """Read the wavelenth intervals of the line list"""
 
-def synthdriver(starLines='StarMe_synth.cfg'):
+    with open(linelist, 'r') as f:
+
+        lines = f.readlines()
+    first_line = lines[0].split()
+
+    if len(first_line) == 1: 
+        start_wave = first_line[0].split('-')[0]
+        end_wave = first_line[0].split('-')[1]
+    else:
+        start_wave = first_line[0]
+        end_wave = lines[-1].split()[0]
+    return start_wave, end_wave  
+
+
+def synthdriver(starLines='StarMe.cfg', overwrite=False):
     """The function that glues everything together
 
     Input:
@@ -88,7 +123,6 @@ def synthdriver(starLines='StarMe_synth.cfg'):
     parfile     -   The configuration file for MOOG
     model       -   Type of model atmospheres
     plot        -   Plot results (currently not implemented)
-    outlier     -   Remove outliers (currently not implemented)
 
     Output:
     <linelist>.(NC).out     -   NC=not converget.
@@ -124,12 +158,6 @@ def synthdriver(starLines='StarMe_synth.cfg'):
                 logger.debug('Skipping header: %s' % line.strip())
                 continue
             logger.info('Line list: %s' % line.strip())
-            fix_teff = False
-            fix_logg = False
-            fix_feh = False
-            fix_vt = False
-            fix_vmacro = False
-            fix_vsini = False
             line = line.strip()
             line = line.split(' ')
 
@@ -139,20 +167,15 @@ def synthdriver(starLines='StarMe_synth.cfg'):
                 parameters = None
                 continue
 
-            if len(line) == 7:
-                logger.info('Initial parameters given by the user.')
-                initial = map(float, line[1:5])
+            if len(line) == 1:
+                initial = [5777, 4.44, 0.00, 1.00]
                 options = _options()
-                _update_par_synth(line_list='linelist/%s' % line[0], start_wave=line[5], end_wave=line[6])
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-
-            elif len(line) == 3:
-                initial = (5777, 4.44, 0.00, 1.00)
-                options = _options()
-                _update_par_synth(line_list='linelist/%s' % line[0], start_wave=line[5], end_wave=line[6])
+                plot_flag = False
+                x_obs, y_obs = (None, None)
+                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
 
-            elif len(line) == 4:
+            elif len(line) == 2:
                 logger.info('Spectral type given: %s' % line[1])
                 options = _options(line[1])
                 if options['spt']:
@@ -160,68 +183,89 @@ def synthdriver(starLines='StarMe_synth.cfg'):
                     mic = _getMic(Teff, logg)
                     initial = (Teff, logg, 0.00, mic)
                 else:
-                    initial = (5777, 4.44, 0.00, 1.00)
-                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                fix_teff = options['teff']
-                fix_logg = options['logg']
-                fix_feh  = options['feh']
-                fix_vt   = options['vt']
-                if fix_teff:
-                    logger.info('Effective temperature fixed at: %i' % initial[0])
-                elif fix_logg:
-                    logger.info('Surface gravity fixed at: %s' % initial[1])
-                elif fix_feh:
-                    logger.info('Metallicity fixed at: %s' % initial[2])
-                elif fix_vt:
-                    logger.info('Micro turbulence fixed at: %s' % initial[3])
+                    initial = [5777, 4.44, 0.00, 1.00]
 
-            elif len(line) == 8:
-                logger.info('Initial parameters given by user and some parameters fixed.')
-                initial = map(float, line[1:5])
-                options = _options(line[-1])
-                if options['observations']:
-                    _update_par_synth(line_list='linelist/%s' % line[0], start_wave=line[5],
-                                      end_wave=line[6], step_wave=options['step_wave'],
-                                      step_flux=options['step_flux'], vsini=options['vsini'],
-                                      plot=options['plot'], plotpars=options['plotpars'],
-                                      vmac=options['vmac'], resolution=options['resolution'],
-                                      lorentz=options['lorentz'], limb=options['limb'], obfile=options['observations'])
-                    logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                    fix_teff = options['teff']
-                    fix_logg = options['logg']
-                    fix_feh  = options['feh']
-                    fix_vt   = options['vt']
-                    if fix_teff:
-                        logger.info('Effective temperature fixed at: %i' % initial[0])
-                    elif fix_logg:
-                        logger.info('Surface gravity fixed at: %s' % initial[1])
-                    elif fix_feh:
-                        logger.info('Metallicity fixed at: %s' % initial[2])
-                    elif fix_vt:
-                        logger.info('Micro turbulence fixed at: %s' % initial[3])
+                if options['start_wave'] and options['end_wave']:
+                    start_wave = options['start_wave']
+                    end_wave = options['end_wave']
                 else:
-                    _update_par_synth(line_list='linelist/%s' % line[0], start_wave=line[5],
-                                      end_wave=line[6], step_wave=options['step_wave'],
-                                      step_flux=options['step_flux'], vsini=options['vsini'],
-                                      plot=options['plot'], plotpars=options['plotpars'],
-                                      vmac=options['vmac'], resolution=options['resolution'],
-                                      lorentz=options['lorentz'], limb=options['limb'])
-                    logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                    fix_teff = options['teff']
-                    fix_logg = options['logg']
-                    fix_feh  = options['feh']
-                    fix_vt   = options['vt']
-                    if fix_teff:
-                        logger.info('Effective temperature fixed at: %i' % initial[0])
-                    elif fix_logg:
-                        logger.info('Surface gravity fixed at: %s' % initial[1])
-                    elif fix_feh:
-                        logger.info('Metallicity fixed at: %s' % initial[2])
-                    elif fix_vt:
-                        logger.info('Micro turbulence fixed at: %s' % initial[3])
+                    start_wave, end_wave = read_wave('linelist/%s' % line[0])
+
+                if options['observations']:
+                    plot_flag = True 
+                    x_obs, y_obs = read_observations(fname=options['observations'], start_synth=start_wave, end_synth=end_wave)
+                elif options['plot']:
+                    plot_flag = True
+                    x_obs, y_obs = (None, None)
+                else:
+                    plot_flag = False
+                    x_obs, y_obs = (None, None)
+                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
+                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+
+            elif len(line) == 5:
+                logger.info('Initial parameters given by the user.')
+                initial = map(float, line[1::])
+                initial[0] = int(initial[0])
+                options = _options()
+                plot_flag = False
+                x_obs, y_obs = (None, None)
+                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
+
+            elif len(line) == 6:
+                logger.info('Initial parameters given by user.')
+                initial = map(float, line[1:-1])
+                initial[0] = int(initial[0])
+                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+                options = _options(line[-1])
+                if options['start_wave'] and options['end_wave']:
+                    start_wave = options['start_wave']
+                    end_wave = options['end_wave']
+                else:
+                    start_wave, end_wave = read_wave('linelist/%s' % line[0])
+                if options['observations']:
+                    plot_flag = True
+                    x_obs, y_obs = read_observations(fname=options['observations'], start_synth=start_wave, end_synth=end_wave)
+                elif options['plot']:
+                    plot_flag = True
+                    x_obs, y_obs = (None, None)
+                else:
+                    plot_flag = False
+                    x_obs, y_obs = (None, None)
+                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
+
             else:
                 logger.error('Could not process information for this line list: %s' % line)
                 continue
+
+            if options['model'] != 'kurucz95' and options['model'] != 'apogee_kurucz' and options['model'] != 'marcs':
+                logger.error('Your request for type: %s is not available' % model)
+                continue
+
+            # Get the initial grid models
+            logger.info('Getting initial model grid')
+            # TODO: Fix the interpolation please!
+            if initial[1] > 4.99:  # quick fix
+                initial[1] = 4.99
+            grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
+            models, nt, nl, nf = grid.getmodels()
+            logger.info('Initial interpolation of model...')
+            inter_model = interpolator(models,
+                                       teff=(initial[0], nt),
+                                       logg=(initial[1], nl),
+                                       feh=(initial[2], nf))
+            save_model(inter_model, params=initial)
+            logger.info('Interpolation successful.')
+
+            logger.info('Starting the minimization procedure...')
+
+            # Options not in use will be removed
+            if __name__ == '__main__':
+                options['GUI'] = False  # Running batch mode
+            else:
+                options['GUI'] = True  # Running GUI mode
+            options.pop('spt')
 
             # Setting the models to use
             if options['model'] != 'kurucz95' and options['model'] != 'kurucz08':
@@ -230,38 +274,18 @@ def synthdriver(starLines='StarMe_synth.cfg'):
 
             # Get the initial grid models
             logger.info('Getting initial model grid')
-            # TODO: Fix the interpolation please!
-            # if initial[1] > 4.99:  # quick fix
-            #     initial[1] = 4.99
-            # models, nt, nl, nf = _get_model(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
-            # logger.info('Initial interpolation of model...')
-            # inter_model = interpolator(models,
-            #                            teff=(initial[0], nt),
-            #                            logg=(initial[1], nl),
-            #                            feh=(initial[2], nf))
-            # save_model(inter_model, params=initial)
-            # logger.info('Interpolation successful.')
-    return 0
+            print('This is your synthetic spectrum: results/%s' % line[0] + '.spec')
+    synth_out = 'results/%s' % line[0] + '.spec'
 
+    return plot_flag, x_obs, y_obs, synth_out 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    import seaborn
-    import numpy as np
-    synthdriver()
+    plot_flag, x_obs, y_obs, synth_out = synthdriver(starLines='StarMe.cfg')
     _run_moog(driver='synth')
-    # plot_synthetic()
-    wavelength_obs, flux_obs = np.loadtxt('sun_harps_ganymede.txt', unpack=True, usecols=(0, 1))
-    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, 6444.672, 6447.340)
+    if x_obs is not None:
+        plot_synth_obs(x_obs, y_obs, fname=synth_out) #print obs and synth
+        chi2(x_obs, y_obs, fname=synth_out)
+    if plot_flag and x_obs is None: #print only synth
+        plot_synth(fname=synth_out)    
+      
 
-    flux_obs /= np.median(flux_obs)
-    # Normalization (use first 50 points below 1.2 as constant continuum)
-    maxes = flux_obs[(flux_obs < 1.2)].argsort()[-50:][::-1]
-    flux_obs /= np.median(flux_obs[maxes])
-
-    # flux_obs *= np.median(flux_inter_synth)/np.median(flux_obs)
-
-    plt.plot(wavelength_obs, flux_obs, '-k', wavelength_obs, flux_inter_synth, '-r')
-    plt.plot(wavelength_obs, flux_obs - flux_inter_synth + 1, '--g')
-    plt.show()
-    # read_observations('sun_6000-7000.txt', 6444.0, 6448.0)
