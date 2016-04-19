@@ -54,7 +54,6 @@ def _getMic(teff, logg, feh):
 def _options(options=None):
     '''Reads the options inside the config file'''
     defaults = {'spt': False,
-                'weights': 'null',
                 'model': 'kurucz95',
                 'MOOGv': 2014,
                 'plotpars': 1,
@@ -63,7 +62,6 @@ def _options(options=None):
                 'end_wave': False,
                 'step_wave': 0.01,
                 'step_flux': 5.0,
-                'iterations': 160,
                 'observations': False,
                 'resolution': 0.06,
                 'vmac': 0.0,
@@ -84,7 +82,6 @@ def _options(options=None):
                     option = 'fix_%s' % option
                 defaults[option] = False if defaults[option] else True
         defaults['model'] = defaults['model'].lower()
-        defaults['iterations'] = int(defaults['iterations'])
         defaults['step_wave'] = float(defaults['step_wave'])
         defaults['step_flux'] = float(defaults['step_flux'])
         defaults['plotpars'] = int(defaults['plotpars'])
@@ -115,7 +112,7 @@ def read_wave(linelist):
     return start_wave, end_wave  
 
 
-def synthdriver(starLines='StarMe.cfg', overwrite=False):
+def synth_StarMe(starLines='StarMe_synth.cfg', overwrite=False):
     """The function that glues everything together
 
     Input:
@@ -193,6 +190,7 @@ def synthdriver(starLines='StarMe.cfg', overwrite=False):
 
                 if options['observations']:
                     plot_flag = True 
+                    print('This is your observed spectrum: %s' % options['observations'])
                     x_obs, y_obs = read_observations(fname=options['observations'], start_synth=start_wave, end_synth=end_wave)
                 elif options['plot']:
                     plot_flag = True
@@ -226,6 +224,7 @@ def synthdriver(starLines='StarMe.cfg', overwrite=False):
                     start_wave, end_wave = read_wave('linelist/%s' % line[0])
                 if options['observations']:
                     plot_flag = True
+                    print('This is your observed spectrum: %s' % options['observations'])
                     x_obs, y_obs = read_observations(fname=options['observations'], start_synth=start_wave, end_synth=end_wave)
                 elif options['plot']:
                     plot_flag = True
@@ -279,13 +278,15 @@ def synthdriver(starLines='StarMe.cfg', overwrite=False):
 
     return plot_flag, x_obs, y_obs, synth_out 
 
-if __name__ == '__main__':
-    plot_flag, x_obs, y_obs, synth_out = synthdriver(starLines='StarMe.cfg')
+def synthdriver(): 
+    plot_flag, x_obs, y_obs, synth_out = synth_StarMe(starLines='StarMe_synth.cfg')
     _run_moog(driver='synth')
     if x_obs is not None:
         plot_synth_obs(x_obs, y_obs, fname=synth_out) #print obs and synth
         chi2(x_obs, y_obs, fname=synth_out)
     if plot_flag and x_obs is None: #print only synth
         plot_synth(fname=synth_out)    
-      
+    return
 
+if __name__ == '__main__':
+    synthdriver()
