@@ -410,12 +410,12 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                 logger.info('Refining the parameters')
                 print('\nRefining the parameters')
                 print('This might take some time...')
-                options['EPcrit'] = options['EPcrit']/3
-                options['RWcrit'] = options['RWcrit']/3
-                options['ABdiffcrit'] = options['ABdiffcrit']/3
+                options['EPcrit'] = round(options['EPcrit']/3, 4)
+                options['RWcrit'] = round(options['RWcrit']/3, 4)
+                options['ABdiffcrit'] = round(options['ABdiffcrit']/3, 4)
                 function = Minimize(parameters, fun_moog, **options)
-                p1, converged = function.minimize()
-                if converged:
+                p1, c = function.minimize()
+                if c:
                     print('Adjusting the final parameters')
                     parameters = p1  # overwrite with new best results
             logger.info('Finished minimization procedure')
