@@ -129,8 +129,9 @@ if __name__ == '__main__':
         else:
             z = df1[args.z].values
         color = df1[args.z].values
-        size = (z-z.min())/(z.max()-z.min())*100
-        size[np.argmin(size)] = 10  # Be sure to see the "smallest" point
+        u = z[~np.isnan(z)]
+        size = (z-u.min())/(u.max()-u.min())*100
+        size[np.argmin(size)] = 10  # Be sure to show the "smallest" point
         plt.scatter(df1[args.x], df1[args.y], c=color, s=size, cmap=cm.seismic, label='Converged')
     else:
         plt.scatter(df1[args.x], df1[args.y], c=color[0], s=40, label='Converged')
