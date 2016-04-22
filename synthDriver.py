@@ -12,7 +12,7 @@ from utils import GetModels, _update_par_synth
 from interpolation import interpolator
 from interpolation import save_model
 from utils import _run_moog
-from observations import read_observations, plot_synth, plot_synth_obs, chi2
+from observations import read_observations, plot_synth, plot_synth_obs, plot, chi2
 import seaborn
 
 def _getSpt(spt):
@@ -58,8 +58,6 @@ def _options(options=None):
                 'MOOGv': 2014,
                 'plotpars': 1,
                 'plot': False,  #This is irrelevant with the batch.par value
-                'start_wave': False, #if this is set by the user
-                'end_wave': False,
                 'step_wave': 0.01,
                 'step_flux': 5.0,
                 'observations': False,
@@ -111,8 +109,73 @@ def read_wave(linelist):
         end_wave = lines[-1].split()[0]
     return start_wave, end_wave  
 
+def read_linelist(fname):
+    """Read the file that contains the line list then read the lines"""
 
-def synth_StarMe(starLines='StarMe_synth.cfg', overwrite=False):
+    with open('linelist/%s' % fname, 'r') as f:
+
+        lines = f.readlines()
+
+    n_intervals = len(lines)
+    ranges = []
+    flines = []
+    for line in lines:
+        line = line.split()
+        # Check if linelist files are inside the directory, if not break
+        if not os.path.isfile('linelist/%s' % line[0]):
+            raise IOError('The linelist is not in the linelist directory!')
+        flines.append(line[0])
+
+        with open('linelist/%s' % line[0], 'r') as f:
+
+            lines = f.readlines()
+        first_line = lines[0].split()
+
+        if len(first_line) == 1: 
+            start_wave = first_line[0].split('-')[0]
+            end_wave = first_line[0].split('-')[1]
+            r = (float(start_wave), float(end_wave))
+            ranges.append(r)
+        else:
+            start_wave = first_line[0]
+            end_wave = lines[-1].split()[0]
+            r = (float(start_wave), float(end_wave))
+            ranges.append(r)
+    return n_intervals, ranges, flines
+
+
+def read_specintervals(obs_fname, N, r):
+    """Read only the spectral chunks from the observed spectrum"""
+    x_obs = []
+    y_obs = []
+    for i in range(N):
+        x, y = read_observations(obs_fname, start_synth=r[i][0], end_synth=r[i][1])
+        x_obs.append(x)
+        y_obs.append(y)
+    return x_obs, y_obs
+
+def create_model(initial, linelist, options):
+    """Create synthetic spectrum"""
+
+    # TODO: Fix the interpolation please!
+    if initial[1] > 4.99:  # quick fix
+        initial[1] = 4.99
+    grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
+    models, nt, nl, nf = grid.getmodels()
+    inter_model = interpolator(models,
+                               teff=(initial[0], nt),
+                               logg=(initial[1], nl),
+                               feh=(initial[2], nf))
+    save_model(inter_model, params=initial)
+
+    #Insert linelist to batch.par
+    N, r, f = read_linelist(linelist)
+    for i in range(N):
+        _update_par_synth('linelist/%s' % f[i], r[i][0], r[i][1], options=options)
+        _run_moog(driver='synth')
+    return
+
+def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
     """The function that glues everything together
 
     Input:
@@ -158,10 +221,14 @@ def synth_StarMe(starLines='StarMe_synth.cfg', overwrite=False):
             line = line.strip()
             line = line.split(' ')
 
-            # Check if the linelist is inside the directory if not log it and pass to next linelist
+            #Check if configuration parameters are correct
+            if len(line) not in [1, 2, 5, 6]:
+                logger.error('Could not process this information: %s' % line)
+                continue
+
+            # Check if the linelist is inside the directory, if not log it and pass to next linelist
             if not os.path.isfile('linelist/%s' % line[0]):
                 logger.error('Error: linelist/%s not found.' % line[0])
-                parameters = None
                 continue
 
             if len(line) == 1:
@@ -169,47 +236,51 @@ def synth_StarMe(starLines='StarMe_synth.cfg', overwrite=False):
                 options = _options()
                 plot_flag = False
                 x_obs, y_obs = (None, None)
-                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
+                logger.info('Getting initial model grid')
+                create_model(initial, line[0], options)
+                logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
 
             elif len(line) == 2:
-                logger.info('Spectral type given: %s' % line[1])
                 options = _options(line[1])
                 if options['spt']:
+                    logger.info('Spectral type given: %s' % line[1])
                     Teff, logg = _getSpt(options['spt'])
                     mic = _getMic(Teff, logg)
                     initial = (Teff, logg, 0.00, mic)
                 else:
                     initial = [5777, 4.44, 0.00, 1.00]
 
-                if options['start_wave'] and options['end_wave']:
-                    start_wave = options['start_wave']
-                    end_wave = options['end_wave']
-                else:
-                    start_wave, end_wave = read_wave('linelist/%s' % line[0])
-
                 if options['observations']:
-                    plot_flag = True 
+                    # Check if observations exit, if not pass another line         
+                    if not (os.path.isfile('spectra/%s' % options['observations']) and os.path.isfile(options['observations'])):
+                        logger.error('Error: %s not found.' % options['observations'])
+                        continue
+
                     print('This is your observed spectrum: %s' % options['observations'])
-                    x_obs, y_obs = read_observations(fname=options['observations'], start_synth=start_wave, end_synth=end_wave)
-                elif options['plot']:
-                    plot_flag = True
-                    x_obs, y_obs = (None, None)
+                    N, r, f = read_linelist(line[0])
+                    x_obs, y_obs = read_specintervals('spectra/%s' % options['observations'], N, r)
                 else:
-                    plot_flag = False
                     x_obs, y_obs = (None, None)
-                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
+
+                logger.info('Getting initial model grid')
+                create_model(initial, line[0], options)
+                logger.info('Interpolation successful.')
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+
+                if options['plot']: #if there in no observed only the synthetic will be plotted #need to create function to read the synthetic #does not work now
+                    plot(x_obs, y_obs, x, y)
 
             elif len(line) == 5:
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
                 initial[0] = int(initial[0])
                 options = _options()
-                plot_flag = False
-                x_obs, y_obs = (None, None)
+                x_obs, y_obs = (None, None) #No observed spectrum 
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
+                logger.info('Getting initial model grid')
+                create_model(initial, line[0], options)
+                logger.info('Interpolation successful.')
 
             elif len(line) == 6:
                 logger.info('Initial parameters given by user.')
@@ -217,22 +288,26 @@ def synth_StarMe(starLines='StarMe_synth.cfg', overwrite=False):
                 initial[0] = int(initial[0])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 options = _options(line[-1])
-                if options['start_wave'] and options['end_wave']:
-                    start_wave = options['start_wave']
-                    end_wave = options['end_wave']
-                else:
-                    start_wave, end_wave = read_wave('linelist/%s' % line[0])
+
                 if options['observations']:
-                    plot_flag = True
+                    # Check if observations exit, if not pass another line         
+                    if not (os.path.isfile('spectra/%s' % options['observations']) and os.path.isfile(options['observations'])):
+                        logger.error('Error: %s not found.' % options['observations'])
+                        continue
+
                     print('This is your observed spectrum: %s' % options['observations'])
-                    x_obs, y_obs = read_observations(fname=options['observations'], start_synth=start_wave, end_synth=end_wave)
-                elif options['plot']:
-                    plot_flag = True
-                    x_obs, y_obs = (None, None)
+                    N, r, f = read_linelist(line[0])
+                    x_obs, y_obs = read_specintervals('spectra/%s' % options['observations'], N, r)
                 else:
-                    plot_flag = False
                     x_obs, y_obs = (None, None)
-                _update_par_synth('linelist/%s' % line[0], start_wave=start_wave, end_wave=end_wave, options=options)
+
+                logger.info('Getting initial model grid')
+                create_model(initial, line[0], options)
+                logger.info('Interpolation successful.')
+                logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+
+                if options['plot']: #if there in no observed only the synthetic will be plotted #need to create function to read the synthetic #does not work now
+                    plot(x_obs, y_obs, x, y)
 
             else:
                 logger.error('Could not process information for this line list: %s' % line)
@@ -241,21 +316,6 @@ def synth_StarMe(starLines='StarMe_synth.cfg', overwrite=False):
             if options['model'] != 'kurucz95' and options['model'] != 'apogee_kurucz' and options['model'] != 'marcs':
                 logger.error('Your request for type: %s is not available' % model)
                 continue
-
-            # Get the initial grid models
-            logger.info('Getting initial model grid')
-            # TODO: Fix the interpolation please!
-            if initial[1] > 4.99:  # quick fix
-                initial[1] = 4.99
-            grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
-            models, nt, nl, nf = grid.getmodels()
-            logger.info('Initial interpolation of model...')
-            inter_model = interpolator(models,
-                                       teff=(initial[0], nt),
-                                       logg=(initial[1], nl),
-                                       feh=(initial[2], nf))
-            save_model(inter_model, params=initial)
-            logger.info('Interpolation successful.')
 
             logger.info('Starting the minimization procedure...')
 
@@ -266,27 +326,10 @@ def synth_StarMe(starLines='StarMe_synth.cfg', overwrite=False):
                 options['GUI'] = True  # Running GUI mode
             options.pop('spt')
 
-            # Setting the models to use
-            if options['model'] != 'kurucz95' and options['model'] != 'kurucz08':
-                logger.error('Your request for type: %s is not available' % model)
-                continue
+            N, r, f = read_linelist(line[0])
+            print('%s synthetic sṕectra were created. Check the results/ folder.' % N)
 
-            # Get the initial grid models
-            logger.info('Getting initial model grid')
-            print('This is your synthetic spectrum: results/%s' % line[0] + '.spec')
-    synth_out = 'results/%s' % line[0] + '.spec'
-
-    return plot_flag, x_obs, y_obs, synth_out 
-
-def synthdriver(): 
-    plot_flag, x_obs, y_obs, synth_out = synth_StarMe(starLines='StarMe_synth.cfg')
-    _run_moog(driver='synth')
-    if x_obs is not None:
-        plot_synth_obs(x_obs, y_obs, fname=synth_out) #print obs and synth
-        chi2(x_obs, y_obs, fname=synth_out)
-    if plot_flag and x_obs is None: #print only synth
-        plot_synth(fname=synth_out)    
     return
 
 if __name__ == '__main__':
-    synthdriver()
+    synthdriver(starLines='StarMe_synth.cfg', overwrite=False)
