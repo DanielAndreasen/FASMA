@@ -47,7 +47,6 @@ def _read_moog(fname='smooth.out'):
         flux.append(float(line[1]))
     return wavelength, flux
 
-
 def read_observations(fname, start_synth, end_synth):
     """Read observed spectrum and return wavelength and flux"""
     import pyfits
@@ -78,6 +77,34 @@ def read_observations(fname, start_synth, end_synth):
         print('Spectrum is not in acceptable format. Convert to ascii of fits.')
         wavelength_obs, flux_obs = (None, None)
     return wavelength_obs, flux_obs     
+
+def observations(fname):
+    """Read observed spectrum and return wavelength, flux and header"""
+    import pyfits
+
+    extension = ('.dat', '.txt', '.fits')
+    if fname.endswith(extension):
+        if fname[-4:]=='.dat' or fname[-4:]=='.txt':
+            with open(fname, 'r') as f:
+                lines = (line for line in f if not line[0].isalpha()) #skip header
+                wave, flux = np.loadtxt(lines, unpack=True, usecols=(0, 1))
+                header = None
+        elif fname[-5:]=='.fits':
+            hdulist = pyfits.open(fname)
+            header = hdulist[0].header 
+            flux = hdulist[0].data #flux data in the primary
+            flux = np.array(flux, dtype=np.float64)
+            start_wave = header['CRVAL1'] #initial wavelenght
+            #step = header['CD1_1'] #step in wavelenght
+            step = header['CDELT1'] #increment per pixel
+            w0, dw, n = start_wave, step, len(flux)
+            w = start_wave + step * n
+            wave = np.linspace(w0, w, n, endpoint=False)
+
+    else: 
+        print('Spectrum is not in acceptable format. Convert to ascii of fits.')
+        wave, flux, header = (None, None, None)
+    return wave, flux, header     
 
 
 def interpol_synthetic(wavelength, flux, start_synth, end_synth):
@@ -144,6 +171,17 @@ def plot_synth_obs(x_obs, y_obs, fname):
             pl.close()
         else: 
             print('Synthetic spectrum does not exist.')
+    return
+
+def plot(x_obs, y_obs, x, y): 
+    """Function to plot synthetic spectrum
+    """
+
+    import matplotlib.pyplot as plt
+    pl.plot(x, y)
+    pl.plot(x_obs, y_obs)
+    pl.show()
+    pl.close()
     return
 
 
