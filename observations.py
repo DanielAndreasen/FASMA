@@ -8,6 +8,57 @@ from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
 from glob import glob
 import os
 
+def read_wave(linelist): 
+    """Read the wavelenth intervals of the line list"""
+
+    with open(linelist, 'r') as f:
+
+        lines = f.readlines()
+    first_line = lines[0].split()
+
+    if len(first_line) == 1: 
+        start_wave = first_line[0].split('-')[0]
+        end_wave = first_line[0].split('-')[1]
+    else:
+        start_wave = first_line[0]
+        end_wave = lines[-1].split()[0]
+    return start_wave, end_wave  
+
+def read_linelist(fname):
+    """Read the file that contains the line list then read the lines"""
+
+    with open('linelist/%s' % fname, 'r') as f:
+
+        lines = f.readlines()
+
+    n_intervals = len(lines)
+    ranges = []
+    flines = []
+    for line in lines:
+        line = line.split()
+        # Check if linelist files are inside the directory, if not break
+        if not os.path.isfile('linelist/%s' % line[0]):
+            raise IOError('The linelist is not in the linelist directory!')
+        flines.append(line[0])
+
+        with open('linelist/%s' % line[0], 'r') as f:
+
+            lines = f.readlines()
+        first_line = lines[0].split()
+
+        if len(first_line) == 1: 
+            start_wave = first_line[0].split('-')[0]
+            end_wave = first_line[0].split('-')[1]
+            r = (float(start_wave), float(end_wave))
+            ranges.append(r)
+        else:
+            start_wave = first_line[0]
+            end_wave = lines[-1].split()[0]
+            r = (float(start_wave), float(end_wave))
+            ranges.append(r)
+    return n_intervals, ranges, flines
+
+
 def _read_raw_moog(fname='summary.out'):
     """Read the summary.out and return them
 
@@ -47,6 +98,22 @@ def _read_moog(fname='smooth.out'):
         flux.append(float(line[1]))
     return wavelength, flux
 
+def read_synth_intervals(fname):
+    """Read the synthetic from all the intervals
+    :fname: Line list that includes the line list files
+    :returns: wavelength and flux
+    """
+    n_intervals, ranges, fout = read_linelist(fname)
+    spec = []
+    for i in range(n_intervals):
+        x, y = _read_moog('results/%s.spec' % fout[i]) 
+        spec.append(_read_moog('results/%s.spec' % fout[i]))
+
+    wavelength = np.column_stack(spec)[0]
+    flux = np.column_stack(spec)[1]
+    return wavelength, flux
+
+   
 def read_observations(fname, start_synth, end_synth):
     """Read observed spectrum and return wavelength and flux"""
     import pyfits

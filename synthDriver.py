@@ -12,7 +12,7 @@ from utils import GetModels, _update_par_synth
 from interpolation import interpolator
 from interpolation import save_model
 from utils import _run_moog
-from observations import read_observations, plot_synth, plot_synth_obs, plot, chi2
+from observations import read_observations, read_linelist, read_synth_intervals, plot_synth, plot_synth_obs, plot, chi2
 import seaborn
 
 def _getSpt(spt):
@@ -92,56 +92,6 @@ def _options(options=None):
         defaults['lorentz'] = float(defaults['lorentz'])
         defaults['MOOGv'] = int(defaults['MOOGv'])
         return defaults
-
-def read_wave(linelist): 
-    """Read the wavelenth intervals of the line list"""
-
-    with open(linelist, 'r') as f:
-
-        lines = f.readlines()
-    first_line = lines[0].split()
-
-    if len(first_line) == 1: 
-        start_wave = first_line[0].split('-')[0]
-        end_wave = first_line[0].split('-')[1]
-    else:
-        start_wave = first_line[0]
-        end_wave = lines[-1].split()[0]
-    return start_wave, end_wave  
-
-def read_linelist(fname):
-    """Read the file that contains the line list then read the lines"""
-
-    with open('linelist/%s' % fname, 'r') as f:
-
-        lines = f.readlines()
-
-    n_intervals = len(lines)
-    ranges = []
-    flines = []
-    for line in lines:
-        line = line.split()
-        # Check if linelist files are inside the directory, if not break
-        if not os.path.isfile('linelist/%s' % line[0]):
-            raise IOError('The linelist is not in the linelist directory!')
-        flines.append(line[0])
-
-        with open('linelist/%s' % line[0], 'r') as f:
-
-            lines = f.readlines()
-        first_line = lines[0].split()
-
-        if len(first_line) == 1: 
-            start_wave = first_line[0].split('-')[0]
-            end_wave = first_line[0].split('-')[1]
-            r = (float(start_wave), float(end_wave))
-            ranges.append(r)
-        else:
-            start_wave = first_line[0]
-            end_wave = lines[-1].split()[0]
-            r = (float(start_wave), float(end_wave))
-            ranges.append(r)
-    return n_intervals, ranges, flines
 
 
 def read_specintervals(obs_fname, N, r):
@@ -240,6 +190,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 create_model(initial, line[0], options)
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
+                x_s, y_s = read_synth_intervals(line[0])
 
             elif len(line) == 2:
                 options = _options(line[1])
@@ -267,6 +218,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 create_model(initial, line[0], options)
                 logger.info('Interpolation successful.')
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+                x_s, y_s = read_synth_intervals(line[0])
 
                 if options['plot']: #if there in no observed only the synthetic will be plotted #need to create function to read the synthetic #does not work now
                     plot(x_obs, y_obs, x, y)
@@ -281,6 +233,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 logger.info('Getting initial model grid')
                 create_model(initial, line[0], options)
                 logger.info('Interpolation successful.')
+                x_s, y_s = read_synth_intervals(line[0])
 
             elif len(line) == 6:
                 logger.info('Initial parameters given by user.')
@@ -305,6 +258,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 create_model(initial, line[0], options)
                 logger.info('Interpolation successful.')
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
+                x_s, y_s = read_synth_intervals(line[0])
 
                 if options['plot']: #if there in no observed only the synthetic will be plotted #need to create function to read the synthetic #does not work now
                     plot(x_obs, y_obs, x, y)
@@ -327,9 +281,9 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
             options.pop('spt')
 
             N, r, f = read_linelist(line[0])
-            print('%s synthetic sṕectra were created. Check the results/ folder.' % N)
+            print('%s synthetic spectra were created. Check the results/ folder.' % N)
 
     return
 
 if __name__ == '__main__':
-    synthdriver(starLines='StarMe_synth.cfg', overwrite=False)
+    synthdriver()
