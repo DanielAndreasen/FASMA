@@ -3,6 +3,9 @@
 from __future__ import division
 import numpy as np
 import pandas as pd
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
 try:
     import seaborn as sns
     sns.set_style('dark')
@@ -17,7 +20,7 @@ import argparse
 
 def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
     """Calculate a mass using the Torres calibration"""
-    ntrials = 1000
+    ntrials = 100
     randomteff = teff + erteff * np.random.randn(ntrials)
     randomlogg = logg + erlogg * np.random.randn(ntrials)
     randomfeh = feh + erfeh * np.random.randn(ntrials)
@@ -42,7 +45,7 @@ def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
 
 
 def radTorres(teff, erteff, logg, erlogg, feh, erfeh):
-    ntrials = 1000
+    ntrials = 100
     randomteff = teff + erteff*np.random.randn(ntrials)
     randomlogg = logg + erlogg*np.random.randn(ntrials)
     randomfeh = feh + erfeh*np.random.randn(ntrials)
@@ -116,6 +119,7 @@ if __name__ == '__main__':
         age = np.zeros(df.shape[0])
         for i, (mass, feh) in enumerate(df[['mass', 'feh']].values):
             age[i] = np.mean(dar.agerange(mass, feh))
+        age = (10**age)/1e9
         df['age'] = pd.Series(age)
 
     df1 = df[df.convergence == True]
@@ -155,7 +159,7 @@ if __name__ == '__main__':
               'masserr': r'$\sigma M_\odot$',
               'radius': r'$R_\odot$',
               'radiuserr': r'$\sigma R_\odot$',
-              'age': r'Age $[\log(yr)]$'}
+              'age': r'Age $[Gyr]$'}
 
     plt.xlabel(labels[args.x])
     plt.ylabel(labels[args.y])
