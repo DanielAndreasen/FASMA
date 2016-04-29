@@ -54,25 +54,15 @@ class GetModels:
     temperature, surface gravity, and iron abundance (proxy for metallicity).
 
     Inputs
-    -----
-
-    teff     :   The effective temperature(K) for the model atmosphere
-    logg     :   The surface gravity (logarithmic in cgs) for the model atmosphere
-    feh      :   The metallicity for the model atmosphere
-    atmtype  :   The type of atmosphere models to use. Currently only Kurucz from
-              '95 is supported.
-
-    output
     ------
-    models      : List with path to 8 models the two closest in each parameter
-                  space (4x2x2)
-    teff_model  : The two closest effective temperatures in the grid
-    logg_model  : The two closest surface gravities in the grid
-    feh_model   : The two closest metallicities in the grid
-
-    The last three return values are used for the interpolation to do some
-    mapping. If only the paths to the models are needed, do not pay attention
-    to them.
+    teff : int
+      The effective temperature(K) for the model atmosphere
+    logg : float
+      The surface gravity (logarithmic in cgs) for the model atmosphere
+    feh : float
+      The metallicity for the model atmosphere
+    atmtype : str
+      The type of atmosphere models to use. Currently only Kurucz from '95.
     """
 
 
@@ -101,7 +91,22 @@ class GetModels:
 
 
     def _model_path(self, teff_model, logg_model, feh_model):
-        """Create the path given Teff, logg, and [Fe/H]"""
+        """Create the path for atmosphere models given Teff, logg, and [Fe/H]
+
+        Inputs
+        ------
+        teff_model : int
+          The Teff from the model grid
+        logg_model : float
+          The logg from the model grid
+        feh_model : float
+          The [Fe/H] from the model grid
+
+        Output
+        ------
+        name : str
+          The path to the atmosphere model
+        """
         name = 'models/%s/' % self.atmtype
         if feh_model < 0:
             name += 'm%s/' % str(abs(feh_model)).replace('.', '')
@@ -120,12 +125,21 @@ class GetModels:
 
         Inputs
         ------
-            upper : If True, then search for Teff higher than previous.
-                    Lower if False
+        teff_model : int
+          The Teff from the model grid
+        logg_model : float
+          The logg from the model grid
+        feh_model : float
+          The [Fe/H] from the model grid
+        upper : bool
+          If True, then search for Teff higher than previous. False otherwise. (Default: True)
+
         Outputs
         -------
-            fname      : Path for the model
-            teff_model : The new effective temperature
+        fname : str
+          Path for the model
+        teff_model : int
+          The new Teff. Same Teff is returned if the model exists at the right place
         """
 
         fname = self._model_path(teff_model, logg_model, feh_model)
@@ -142,7 +156,22 @@ class GetModels:
 
 
     def neighbour(self, arr, val, k=2):
-        """Return the K surrounding neighbours of an array, given a certain value."""
+        """Return the K surrounding neighbours of an array, given a certain value.
+
+        Inputs
+        ------
+        arr : array_like
+          The array from which some neighbours should be found (assumed sorted).
+        val : float
+          The value to found neighbours around in arr
+        k : int
+          The number of neighbours to find
+
+        Output
+        ------
+        array : list
+          A list with the k surrounding neighbours
+        """
         for idx, (l1, l2) in enumerate(zip(arr, islice(arr, 1, None))):
             if l1 <= val <= l2:
                 break
@@ -153,6 +182,25 @@ class GetModels:
 
 
     def getmodels(self):
+        """Get the atmosphere models surrounding the requested atmospheric
+        parameters. This function should be called before using the interpolation
+        code within MOOGme.
+
+        output
+        ------
+        models : list
+          List with path to 8 models the two closest in each parameter space (4x2x2)
+        teff_model : list
+          The four closest effective temperatures in the grid
+        logg_model : list
+          The two closest surface gravities in the grid
+        feh_model : list
+          The two closest metallicities in the grid
+
+        The last three return values are used for the interpolation to do some
+        mapping. If only the paths to the models are needed, do not pay attention
+        to them.
+        """
         # Get list of parameter values
         teff_model = self.neighbour(self.grid['teff'], self.teff, k=4)
         if len(teff_model) < 4:  # Means we are close to an edge
@@ -177,25 +225,28 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
 
     Inputs
     -----
-    atmosphere_model    :   Location of your model atmosphere file
-    line_list           :   Location of your line list
+    atmosphere_model : str
+      Path of the model atmosphere file for MOOG
+    line_list : str
+      Path of the line list
 
     Additional keyword arguments
     ----------------------------
     These additional keyword arguments allow the user to have full control
-    over what is put into the MOOG input file. The default values are:
+    over what is put into the MOOG input file. This has to be a dictionary
+    The default values are:
 
     terminal        'x11'
     atmosphere      1
-    molecules       2
+    molecules       1
     trudamp         1
     lines           1
-    flux/int        1
+    flux/int        0
     damping         2
     units           0
     iraf            0
-    plot            2
-    obspectrum      1       Unless obspectrum is provided to the function.
+    plot            0
+    obspectrum      0       Unless obspectrum is provided to the function.
     opacit          0
     freeform        0
     strong          0       Unless a strong lines list is provided.
@@ -208,7 +259,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
 
     Outputs
     -------
-    And updated parameter file
+    And updated configuration file
     """
 
     # Path checks for input files
@@ -264,12 +315,18 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
 
 def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmosphere_model='out.atm', **kwargs):
     """Update the parameter file (batch.par) with new linelists, atmosphere
-    models, or others.
+    models, wavelength range for synthesis
 
     Inputs
     -----
-    atmosphere_model    :   Location of your model atmosphere file
-    line_list           :   Location of your line list
+    start_wave : float
+      The min wavelength for the synthetic spectrum
+    end_wave : float
+      The max wavelength for the synthetic spectrum
+    atmosphere_model : str
+      Path of model atmosphere file
+    line_list : str
+      Path of line list
 
     Additional keyword arguments
     ----------------------------
@@ -285,8 +342,7 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
     damping         2
     units           0
     iraf            0
-    plot            2
-    obspectrum      1       Unless obspectrum is provided to the function.
+    obspectrum      0       Unless obspectrum is provided to the function.
     opacit          0
     freeform        0
     strong          0       Unless a strong lines list is provided.
@@ -357,7 +413,19 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
 
 
 def _run_moog(par='batch.par', driver='abfind'):
-    """Run MOOGSILENT with the given parameter file"""
+    """Run MOOGSILENT with the given parameter file
+
+    Inputs
+    ------
+    par : str
+      The input file for MOOG (default: batch.par)
+    driver : str
+      Which driver to use MOOG in. Choices are: 'abfind', 'synth'. (Default: 'abfind')
+
+    Output
+    ------
+      Run MOOG once in silent mode
+    """
     if driver == 'abfind':
         os.system('MOOGSILENT > /dev/null')
     elif driver == 'synth':
@@ -368,9 +436,19 @@ def _run_moog(par='batch.par', driver='abfind'):
 
 
 def _read_smooth(fname='smooth.out'):
-    """Read the synthetic spectrum from the summary.out and return them
-    :fname: From the summary_out
-    :returns: wavelength and flux (in that order)
+    """Read the synthetic spectrum from the summary.out
+
+    Inputs
+    ------
+    fname: str
+      Path to summary_out (default: 'smooth.out')
+
+    Outputs
+    -------
+    Wavelength : ndarray
+      The wavelength of the synthetic spectrum
+    Flux : ndarray
+      The flux of the synthetic spectrum
     """
     wavelength, flux = np.loadtxt(fname, skiprows=2, usecols=(0, 1), unpack=True)
     return wavelength, flux
@@ -380,13 +458,29 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
              driver='abfind', version=2014):
     """Run MOOG and return slopes for abfind mode.
 
-    :x: A tuple/list with values (teff, logg, [Fe/H], vt)
-    :par: The parameter file (batch.par)
-    :results: The summary file
-    :weights: The weights to be used in the slope calculation
-    :driver: Which driver to use when running MOOG
-    :version: The version of MOOG
-    :returns: The slopes and abundances for the different elements
+    Inputs
+    ------
+    x : tuple
+      tuple/list with values (teff, logg, [Fe/H], vt) in that order
+    atmtype : str
+      The atmosphere type for the interpolation
+    par : str
+      The configuration file for MOOG (default: batch.par)
+    results : str
+      The summary file of MOOG
+    weights : str
+      The weights to be used in the slope calculation
+    driver : str
+      Which driver to use when running MOOG. Choices are: 'abfind' (default), 'synth'
+    version : int
+      The version of MOOG (default:2014)
+
+    Output
+    ------
+    driver == 'synth' :
+      Run MOOG once on silent mode
+    driver == 'abfind' :
+      The slopes and abundances for the different elements after a run with MOOG
     """
 
     # Create an atmosphere model from input parameters
@@ -415,6 +509,15 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
 
 
 class Readmoog:
+    """Read the output file from MOOG and return some useful informations
+
+    Inputs
+    ------
+    fname : str
+      Path of the output file (default: 'summary.out')
+    version : int
+      Version of MOOG to be used (default: 2014)
+    """
 
     def __init__(self, fname='summary.out', version=2014):
         self.fname = fname
@@ -425,7 +528,13 @@ class Readmoog:
             self.lines = f.readlines()
 
     def parameters(self):
-        """Get the atmospheric parameters"""
+        """Get the atmospheric parameters
+
+        Outputs
+        -------
+        params : tuple
+          The atmospheric parameters (Teff, logg, [Fe/H], vt) in that order
+        """
         for line in self.lines:
             if 'Teff' in line:
                 break
@@ -439,7 +548,28 @@ class Readmoog:
 
 
     def fe_statistics(self):
-        """Get statistics on Fe lines"""
+        """Get statistics on Fe lines
+
+        Outputs
+        -------
+        fe1 : float
+          The abundance of FeI
+        sigfe1 : float
+          The deviation of FeI
+        fe2 : float
+          The abundance of FeII
+        sigfe2 : float
+          The deviation of FeII
+        slopeEP : float
+          The correlation between abundance and excitation potential (EP)
+        slopeRW : float
+          The correlation between abundance and reduced equivalent width (RW)
+        linesFe1 : ndarray
+          The structure of FeI from the output including
+          (wavelength, ID [version>=2014], EP, loggf, EW, RW, abundance, deviation on abundace)
+        linesFe2 : ndarray
+          Same as for linesFe1 but for FeII
+        """
         self.readdata = False
         self.slopeEP = False
         self.slopeRW = False
@@ -520,7 +650,15 @@ class Readmoog:
 
 
     def elements(self):
-        """Get the elements and abundances from the output file"""
+        """Get the elements and abundances from the output file
+
+        Outputs
+        -------
+        element : list
+          The elements, e.g. FeI, TiII
+        abundances : list
+          The corresponding abundances to the elements
+        """
         abundances = []
         element = []
         for line in self.lines:
@@ -536,7 +674,22 @@ class Readmoog:
 
 
 def _slopeSigma(x, y, weights):
-    """Sigma on a slope after fitting a straight line"""
+    """Sigma on a slope after fitting a straight line
+
+    Inputs
+    ------
+    x : array_like
+      Independent values
+    y : array_like
+      Dependent values
+    weights : array_like
+      Weights to be appplied for linear fit
+
+    Output
+    ------
+    sigma : float
+      The deviation on the slope calculated
+    """
     N = len(x)
     sxx = np.sum((x-np.mean(x))**2)
     a, b = np.polyfit(x, y, 1, w=weights)
@@ -545,7 +698,40 @@ def _slopeSigma(x, y, weights):
 
 
 def error(linelist, converged, atmtype, version=2014, weights='null'):
-    """linelist to give error estimation on"""
+    """Error estimation on a given line list
+
+    Inputs
+    ------
+    linelist : str
+      Line list (without the .moog/.ares) to find the result file
+    converged : bool
+      True if the linelist converged, False otherwise
+    atmtype : str
+      The atmosphere type to be used for the error calculation
+    version : int
+      The version of MOOG (default: 2014)
+    weights : str
+      The weights to be applied for slope calculation (default: 'null')
+
+    Outputs
+    -------
+    teff : int
+      Teff
+    errorteff : int
+      Error on Teff
+    logg : float
+      logg
+    errorlogg : float
+      Error on logg
+    feh : float
+      [Fe/H]
+    errorfeh : float
+      Error on [Fe/H]
+    vt : float
+      microturbulence
+    errormicro : float
+      Error on microturbulence
+    """
     # Find the output file and read the current state of it
     idx = 1 if version > 2013 else 0
     if converged:
@@ -609,7 +795,28 @@ def error(linelist, converged, atmtype, version=2014, weights='null'):
 
 
 def slope(data, weights='null'):
-    """Calculate the slope of a data set with weights"""
+    """Calculate the slope of a data set with weights.
+
+    Inputs
+    ------
+    data : list
+      x values in first element and y values in the second element
+    weights : str
+      The weight to be applied for the slope. Choices:
+      'null' : All points have the same weight
+      'sigma' : Weight based on the standard deviation
+      'mad' : Weight based on the mean absolute deviation (mad)
+      For 'sigma' and 'mad' all points more than 3sig/mad away form the mean
+      will have weight: 0.01. Between 2 and 3: 0.10. Between 1 and 2: 0.25.
+      Below 1: 1.00
+
+    Outputs
+    -------
+    params : list
+      The slope calculated
+    w : ndarray
+      The weights used
+    """
     import statsmodels.formula.api as sm
     weights = weights.lower()
     options = ['null', 'sigma', 'mad']
@@ -652,14 +859,53 @@ def slope(data, weights='null'):
 
 
 def read_observations(wavelength, flux, start_synth, end_synth):
-    """Read observed spectrum and return wavelength and flux"""
-    wavelength_obs = wavelength[(wavelength >= start_synth) & (wavelength <= end_synth)]
-    flux_obs = flux[(wavelength >= start_synth) & (wavelength <= end_synth)]
-    return wavelength_obs, flux_obs
+    """Cut the observed spectrum to match the synthetic spectrum
+
+    Inputs
+    ------
+    wavelength : ndarray
+      Wavelength vector of the observed spectrum
+    flux : ndarray
+      Flux vector of the observed spectrum
+    start_synth : float
+      First wavelength in the synthetic spectrum
+    end_synth : float
+      Last wavelength in the synthetic spectrum
+
+    Outputs
+    -------
+    wavelength : ndarray
+      The wavelength cutted to fit the synthetic spectrum
+    flux : ndarray
+      The flux cutted to fit the synthetic spectrum
+    """
+    idx = (wavelength >= start_synth) & (wavelength <= end_synth)
+    return wavelength[idx], flux[idx]
 
 
 def interpol_synthetic(wavelength, flux, start_synth, end_synth):
-    """Interpolation of the synthetic flux to the observed wavelength"""
+    """Interpolation of the synthetic flux to the observed wavelength
+
+    Inputs
+    ------
+    wavelength : ndarray
+      Wavelength vector of the observed spectrum
+    flux : ndarray
+      Flux vector of the observed spectrum
+    start_synth : float
+      First wavelength in the synthetic spectrum
+    end_synth : float
+      Last wavelength in the synthetic spectrum
+
+    Outputs
+    -------
+    wavelength_obs : ndarray
+      The wavelength cutted to match the synthetic spectrum
+    flux_obs : ndarray
+      The flux cutted to match the synthetic spectrum
+    flux_inter_synth : ndarray
+      The synthetic flux after interpolation to the observed wavelength vector
+    """
     from scipy.interpolate import interp1d
     # The synthetic spectrum should be always finer
     wave_synth, flux_synth = _read_smooth('smooth.out')
