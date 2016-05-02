@@ -457,4 +457,9 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
 
 
 if __name__ == '__main__':
-    parameters = ewdriver()
+    import sys
+    if len(sys.argv) > 1:
+        cfgfile = sys.argv[1]
+    else:
+        cfgfile = 'StarMe_ew.cfg'
+    parameters = ewdriver(starLines=cfgfile)

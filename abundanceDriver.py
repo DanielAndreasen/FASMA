@@ -205,7 +205,12 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
 
 
 if __name__ == '__main__':
-    abundancedriver()
+    import sys
+    if len(sys.argv) > 1:
+        cfgfile = sys.argv[1]
+    else:
+        cfgfile = 'StarMe_abund.cfg'
+    abundancedriver(starLines=cfgfile)
     pd.set_option('display.max_rows', 500)
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)

@@ -288,4 +288,9 @@ def aresdriver(starLines='StarMe_ares.cfg'):
 
 
 if __name__ == '__main__':
-    aresdriver(starLines='StarMe_ares.cfg')
+    import sys
+    if len(sys.argv) > 1:
+        cfgfile = sys.argv[1]
+    else:
+        cfgfile = 'StarMe_ares.cfg'
+    aresdriver(starLines=cfgfile)

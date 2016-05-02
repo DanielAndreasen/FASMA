@@ -208,7 +208,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 x_s, y_s = read_synth_intervals(line[0])
 
                 if options['observations']:
-                    # Check if observations exit, if not pass another line         
+                    # Check if observations exit, if not pass another line
                     if (not (os.path.isfile('spectra/%s' % options['observations'])) and (not os.path.isfile(options['observations']))):
                         logger.error('Error: %s not found.' % options['observations'])
                         continue
@@ -230,7 +230,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 initial = map(float, line[1::])
                 initial[0] = int(initial[0])
                 options = _options()
-                x_obs, y_obs = (None, None) #No observed spectrum 
+                x_obs, y_obs = (None, None) #No observed spectrum
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 logger.info('Getting initial model grid')
                 create_model(initial, line[0], options)
@@ -251,7 +251,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 x_s, y_s = read_synth_intervals(line[0])
 
                 if options['observations']:
-                    # Check if observations exit, if not pass another line         
+                    # Check if observations exit, if not pass another line
                     if not (os.path.isfile('spectra/%s' % options['observations']) and os.path.isfile(options['observations'])):
                         logger.error('Error: %s not found.' % options['observations'])
                         continue
@@ -288,4 +288,9 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
     return
 
 if __name__ == '__main__':
-    synthdriver()
+    import sys
+    if len(sys.argv) > 1:
+        cfgfile = sys.argv[1]
+    else:
+        cfgfile = 'StarMe_synth.cfg'
+    synthdriver(starLines=cfgfile)
