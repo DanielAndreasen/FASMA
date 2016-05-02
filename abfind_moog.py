@@ -138,9 +138,14 @@ if __name__ == '__main__':
 
     # Prepare the data
     m = Readmoog(fname='summary.out', version=int(args.version))
-    _, _, _, _, _, _, fe1, fe2 = m.fe_statistics()
+    f1, _, f2, _, _, _, fe1, fe2 = m.fe_statistics()
     c1, c2 = plot_data(fe1, args.outlier, int(args.version))
     c1, c2 = plot_data(fe2, args.outlier, int(args.version))
+    f12 = f1-f2
+    if f12 < 0.0:
+        print('Fe diff: %.2f. Lower logg' % f12)
+    elif f12 > 0.0:
+        print('Fe diff: %.2f. Higher logg' % f12)
     if args.plot:
         plt.tight_layout()
         plt.show()
