@@ -12,25 +12,21 @@ sns.set_style('dark')
 sns.set_context('notebook', font_scale=1.5)
 c = sns.color_palette()
 from utils import Readmoog
+from utils import GetModels, _update_par
+from interpolation import interpolator
+from interpolation import save_model
 import statsmodels.formula.api as sm
-
-# Path to the interpolation code
-path = '/home/daniel/Software/SPECPAR/interpol_models/'
 
 
 def _create_model(teff, logg, feh, vmicro):
     """Create the atmosphere models"""
-    # Interpolate over models
-    intermod_par = tuple(map(str, [teff, logg, feh]) + [path])
-    cmd = 'echo %s %s %s | %sintermod.e > tmp' % (intermod_par)
-    os.system(cmd)
-
-    # Transform to desired micro turbulence
-    cmd = 'echo %s | %stransform.e > tmp' % (str(vmicro), path)
-    os.system(cmd)
-
-    # Clean after
-    os.system('rm -f mod? fort* tmp')
+    grid = GetModels(teff=teff, logg=logg, feh=feh, atmtype='kurucz95')
+    models, nt, nl, nf = grid.getmodels()
+    inter_model = interpolator(models,
+                               teff=(teff, nt),
+                               logg=(logg, nl),
+                               feh=(feh, nf))
+    save_model(inter_model, params=(teff, logg, feh, vmicro))
 
 
 def _update_batch(linelist=False):
