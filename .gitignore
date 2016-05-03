@@ -22,6 +22,15 @@ mod?
 fort.*
 mine.opt
 
+*.csv
+!spt.csv
+
+*.cfg
+!StarMe_ares.cfg
+!StarMe_abund.cfg
+!StarMe_ew.cfg
+!StarMe_synth.cfg
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
