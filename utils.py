@@ -493,7 +493,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par, driver=driver)
     if driver == 'abfind':
-        m = Readmoog(fname=results, version=version)
+        m = Readmoog(params=x, fname=results, version=version)
         _, _, _, _, _, _, data, _ = m.fe_statistics()
         if version > 2013:
             EPs, _ = slope((data[:,2], data[:,6]), weights=weights)
@@ -501,7 +501,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         else:
             EPs, _ = slope((data[:,1], data[:,5]), weights=weights)
             RWs, _ = slope((data[:,4], data[:,5]), weights=weights)
-        m = Readmoog(fname=results, version=version)
+        m = Readmoog(params=x, fname=results, version=version)
         fe1, _, fe2, _, _, _, _, _ = m.fe_statistics()
         abundances = [fe1+7.47, fe2+7.47]
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
@@ -513,17 +513,27 @@ class Readmoog:
 
     Inputs
     ------
+    params : list/tuple
+      A list of the atmospheric parameters (Teff, logg, [Fe/H], vt). If not
+      provided it is read from the output file.
     fname : str
       Path of the output file (default: 'summary.out')
     version : int
       Version of MOOG to be used (default: 2014)
     """
 
-    def __init__(self, fname='summary.out', version=2014):
+    def __init__(self, params=None, fname='summary.out', version=2014):
         self.fname = fname
         self.nelements = 1
         self.idx = 1 if version > 2013 else 0
         self.version = version
+        if params:
+            self.teff = params[0]
+            self.logg = params[1]
+            self.feh = params[2]
+            self.vt = params[3]
+        else:
+            self.parameters()
         with open(self.fname, 'r') as f:
             self.lines = f.readlines()
 
@@ -697,7 +707,7 @@ def _slopeSigma(x, y, weights):
     return np.sqrt(chi2/((N-2)*sxx))
 
 
-def error(linelist, converged, atmtype, version=2014, weights='null'):
+def error(linelist, converged, params, atmtype, version=2014, weights='null'):
     """Error estimation on a given line list
 
     Inputs
@@ -706,6 +716,9 @@ def error(linelist, converged, atmtype, version=2014, weights='null'):
       Line list (without the .moog/.ares) to find the result file
     converged : bool
       True if the linelist converged, False otherwise
+    params : list/tuple
+      A list of the atmospheric parameters (Teff, logg, [Fe/H], vt). If not
+      provided it is read from the output file.
     atmtype : str
       The atmosphere type to be used for the error calculation
     version : int
@@ -735,10 +748,10 @@ def error(linelist, converged, atmtype, version=2014, weights='null'):
     # Find the output file and read the current state of it
     idx = 1 if version > 2013 else 0
     if converged:
-        m = Readmoog(fname='results/%s.out' % linelist, version=version)
+        m = Readmoog(params=params, fname='results/%s.out' % linelist, version=version)
         summary = m.fe_statistics()
     else:
-        m = Readmoog(fname='results/%s.NC.out' % linelist, version=version)
+        m = Readmoog(params=params, fname='results/%s.NC.out' % linelist, version=version)
         summary = m.fe_statistics()
     # Read the correct output file (error_summary.out).
     _update_par(line_list='linelist/%s' % linelist, summary='error_summary.out')
@@ -756,7 +769,7 @@ def error(linelist, converged, atmtype, version=2014, weights='null'):
 
     # Error om microturbulence
     fun_moog((teff, logg, feh, vt+0.1), atmtype, results='error_summary.out', version=version)
-    sumvt = Readmoog(fname='error_summary.out', version=version).fe_statistics()
+    sumvt = Readmoog(params=(teff, logg, feh, vt+0.1), fname='error_summary.out', version=version).fe_statistics()
     slopeEP, slopeRW = sumvt[4], sumvt[5]
     if slopeRW == 0:
         errormicro = abs(siga1/0.001) * 0.10
@@ -770,7 +783,7 @@ def error(linelist, converged, atmtype, version=2014, weights='null'):
     slopes = errormicro/0.10 * slopeEP
     errorslopeEP = np.hypot(slopes, siga2)
     fun_moog((teff+100, logg, feh, vt), atmtype, results='error_summary.out', version=version)
-    sumteff = Readmoog(fname='error_summary.out', version=version).fe_statistics()
+    sumteff = Readmoog(params=(teff+100, logg, feh, vt), fname='error_summary.out', version=version).fe_statistics()
 
     errorteff = abs(errorslopeEP/sumteff[4]) * 100
     # Contribution to [Fe/H]
@@ -779,7 +792,7 @@ def error(linelist, converged, atmtype, version=2014, weights='null'):
     fe2error = abs(errorteff/100 * (sumteff[2]-feh))
     sigmafe2total = np.hypot(sigmafe2, fe2error)
     fun_moog((teff, logg-0.20, feh, vt), atmtype, results='error_summary.out', version=version)
-    sumlogg = Readmoog(fname='error_summary.out', version=version).fe_statistics()
+    sumlogg = Readmoog(params=(teff, logg-0.20, feh, vt), fname='error_summary.out', version=version).fe_statistics()
     errorlogg = abs(sigmafe2total/(sumlogg[2]-feh)*0.20)
 
     # Error on [Fe/H]

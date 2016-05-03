@@ -129,6 +129,7 @@ if __name__ == '__main__':
 
     # Interpolate and transform models
     _create_model(args.teff, args.logg, args.feh, args.vmicro)
+    x = (args.teff, args.logg, args.feh, args.vmicro)
 
     # Update the batch file if a new linelist is used
     _update_batch(args.linelist)
@@ -137,7 +138,7 @@ if __name__ == '__main__':
     os.system('MOOGSILENT > /dev/null')
 
     # Prepare the data
-    m = Readmoog(fname='summary.out', version=int(args.version))
+    m = Readmoog(params=x, fname='summary.out', version=int(args.version))
     f1, _, f2, _, _, _, fe1, fe2 = m.fe_statistics()
     c1, c2 = plot_data(fe1, args.outlier, int(args.version))
     c1, c2 = plot_data(fe2, args.outlier, int(args.version))

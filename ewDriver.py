@@ -421,7 +421,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
             logger.info('Finished minimization procedure')
 
             _renaming(line[0], converged)
-            parameters = error(line[0], converged, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
+            parameters = error(line[0], converged, parameters, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
             parameters = list(parameters)
             """Correct logg according to Mortier et al. 2014 using light curve and asteroseismic data
             Valid for 5000 < teff < 6500"""
