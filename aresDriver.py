@@ -82,7 +82,7 @@ def _options(options=None):
                 'lambdaf': '25000.0',
                 'smoothder': '4',
                 'space': '2.0',
-                'rejt': '0.995',
+                'rejt': False,
                 'lineresol': '0.07',
                 'miniline': '2.0',
                 'plots_flag': False,
@@ -93,6 +93,7 @@ def _options(options=None):
                 'force': False
                 }
     if not options:
+        defaults['rejt'] = '3;5764,5766,6047,6053,6068,6076'
         return defaults
     else:
         options = options.split(',')
@@ -106,13 +107,21 @@ def _options(options=None):
         defaults['lambdaf'] = float(defaults['lambdaf'])
         defaults['smoothder'] = int(defaults['smoothder'])
         defaults['space'] = float(defaults['space'])
-        defaults['rejt'] = float(defaults['rejt'])
         defaults['lineresol'] = float(defaults['lineresol'])
         defaults['miniline'] = float(defaults['miniline'])
         defaults['rvmask'] = str(defaults['rvmask'])
         defaults['EWcut'] = float(defaults['EWcut'])
         if defaults['plots_flag']:
             defaults['plots_flag'] = '1'
+
+        if not defaults['rejt']:
+            defaults['rejt'] = '3;5764,5766,6047,6053,6068,6076'
+        try:
+            defaults['rejt'] = float(defaults['rejt'])
+        except ValueError:
+            defaults['rejt'] = str(defaults['rejt'])
+
+        print(defaults)
         return defaults
 
 
@@ -132,8 +141,9 @@ def update_ares(line_list, spectrum, out, options, fullpath):
         rejt = rejt_from_snr(options['snr'])
     else:
         rejt = options['rejt']
-    rejt = 0.999 if rejt > 0.999 else rejt
     plot = 1 if options['plots_flag'] else 0
+    if isinstance(rejt, float):
+        rejt = 0.999 if rejt > 0.999 else rejt
 
     if options['output']:
         out = options['output']

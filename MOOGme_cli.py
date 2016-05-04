@@ -51,7 +51,7 @@ def ew(args):
     if args.loggastero:
         fout += ',loggastero'
     if args.teffrange:
-        fout += ',teffrage'
+        fout += ',teffrange'
     with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
@@ -194,7 +194,7 @@ def main():
     ares_parser.add_argument('--lambdaf',   help='End of wavelength interval',        default=25000, type=int)
     ares_parser.add_argument('--smoothder', help='Noise smoother',                    default=4,     type=int)
     ares_parser.add_argument('--space',     help='Interval for the line computation', default=2.0,   type=float)
-    ares_parser.add_argument('--rejt',      help='Continuum position',                default=0.995, type=float)
+    ares_parser.add_argument('--rejt',      help='Continuum position',                default=False, type=float)
     ares_parser.add_argument('--lineresol', help='Line resolution',                   default=0.07,  type=float)
     ares_parser.add_argument('--miniline',  help='Weaker line to be printed out',     default=2,     type=int)
     ares_parser.add_argument('--plots',     help='Flag for plots',                    default=False, action='store_true')
