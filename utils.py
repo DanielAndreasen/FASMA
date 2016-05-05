@@ -313,20 +313,14 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         moog.writelines(moog_contents)
 
 
-def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmosphere_model='out.atm', **kwargs):
+def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
     """Update the parameter file (batch.par) with new linelists, atmosphere
-    models, wavelength range for synthesis
+    models, or others.
 
     Inputs
     -----
-    start_wave : float
-      The min wavelength for the synthetic spectrum
-    end_wave : float
-      The max wavelength for the synthetic spectrum
-    atmosphere_model : str
-      Path of model atmosphere file
-    line_list : str
-      Path of line list
+    atmosphere_model    :   Location of your model atmosphere file
+    line_list           :   Location of your line list
 
     Additional keyword arguments
     ----------------------------
@@ -342,7 +336,8 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
     damping         2
     units           0
     iraf            0
-    obspectrum      0       Unless obspectrum is provided to the function.
+    plot            2
+    obspectrum      1       Unless obspectrum is provided to the function.
     opacit          0
     freeform        0
     strong          0       Unless a strong lines list is provided.
@@ -374,42 +369,50 @@ def _update_par_synth(start_wave, end_wave, line_list='linelist.moog', atmospher
         'smoothed_out': 'smooth.out',
         'summary':      'summary.out'
         }
-
     # Fill the keyword arguments with the defaults if they don't exist already
-    for key, value in default_kwargs.iteritems():
-        if key not in kwargs.keys():
-            kwargs[key] = value
-    # Generate a MOOG-compatible run file
 
+    # Generate a MOOG-compatible run file
+    #out = '%s.spec' % line_list.rpartition('/')[2]
+    out = 'smooth.out'
     moog_contents = "synth\n"\
                     "terminal          %s\n"\
                     "model_in          '%s'\n"\
-                    "observed_in       '%s'\n"\
                     "summary_out       '%s'\n"\
-                    "smoothed_out      'smooth.out'\n"\
+                    "smoothed_out      '%s'\n"\
                     "standard_out      'result.out'\n"\
                     "lines_in          '%s'\n"\
-                    "plot              1\n"\
+                    "plot              %s\n"\
                     "synlimits\n"\
                     "      %s      %s       %s      %s\n"\
                     "plotpars          %s\n"\
                     "      %s      %s       0.5      1.05\n"\
                     "      0.0     0.0      0.0       0.0\n"\
-                    "      g       %s       %s       %s       %s       %s\n" % (kwargs['terminal'], atmosphere_model,  kwargs['obfile'], kwargs['summary'],
-                                                                               line_list, start_wave, end_wave, kwargs['step_wave'], kwargs['step_flux'],
-                                                                               kwargs['plotpars'], start_wave, end_wave, kwargs['resolution'], kwargs['vsini'],
-                                                                               kwargs['limb'], kwargs['vmac'], kwargs['lorentz'])
+                    "      g       0.0      0.0       0.0       0.0       0.0\n" %  (default_kwargs['terminal'], default_kwargs['model_in'], default_kwargs['summary'], out, line_list, kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['step_wave'], kwargs['options']['step_flux'], kwargs['options']['plotpars'], start_wave, end_wave)
+
+
+    # Fill the keyword arguments with the defaults if they don't exist already
+    for key, value in default_kwargs.iteritems():
+        if key not in kwargs.keys():
+            kwargs[key] = value
 
     settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
-               'units,iraf,opacity,freeform,obspectrum,histogram,'\
+               'units,iraf,opacit,freeform,observed_in,obspectrum,histogram,'\
                'synlimits'.split(',')
+
+    #plot and plotpar values are the same
+    if 'plotpars' in kwargs:
+        if kwargs['plotpars'] != 0:
+            settings.append('plot')
+            settings.append('plotpars')
 
     for setting in settings:
         if setting in kwargs:
-            moog_contents += "%s      %s\n" % (setting + ' ' * (14 - len(setting)), kwargs[setting])
+            moog_contents += "%s %s\n" % (setting + ' ' * (14 - len(setting)), kwargs[setting])
 
     with open('batch.par', 'w') as moog:
         moog.writelines(moog_contents)
+
+
 
 
 def _run_moog(par='batch.par', driver='abfind'):
@@ -455,7 +458,7 @@ def _read_smooth(fname='smooth.out'):
 
 
 def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
-             driver='abfind', version=2014):
+             driver='abfind', version=2014, N=None, r=None, fout=None, options=None):
     """Run MOOG and return slopes for abfind mode.
 
     Inputs
@@ -506,7 +509,20 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         abundances = [fe1+7.47, fe2+7.47]
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
         return res, EPs, RWs, abundances
+   elif driver == 'synth':
+        #Create synthetic spectra
+        spec = []
+        for i in range(N):
+            _update_par_synth('linelist/%s' % fout[i], r[i][0], r[i][1], options=options)
+            _run_moog(driver='synth')
+            spec.append(_read_moog('smooth.out'))
 
+        w = np.column_stack(spec)[0]
+        f = np.column_stack(spec)[1]
+        #add here broadening
+        wavelength, flux = broadening(w, f, resolution=options['resolution'],
+        vsini=options['vsini'], epsilon=options['limb'], vmac=options['vmac'])
+        return wavelength, flux
 
 class Readmoog:
     """Read the output file from MOOG and return some useful informations
@@ -872,69 +888,3 @@ def slope(data, weights='null'):
     return wls.params[1], w
 
 
-def read_observations(wavelength, flux, start_synth, end_synth):
-    """Cut the observed spectrum to match the synthetic spectrum
-
-    Inputs
-    ------
-    wavelength : ndarray
-      Wavelength vector of the observed spectrum
-    flux : ndarray
-      Flux vector of the observed spectrum
-    start_synth : float
-      First wavelength in the synthetic spectrum
-    end_synth : float
-      Last wavelength in the synthetic spectrum
-
-    Outputs
-    -------
-    wavelength : ndarray
-      The wavelength cutted to fit the synthetic spectrum
-    flux : ndarray
-      The flux cutted to fit the synthetic spectrum
-    """
-    idx = (wavelength >= start_synth) & (wavelength <= end_synth)
-    return wavelength[idx], flux[idx]
-
-
-def interpol_synthetic(wavelength, flux, start_synth, end_synth):
-    """Interpolation of the synthetic flux to the observed wavelength
-
-    Inputs
-    ------
-    wavelength : ndarray
-      Wavelength vector of the observed spectrum
-    flux : ndarray
-      Flux vector of the observed spectrum
-    start_synth : float
-      First wavelength in the synthetic spectrum
-    end_synth : float
-      Last wavelength in the synthetic spectrum
-
-    Outputs
-    -------
-    wavelength_obs : ndarray
-      The wavelength cutted to match the synthetic spectrum
-    flux_obs : ndarray
-      The flux cutted to match the synthetic spectrum
-    flux_inter_synth : ndarray
-      The synthetic flux after interpolation to the observed wavelength vector
-    """
-    from scipy.interpolate import interp1d
-    # The synthetic spectrum should be always finer
-    wave_synth, flux_synth = _read_smooth('smooth.out')
-    wavelength_obs, flux_obs = read_observations(wavelength, flux, start_synth, end_synth)
-    f = interp1d(wave_synth, flux_synth, kind='cubic')
-    flux_inter_synth = f(wavelength_obs)
-    return wavelength_obs, flux_obs, flux_inter_synth
-
-
-def plot_synthetic():
-    """Function to plot synthetic spectrum
-    """
-    import seaborn
-    import matplotlib.pyplot as plt
-    x, y = _read_smooth(fname='smooth.out')
-    plt.plot(x, y)
-    plt.show()
-    plt.close()
