@@ -120,8 +120,6 @@ def _options(options=None):
             defaults['rejt'] = float(defaults['rejt'])
         except ValueError:
             defaults['rejt'] = str(defaults['rejt'])
-
-        print(defaults)
         return defaults
 
 
