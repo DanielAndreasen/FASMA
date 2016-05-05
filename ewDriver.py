@@ -76,7 +76,8 @@ def _options(options=None):
                 'ABdiffcrit': 0.01,
                 'MOOGv': 2014,
                 'outlier': False,
-                'teffrange': False
+                'teffrange': False,
+                'autofixvt': False
                 }
     if not options:
         return defaults
@@ -404,6 +405,15 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                         line[0] = newName
                     else:
                         newLineList = False
+
+            if options['autofixvt'] and not converged:
+               logger.info('vt is auto fixed') 
+                _, _, RWs, _ = fun_moog(parameters, options['model'], weight=options['weights'], version=options['MOOGv'])
+                vt = parameters[-1]
+                if ((vt < 0.05) and (abs(RWs) > 0.050)) or ((vt > 9.95) and (abs(RWs) > 0.050)):
+                    options['fix_vt'] = True
+                    function = Minimize(parameters, fun_moog, **options)
+                    parameters, converged = function.minimize()
 
             # Refine the parameters
             if converged and options['refine']:

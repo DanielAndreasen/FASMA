@@ -52,6 +52,8 @@ def ew(args):
         fout += ',loggastero'
     if args.teffrange:
         fout += ',teffrange'
+    if args.autofixvt:
+        fout += ',autofixvt'
     with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
@@ -175,6 +177,7 @@ def main():
     ew_parser.add_argument('--loggLC',             help='Correct logg from LC (Mortier 2013+)', action='store_true', default=False, metavar='loggLC correction')
     ew_parser.add_argument('--loggastero',         help='Correct logg from asteroseismology (Mortier 2013+)', action='store_true', default=False, metavar='loggastero correction')
     ew_parser.add_argument('--teffrange',          help='Give warning at high Teff, and remove lines at low Teff', action='store_true', default=False, metavar='Teff range')
+    ew_parser.add_argument('--autofixvt',          help='Auto fix vt if it goes too low or too high', action='store_true', default=False)
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method
