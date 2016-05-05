@@ -509,7 +509,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         abundances = [fe1+7.47, fe2+7.47]
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
         return res, EPs, RWs, abundances
-   elif driver == 'synth':
+    elif driver == 'synth':
         #Create synthetic spectra
         spec = []
         for i in range(N):
@@ -886,5 +886,3 @@ def slope(data, weights='null'):
 
     wls = sm.wls('y ~ x', data=data, weights=w).fit()
     return wls.params[1], w
-
-
