@@ -458,7 +458,7 @@ def _read_smooth(fname='smooth.out'):
 
 
 def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
-             driver='abfind', version=2014, N=None, r=None, fout=None, options=None):
+             driver='abfind', version=2014, r=None, fout=None, options=None):
     """Run MOOG and return slopes for abfind mode.
 
     Inputs
@@ -512,17 +512,22 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
     elif driver == 'synth':
         #Create synthetic spectra
         spec = []
+        #Run moog for each linelist file
+        #N is number of intervals
+        N = len(r)
+        #Run moog for each linelist file
         for i in range(N):
             _update_par_synth('linelist/%s' % fout[i], r[i][0], r[i][1], options=options)
             _run_moog(driver='synth')
-            spec.append(_read_moog('smooth.out'))
-
+            x, y = _read_moog('smooth.out')
+            #add broadening
+            #This is done here so the x-axis is equidistant.
+            #Currently, the wavelength array as to be regularly spaced.
+            spec.append(broadening(x, y, resolution=options['resolution'], vsini=options['vsini'], epsilon=options['limb'], vmac=options['vmac']))
+        #Gather all individual spectra to one
         w = np.column_stack(spec)[0]
         f = np.column_stack(spec)[1]
-        #add here broadening
-        wavelength, flux = broadening(w, f, resolution=options['resolution'],
-        vsini=options['vsini'], epsilon=options['limb'], vmac=options['vmac'])
-        return wavelength, flux
+        return w, f
 
 class Readmoog:
     """Read the output file from MOOG and return some useful informations
