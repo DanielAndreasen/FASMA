@@ -3,16 +3,25 @@
 # My imports
 from __future__ import division
 import numpy as np
-import pylab as pl
-from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
-from glob import glob
+from scipy.interpolate import InterpolatedUnivariateSpline
 import os
 from astropy.io import fits as pyfits
 
 
 def read_observations(fname, start_synth, end_synth):
-    """Read observed spectrum and return wavelength and flux"""
+    """Read observed spectrum of different types and return wavelength and flux.
+    Input
+    -----
+    fname : filename of the spectrum. Currently only fits and text files accepted.
+    start_synth : starting wavelength where the observed spectrum is cut
+    end_synth : ending wavelength where the observed spectrum is cut
 
+    Output
+    -----
+    wavelength_obs : observed wavelength
+    flux_obs : observed flux
+    """
+    #These are the approved formats
     extension = ('.dat', '.txt', '.spec', '.fits')
     if fname.endswith(extension):
         if fname[-4:]=='.dat' or fname[-4:]=='.txt':
@@ -23,6 +32,7 @@ def read_observations(fname, start_synth, end_synth):
         elif fname[-5:]=='.fits':
             hdulist = pyfits.open(fname)
             header = hdulist[0].header
+            #Only 1-D spectrum accepted.
             flux = hdulist[0].data #flux data in the primary
             flux = np.array(flux, dtype=np.float64)
             start_wave = header['CRVAL1'] #initial wavelenght
@@ -31,13 +41,13 @@ def read_observations(fname, start_synth, end_synth):
             w0, dw, n = start_wave, step, len(flux)
             w = start_wave + step * n
             wave = np.linspace(w0, w, n, endpoint=False)
-
+        #These types are produced by MOOGme (fits format).
         elif fname[-5:]=='.spec':
             hdulist = pyfits.open(fname)
             x = hdulist[1].data
             flux = x['flux'] #flux data in the primary
             wave = x['wavelength']
-
+        #Cut observations to the intervals of the synthesis
         wavelength_obs = wave[np.where((wave >= float(start_synth)) & (wave <= float(end_synth)))]
         flux_obs = flux[np.where((wave >= float(start_synth)) & (wave <= float(end_synth)))]
 
@@ -47,8 +57,23 @@ def read_observations(fname, start_synth, end_synth):
     return wavelength_obs, flux_obs
 
 
-def read_obs_intervals(obs_fname, N, r):
-    """Read only the spectral chunks from the observed spectrum"""
+def read_obs_intervals(obs_fname, r):
+    """Read only the spectral chunks from the observed spectrum
+    This function does the same as read_observations but for the whole linelist.
+    Input
+    -----
+    fname : filename of the spectrum. Currently only fits and text files accepted.
+    r : ranges of wavelength intervals where the observed spectrum is cut
+    (starting and ending wavelength)
+
+    Output
+    -----
+    wavelength_obs : observed wavelength
+    flux_obs : observed flux
+    """
+
+    #N : number of intervals
+    N = len(r)
     spec = []
     for i in range(N):
         spec.append(read_observations(obs_fname, start_synth=r[i][0], end_synth=r[i][1]))
@@ -58,9 +83,43 @@ def read_obs_intervals(obs_fname, N, r):
     return x_obs, y_obs
 
 
+def plot(x_obs, y_obs, x, y):
+    """Function to plot synthetic spectrum.
+    Input
+    -----
+    x_obs : observed wavelength
+    y_obs : observed flux
+    x : synthetic wavelength
+    y : synthetic flux
+
+    Output
+    ------
+    plots
+    """
+
+    import pylab as pl
+
+    #if nothing exists, pass
+    if (x_obs is None) and (x is None):
+        pass
+    #if there is not observed spectrum, plot only synthetic (case 1, 3)
+    if x_obs is None:
+        pl.plot(x, y, label='synthetic')
+        pl.legend()
+        pl.show()
+    #if both exist
+    else:
+        pl.plot(x, y, label='synthetic')
+        pl.plot(x_obs, y_obs, label='observed')
+        pl.legend()
+        pl.show()
+    return
+
+#The rest are useless functions for now....
 def plot_synth(fname):
     """Function to plot synthetic spectrum
     """
+    import pylab as pl
 
     if fname=='smooth.out':
         x, y = _read_moog(fname='smooth.out')
@@ -82,52 +141,6 @@ def plot_synth(fname):
             pl.close()
         else:
             print('Synthetic spectrum does not exist.')
-    return
-
-
-def plot_synth_obs(x_obs, y_obs, fname):
-    """Function to plot synthetic spectrum
-    """
-
-    if fname=='smooth.out':
-        x, y = _read_moog(fname='smooth.out')
-        pl.plot(x, y)
-        pl.plot(x_obs, y_obs)
-        pl.show()
-        pl.close()
-    elif fname=='summary.out':
-        x, y = _read_raw_moog('summary.out')
-        #z = pyasl.instrBroadGaussFast(x, y, 50000, edgeHandling="firstlast")
-        pl.plot(x, y)
-        pl.plot(x_obs, y_obs)
-        #pl.plot(x, z)
-        pl.show()
-        pl.close()
-    else:
-        if os.path.isfile(fname):
-            x, y = _read_moog(fname)
-            pl.plot(x, y, '-')
-            pl.plot(x_obs, y_obs, '--')
-            pl.show()
-            pl.close()
-        else:
-            print('Synthetic spectrum does not exist.')
-    return
-
-
-def plot(x_obs, y_obs, x, y):
-    """Function to plot synthetic spectrum
-    """
-
-    if (x_obs is None) and (x is None):
-        pass
-    if x_obs is None:
-        pl.plot(x, y)
-        pl.show()
-    else:
-        pl.plot(x, y)
-        pl.plot(x_obs, y_obs)
-        pl.show()
     return
 
 

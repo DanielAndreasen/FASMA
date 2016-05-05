@@ -9,39 +9,7 @@ from copy import copy
 
 
 class Minimize:
-    '''Minimize for best parameters given a line list with the EW method
-
-    Inputs
-    ------
-    x0 : list/tuple
-      The initial guess on parameters containing (Teff, logg, [Fe/H], vt)
-    func : function
-      The function to minimize calculating slopes for a set of parameters
-    model : str
-      The model atmosphere to be used
-    weights : str (default: 'null')
-      The weights to be used for calculating correlation slopes
-    fix_teff : bool (default: False)
-      Fixing the Teff when set to True
-    fix_logg : bool (default: False)
-      Fixing the logg when set to True
-    fix_feh : bool (default: False)
-      Fixing the [Fe/H] when set to True
-    fix_vt : bool (default: False)
-      Fixing the vt when set to True
-    iterations : int (default: 160)
-      Maximum number of allowed iterations
-    EPcrit : float (default: 0.001)
-      The criteria for convergence on abundances vs excitation potential
-    RWcrit : float (default: 0.003)
-      The criteria for convergence on abundances vs reduced EW
-    ABdiffcrit : float (default: 0.01)
-      The criteria for convergence on FeI-FeII
-    MOOGv : int (default: 2014)
-      The MOOG version being used
-    GUI : bool (default: True)
-      Change the printing behaviour according to wether it is in the GUI or not
-    '''
+    """Minimize for best parameters given a line list"""
 
     def __init__(self, x0, func, model, weights='null',
                  fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
@@ -71,14 +39,7 @@ class Minimize:
 
 
     def _getMic(self):
-        '''Get the microturbulence if this is fixed from an emperical relation
-        From dwarfs the relation is from Tsantaki+ 2013, while for giants
-        it is from Adibekyan+ 2015.
-
-        Output
-        ------
-          Update x0[3]  --  vt
-        '''
+        """Get the microturbulence if this is fixed"""
         if self.x0[1] >= 3.95:
             self.x0[3] = 6.932*self.x0[0]/10000 - 0.348*self.x0[1] - 1.437
         else:
@@ -86,7 +47,7 @@ class Minimize:
 
 
     def print_format(self):
-        '''Print the stellar atmospheric parameters in a nice format'''
+        """Print the stellar atmospheric parameters in a nice format"""
         rest = self.x0 + list((self.slopeEP, self.slopeRW, self.Abdiff))
         if self.iteration == 0:
             if self.GUI:
@@ -100,18 +61,10 @@ class Minimize:
 
 
     def check_bounds(self, i):
-        '''
+        """
         Function which checks if parameters are within bounds.
-
-        Input
-        -----
-        i : int
-          the index of the bounds we want to check. 4 values are possible
-          1 means Teff
-          3 means logg
-          5 means [Fe/H]
-          7 means vt
-        '''
+        Input - parameter: what we want to check; bounds: ze bounds;
+        i: the index of the bounds we want to check"""
         if self.x0[int((i-1)/2)] < self.bounds[i-1]:
             self.x0[int((i-1)/2)] = self.bounds[i-1]
         elif self.x0[int((i-1)/2)] > self.bounds[i]:
@@ -119,18 +72,7 @@ class Minimize:
 
 
     def check_convergence(self, fe_input):
-        '''Check the convergence criteria for all parameters which are not fixed
-
-        Input
-        -----
-        fe_input : float
-          The iron abundance
-
-        Output
-        ------
-        conditions : bool
-          If converged return True, False otherwise
-        '''
+        """Check the convergence criteria"""
         self.slopeEP = 0.00 if self.fix_teff else self.slopeEP
         self.slopeRW = 0.00 if self.fix_vt else self.slopeRW
         self.Abdiff = 0.00 if self.fix_logg else self.Abdiff
@@ -144,18 +86,7 @@ class Minimize:
 
 
     def _bump(self, alpha):
-        '''Bump to the values in the list by making a draw from a Gaussian
-        distribution centered around xi with a width alpha_i
-
-        Input
-        -----
-        alpha : list
-          A list with the different sigma for the Gaussian distribution
-
-        Output
-        ------
-          An updated parameters list
-        '''
+        """Bump to the values in the list, x"""
         for i, X in enumerate(zip(alpha, self.x0)):
             ai, xi = X
             sig = 0.01 if ai*xi == 0 else ai*xi
@@ -164,8 +95,7 @@ class Minimize:
 
 
     def _format_x0(self):
-        '''Format the values in x0, so first value is an integer and rest
-        are floats with 2 decimals.'''
+        """Format the values in x0, so first value is an integer"""
         self.x0[0] = int(self.x0[0])
         self.x0[1] = round(self.x0[1], 2)
         self.x0[2] = round(self.x0[2], 2)
@@ -173,15 +103,6 @@ class Minimize:
 
 
     def minimize(self):
-        '''Do the actual minimization after initializing Minimize (the class).
-
-        Output
-        ------
-        x0 : list
-          The final parameters
-        converged : bool
-          Return wether the minimization was succesful.
-        '''
         step = (700, 0.50, 0.50)
 
         self._format_x0()
@@ -263,63 +184,42 @@ class Minimize:
             return best[min(best.keys())], False
 
 
-def minimize_synth(p0, x_obs, y_obs, N, r, f, options):
+def minimize_synth(p0, x_obs, y_obs, r, f, **options):
     '''Minimize a synthetic spectrum to an observed
 
     Input
     -----
-    p0 : list/tuple
-      Initial parameters (teff, logg, feh, vt)
-    x_obs : array-like
-      The observed wavelengths
-    y_obs : array-like
-      The observed flux
-    N :
-    r :
-    f :
-    options :
+        p0 : initial parameters (teff, logg, feh, vt)
 
     Output
     -----
-    params : list
-      Final parameters
-    x_final : array-like
-      Final wavelength
-    y_final : array-like
-      Final synthetic flux
+        params : final parameters
+        x_final : final wavelength
+        y_final : final synthetic flux
     '''
 
     from utils import fun_moog as func
     from mpfit import mpfit
     from scipy.interpolate import InterpolatedUnivariateSpline
     from synthetic import save_synth_spec
+    #set free/ fixed parameters
 
-    x = (N, r, f, x_obs, options)
+    x = (r, f, x_obs, options)
 
-    def myfunct(p, x=None, y=None, err=None):
+    def myfunct(p, fjac=None, x=None, y=None, err=None):
         '''Function that return the weighted deviates
         Input
         ----
-        p : list/tuple
-          Parameters for the model atmosphere
-        x : list
-          Something something
-        y : array-like
-          Observed flux
-        err : array-like
-          Observed error
+        p : parameters for the model atmosphere
 
         Output
         -----
-        (y-model)/err : float
-          The xi-value
+        (y-model)/err : deviation
         '''
 
         #Definition of the Model spectrum to be iterated
-        #N, r, f, x_obs, options = x
         x_s, y_s = func(p, atmtype=options['model'], driver='synth',
-                        version=options['MOOGv'], N=N, r=r,
-                        fout=f, options=options)
+        version=options['MOOGv'], r=r, fout=f, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_s = sl(x_obs)
         model = flux_s
@@ -327,14 +227,14 @@ def minimize_synth(p0, x_obs, y_obs, N, r, f, options):
         return([status, (y-model)/err])
 
     #error of the flux.. this should be better calculated
-    err = np.zeros(len(y_obs)) + 0.01
-    fa = {'x': [N, r, f, x_obs, y_obs, options], 'y': y_obs, 'err': err}
+    err = [0.01]*len(y_obs)
+    fa = {'x':[r, f, x_obs, y_obs, options], 'y':y_obs, 'err':err}
 
     #set PARINFO structure
     parinfo = [{'limited': [1, 1], 'limits': [4000.0, 7500.0], 'step': 10},
-               {'limited': [1, 1], 'limits': [0.5, 5.0], 'step': 0.05},
-               {'limited': [1, 1], 'limits': [-2.0, 1.0], 'step': 0.01},
-               {'limited': [1, 1], 'limits': [0.0, 10.0], 'step': 0.01}]
+    {'limited': [1, 1], 'limits': [0.5, 5.0], 'step': 0.05},
+    {'limited': [1, 1], 'limits': [-2.0, 1.0], 'step': 0.01},
+    {'limited': [1, 1], 'limits': [0.0, 10.0], 'step': 0.01}]
 
     m = mpfit(myfunct, xall=p0, functkw=fa, parinfo=parinfo)
     print('status = %s' % m.status)
@@ -343,7 +243,7 @@ def minimize_synth(p0, x_obs, y_obs, N, r, f, options):
     print('Uncertainties: %s' % m.perror)
 
     x_s, y_s = func(m.params, atmtype=options['model'], driver='synth',
-                    version=options['MOOGv'], N=N, r=r, fout=f, options=options)
+    version=options['MOOGv'], r=r, fout=f, **options)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)
     #I should create a heaader with the parameters here
@@ -355,7 +255,6 @@ def mcmc_synth(x0, observed, limits):
 
     import emcee
     from utils import interpol_synthetic, fun_moog as func
-    from utils import read_observations
 
     def lnlike(theta, x, y, yerr):
         teff, logg = theta
