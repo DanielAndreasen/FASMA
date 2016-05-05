@@ -184,90 +184,72 @@ class Minimize:
             return best[min(best.keys())], False
 
 
-def chi2(obs, theory):
-    """chi^2 function"""
-    error = 1.0
-    chi = ((obs - theory)/error)**2
-    chi2 = np.sum(chi)
-    return chi2
-
-
-def best_chi(x0, iter_step, steps, wave, flux_obs, limits, p):
-    idx = {'teff': 0, 'logg': 1}
-    idx = idx[p]
-    values = np.linspace(x0[idx]-steps[idx], x0[idx]+steps[idx], 5)
-
-    results = np.zeros((5, 2))
-    for value in values:
-        if p == 'teff':
-            func((value, x0[1], x0[2], x0[3]), driver='synth')
-            wavel, flux_obs, flux_inter_synth = interpol_synthetic(wave, flux_obs, limits[0], limits[1])
-            chi = chi2(flux_obs, flux_inter_synth)
-            results.append((value, chi))
-        elif p == 'logg':
-            func((x0[0], value, x0[2], x0[3]), driver='synth')
-            wavel, flux_obs, flux_inter_synth = interpol_synthetic(wave, flux_obs, limits[0], limits[1])
-            chi = chi2(flux_obs, flux_inter_synth)
-            results.append((value, chi))
-    results = np.array(results)
-    chi_best = results[results[:,-1]==results[:,-1].min()]
-    return chi_best, results
-
-
-def minimize_synth(x0, observed, limits):
+def minimize_synth(p0, x_obs, y_obs, N, r, f, options):
     '''Minimize a synthetic spectrum to an observed
 
-    Input:
-        args:
-    Output:
-        output
+    Input
+    -----
+        p0 : initial parameters (teff, logg, feh, vt)
+
+    Output
+    -----
+        params : final parameters
+        x_final : final wavelength
+        y_final : final synthetic flux
     '''
-    from utils import interpol_synthetic, fun_moog as func
-    from utils import read_observations
 
-    wavelength_obs, flux_obs = np.loadtxt(observed, unpack=True, usecols=(0, 1))
-    idx = (wavelength_obs >= limits[0]) & (wavelength_obs <= limits[1])
-    wavelength_obs, flux_obs = wavelength_obs[idx], flux_obs[idx]
+    from utils import fun_moog as func
+    from mpfit import mpfit
+    from scipy.interpolate import InterpolatedUnivariateSpline
+    from synthetic import save_synth_spec
+    #set free/ fixed parameters
 
-    flux_obs /= np.median(flux_obs)
-    # Normalization (use first 50 points below 1.2 as constant continuum)
-    maxes = flux_obs[(flux_obs < 1.2)].argsort()[-50:][::-1]
-    flux_obs /= np.median(flux_obs[maxes])
+    x = (N, r, f, x_obs, options)
 
+    def myfunct(p, fjac=None, x=None, y=None, err=None):
+        '''Function that return the weighted deviates
+        Input
+        ----
+        p : parameters for the model atmosphere
 
-    # This is dangerous. We have to search all parameter space unless specified by the user.
-    func(x0, driver='synth')
-    wavelength_obs, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, limits[0], limits[1])
-    chi_i = chi2(flux_obs, flux_inter_synth)
+        Output
+        -----
+        (y-model)/err : deviation
+        '''
 
-    # TODO: ITERATION STARTS, A CONVERGENCE IS NEEDED
-    # Maybe the space of search should be defined by the user depending on how well the initial conditions are.
-    iterations = 0
-    steps = np.array([800.0, 0.9])
-    # This is dangerous. We have to search all parameter space unless specified by the user.
-    iter_step = steps/(iterations+1)
+        #Definition of the Model spectrum to be iterated
+        #N, r, f, x_obs, options = x
+        x_s, y_s = func(p, atmtype=options['model'], driver='synth',
+        version=options['MOOGv'], N=N, r=r, fout=f, options=options)
+        sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
+        flux_s = sl(x_obs)
+        model = flux_s
+        status = 0
+        return([status, (y-model)/err])
 
-    tmp = x0[:]
-    Teff_rng = np.linspace(x0[0]-50, x0[0]+50, 20)
-    logg_rng = np.linspace(x0[1]-0.1, x0[1]+0.1, 10)
+    #error of the flux.. this should be better calculated
+    err = [0.01]*len(y_obs)
+    fa = {'x':[N, r, f, x_obs, y_obs, options], 'y':y_obs, 'err':err}
 
+    #set PARINFO structure
+    parinfo = [{'limited': [1, 1], 'limits': [4000.0, 7500.0], 'step': 10},
+    {'limited': [1, 1], 'limits': [0.5, 5.0], 'step': 0.05},
+    {'limited': [1, 1], 'limits': [-2.0, 1.0], 'step': 0.01},
+    {'limited': [1, 1], 'limits': [0.0, 10.0], 'step': 0.01}]
 
-    Teffs, loggs = np.meshgrid(Teff_rng, logg_rng)
-    z = np.zeros(Teffs.T.shape)
-    for i, Teff in enumerate(Teffs[0, :]):
-        for j, logg in enumerate(loggs[:, 0]):
-            print 'Python --\tTeff: %i/%i\tlogg: %.2f/%.2f' % (Teff, Teff_rng.max(), logg, logg_rng.max())
-            func((Teff, logg, x0[2], x0[3]), driver='synth')
-            wavel, flux_obs, flux_inter_synth = interpol_synthetic(wavelength_obs, flux_obs, limits[0], limits[1])
-            chi = chi2(flux_obs, flux_inter_synth)
-            z[i, j] = chi
-    return z
+    m = mpfit(myfunct, xall=p0, functkw=fa, parinfo=parinfo)
+    print('status = %s' % m.status)
+    print('Iterations: %s' % m.niter)
+    print('Fitted pars:%s' % m.params)
+    print('Uncertainties: %s' % m.perror)
 
-
-
-
-    # return d
-
+    x_s, y_s = func(m.params, atmtype=options['model'], driver='synth',
+    version=options['MOOGv'], N=N, r=r, fout=f, options=options)
+    sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
+    flux_final = sl(x_obs)
+    #I should create a heaader with the parameters here
+    save_synth_spec(x_obs, flux_final, fname='final.spec')
+    return m.params, x_obs, flux_final
 
 
 def mcmc_synth(x0, observed, limits):
@@ -328,36 +310,3 @@ def mcmc_synth(x0, observed, limits):
     import matplotlib.pyplot as plt
     fig = corner.corner(samples, labels=["$Teff$", "$logg$"], truths=[5777, 4.44])
     plt.show()
-
-
-
-
-
-
-
-if __name__ == '__main__':
-    a = None
-    # import matplotlib.pyplot as plt
-    # x0 = [5777, 4.44, 0.0, 1.0]
-    # fname = 'spectra/solar_synthetic.txt'
-    # limits = (6444.672, 6447.340)
-    #
-    # # MCMC example
-    # mcmc_synth([5777, 4.44], fname, limits)
-
-
-
-    # z = minimize_synth(x0, fname, limits=limits)
-    #
-    # z = z.T
-    # z1 = z.copy()
-    # z /= z.max()
-    #
-    # Teff_rng = np.linspace(x0[0]-50, x0[0]+50, 20)
-    # logg_rng = np.linspace(x0[1]-0.1, x0[1]+0.1, 10)
-    #
-    #
-    # Teffs, loggs = np.meshgrid(Teff_rng, logg_rng)
-    # plt.contourf(Teffs, loggs, z, levels=np.linspace(0, 1, 100), cmap=plt.cm.spectral)
-    # plt.colorbar()
-    # plt.show()
