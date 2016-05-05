@@ -51,7 +51,9 @@ def ew(args):
     if args.loggastero:
         fout += ',loggastero'
     if args.teffrange:
-        fout += ',teffrage'
+        fout += ',teffrange'
+    if args.autofixvt:
+        fout += ',autofixvt'
     with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
@@ -172,9 +174,10 @@ def main():
     ew_parser.add_argument('--RWslope',            help='RW slope to converge', default=0.003, type=float, metavar='RW slope')
     ew_parser.add_argument('--Fedifference',       help='Difference between FeI and FeII', default='0.000', type=float, metavar='|Fel-Fell|')
     ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
-    ew_parser.add_argument('--loggLC',               help='Correct logg from LC (Mortier 2013+)', action='store_true', default=False, metavar='loggLC correction')
-    ew_parser.add_argument('--loggastero',               help='Correct logg from asteroseismology (Mortier 2013+)', action='store_true', default=False, metavar='loggastero correction')
+    ew_parser.add_argument('--loggLC',             help='Correct logg from LC (Mortier 2013+)', action='store_true', default=False, metavar='loggLC correction')
+    ew_parser.add_argument('--loggastero',         help='Correct logg from asteroseismology (Mortier 2013+)', action='store_true', default=False, metavar='loggastero correction')
     ew_parser.add_argument('--teffrange',          help='Give warning at high Teff, and remove lines at low Teff', action='store_true', default=False, metavar='Teff range')
+    ew_parser.add_argument('--autofixvt',          help='Auto fix vt if it goes too low or too high', action='store_true', default=False)
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method
@@ -197,7 +200,7 @@ def main():
     ares_parser.add_argument('--lambdaf',   help='End of wavelength interval',        default=25000, type=int)
     ares_parser.add_argument('--smoothder', help='Noise smoother',                    default=4,     type=int)
     ares_parser.add_argument('--space',     help='Interval for the line computation', default=2.0,   type=float)
-    ares_parser.add_argument('--rejt',      help='Continuum position',                default=0.995, type=float)
+    ares_parser.add_argument('--rejt',      help='Continuum position',                default=False, type=float)
     ares_parser.add_argument('--lineresol', help='Line resolution',                   default=0.07,  type=float)
     ares_parser.add_argument('--miniline',  help='Weaker line to be printed out',     default=2,     type=int)
     ares_parser.add_argument('--plots',     help='Flag for plots',                    default=False, action='store_true')

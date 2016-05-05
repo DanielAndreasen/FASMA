@@ -527,6 +527,8 @@ class Readmoog:
         self.nelements = 1
         self.idx = 1 if version > 2013 else 0
         self.version = version
+        with open(self.fname, 'r') as f:
+            self.lines = f.readlines()
         if params:
             self.teff = params[0]
             self.logg = params[1]
@@ -534,8 +536,7 @@ class Readmoog:
             self.vt = params[3]
         else:
             self.parameters()
-        with open(self.fname, 'r') as f:
-            self.lines = f.readlines()
+
 
     def parameters(self):
         """Get the atmospheric parameters
