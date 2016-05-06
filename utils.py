@@ -458,7 +458,7 @@ def _read_smooth(fname='smooth.out'):
 
 
 def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
-             driver='abfind', version=2014, r=None, fout=None, options=None):
+             driver='abfind', version=2014, r=None, fout=None, **options):
     """Run MOOG and return slopes for abfind mode.
 
     Inputs
