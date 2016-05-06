@@ -56,7 +56,7 @@ def recalSingleLine(line, params=None, version=2014, maxiter=40):
         else:
             a = c
         c = (a+b)/2
-    return loggf_old
+    return c
 
 
 def _parser():
