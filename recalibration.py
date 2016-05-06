@@ -12,7 +12,7 @@ from utils import Readmoog, GetModels
 from interpolation import interpolator, save_model
 
 
-def recalSingleLine(line, params=None, version=2014, maxiter=30):
+def recalSingleLine(line, params=None, version=2014, maxiter=40):
     '''Recalibrate a single line and return the new loggf
 
     Inputs
@@ -34,20 +34,21 @@ def recalSingleLine(line, params=None, version=2014, maxiter=30):
         line[3] = loggf
         np.savetxt('temporary.moog', line[:, np.newaxis].T, fmt=fmt, header=header)
         runMoog()
-        d = np.loadtxt('summary.out', skiprows=5, usecols=(6,))
-        return float(d)
+        m = Readmoog(params=params, version=version)
+        _, abund = m.elements()
+        return abund[0] - 7.47
 
     fmt = ('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f')
     header = 'Wavelength     ele    EP     loggf        EW'
     np.savetxt('temporary.moog', line[:, np.newaxis].T, fmt=fmt, header=header)
-    EW = line[-1]
+    loggf_old = line[3]
     a, b = -10, 10  # extreme values of loggf
     c = (a+b)/2
     for _ in range(maxiter):
         if c == 0:  # Don't evaluate at loggf = 0
             c += (abs(a) + abs(b)) / 10
-        fa = moogAbund(a) - EW
-        fc = moogAbund(c) - EW
+        fa = moogAbund(a)
+        fc = moogAbund(c)
         if fc == 0:
             return c
         elif fa*fc < 0:
@@ -55,7 +56,7 @@ def recalSingleLine(line, params=None, version=2014, maxiter=30):
         else:
             a = c
         c = (a+b)/2
-    return c
+    return loggf_old
 
 
 def _parser():
@@ -90,14 +91,17 @@ if __name__ == '__main__':
     x = lines[cols].values[0][:, np.newaxis].T
     np.savetxt('temporary.moog', x, fmt=fmt, header=header)
 
-    options = {'driver': 'ewfind',
+    options = {'driver': 'abfind',
                'damping': args.damping}
     updateBatch(line_list='temporary.moog', **options)
 
     newloggf = np.zeros(lines.shape[0])
     for i, line in enumerate(lines[cols].values):
+        print 'Wavelength: %.3f' % line[0]
         print 'Old loggf: %.3f' % line[3]
-        newloggf[i] = recalSingleLine(line, params=params, version=args.moogversion)
+        zz = recalSingleLine(line, params=params, version=args.moogversion)
+        zz = np.log10(zz) if zz > 0 else zz
+        newloggf[i] = zz
         print 'New loggf: %.3f\n' % newloggf[i]
 
     lines['newloggf'] = pd.Series(newloggf)
