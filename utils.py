@@ -267,6 +267,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         raise IOError('Line list file "%s" could not be found.' % (line_list))
 
     default_kwargs = {
+        'driver': 'abfind',
         'atmosphere': 1,
         'molecules':  1,
         'trudamp':    1,  # Sure, why not? It's a black art anyway!
@@ -290,12 +291,12 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
             kwargs[key] = value
     # Generate a MOOG-compatible run file
 
-    moog_contents = "abfind\n"\
+    moog_contents = "%s\n"\
                     "terminal       %s\n"\
                     "model_in       '%s'\n"\
                     "summary_out    '%s'\n"\
                     "standard_out   '%s'\n"\
-                    "lines_in       '%s'\n" % (kwargs['terminal'], atmosphere_model,
+                    "lines_in       '%s'\n" % (kwargs['driver'], kwargs['terminal'], atmosphere_model,
                                                kwargs['summary'], 'result.out', line_list)
 
     settings = 'atmosphere,molecules,trudamp,lines,strong,flux/int,damping,'\
@@ -458,7 +459,7 @@ def _read_smooth(fname='smooth.out'):
 
 
 def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
-             driver='abfind', version=2014, r=None, fout=None, options=None):
+             driver='abfind', version=2014, r=None, fout=None, **options):
     """Run MOOG and return slopes for abfind mode.
 
     Inputs
