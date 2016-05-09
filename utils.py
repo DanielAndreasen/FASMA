@@ -530,6 +530,46 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         f = np.column_stack(spec)[1]
         return w, f
 
+def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out', driver='synth', version=2014, r=None, fout=None, **options):
+    """Run MOOG and create synthetic spectrum for the synth driver.
+
+    :x: A tuple/list with values (teff, logg, [Fe/H], vt, vmic, vmac)
+    :par: The parameter file (batch.par)
+    :results: The summary file
+    :driver: Which driver to use when running MOOG
+    :version: The version of MOOG
+    :returns: w, f : wavelength and flux
+    """
+
+    # Create an atmosphere model from input parameters
+    teff, logg, feh, _ = x[:4]
+    vmac = x[4]
+    vsini = x[5]
+    grid = GetModels(teff, logg, feh, atmtype)
+    models, nt, nl, nf = grid.getmodels()
+    model = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
+    save_model(model, x[:4])
+
+    #Create synthetic spectra
+    spec = []
+    #Run moog for each linelist file
+    #N is number of intervals
+    N = len(r)
+    print(x)
+    for i in range(N):
+        _update_par_synth('linelist/%s' % fout[i], r[i][0], r[i][1], options=options)
+        _run_moog(driver='synth')
+        x_synth, y_synth = _read_moog('smooth.out')
+        #add broadening
+        #This is done here so the x-axis is equidistant.
+        #Currently, the wavelength array as to be regularly spaced.
+        spec.append(broadening(x_synth, y_synth, vsini, vmac, resolution=options['resolution'], epsilon=options['limb']))
+    #Gather all individual spectra to one
+    w = np.column_stack(spec)[0]
+    f = np.column_stack(spec)[1]
+    return w, f
+
+
 class Readmoog:
     """Read the output file from MOOG and return some useful informations
 
