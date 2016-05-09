@@ -184,7 +184,7 @@ class Minimize:
             return best[min(best.keys())], False
 
 
-def minimize_synth(p0, x_obs, y_obs, r, f, **options):
+def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     '''Minimize a synthetic spectrum to an observed
 
     Input
@@ -198,16 +198,40 @@ def minimize_synth(p0, x_obs, y_obs, r, f, **options):
         y_final : final synthetic flux
     '''
 
-    from utils import fun_moog as func
+    from utils import fun_moog_synth as func
     from mpfit import mpfit
     from scipy.interpolate import InterpolatedUnivariateSpline
     from synthetic import save_synth_spec
-    #set free/ fixed parameters
 
-    x = (r, f, x_obs, options)
+    model = kwargs['model']
+    fix_teff = kwargs['fix_teff']
+    fix_logg = kwargs['fix_logg']
+    fix_feh = kwargs['fix_feh']
+    fix_vt = kwargs['fix_vt']
+    fix_vmac = kwargs['fix_vmac']
+    fix_vsini = kwargs['fix_vsini']
 
-    def myfunct(p, fjac=None, x=None, y=None, err=None):
-        '''Function that return the weighted deviates
+    #set PARINFO structure for all 6 free parameters
+    #Teff, logg, feh, vt, vmac, vsini
+    def fix(s):
+        """Change the boolean to 1/0
+            fixed : 1 is free
+            fixed : 0 is fixed"""
+        return 1 if s is True else 0
+
+    teff_info = {'limited': [1, 1], 'limits': [4000.0, 7500.0], 'step': 30, 'mpside' : 2, 'fixed' : fix(kwargs['fix_teff'])}
+    logg_info = {'limited': [1, 1], 'limits': [0.5, 4.8], 'step': 0.2, 'mpside' : 2, 'fixed' : fix(kwargs['fix_logg'])}
+    feh_info = {'limited': [1, 1], 'limits': [-5.0, 1.0], 'step': 0.05, 'mpside' : 2, 'fixed' : fix(kwargs['fix_feh'])}
+    vt_info = {'limited': [1, 1], 'limits': [0.0, 10.0], 'step': 0.3, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vt'])}
+    vmac_info = {'limited': [1, 1], 'limits': [0.0, 50.0], 'step': 0.5, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vmac'])}
+    vsini_info = {'limited': [1, 1], 'limits': [0.0, 100.0], 'step': 0.5, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vsini'])}
+
+    parinfo = [teff_info, logg_info, feh_info, vt_info, vmac_info, vsini_info]
+    print(parinfo)
+
+    def myfunct(p, fjac=None, x_obs=None, r=None, fout=None, model=model,
+    y=None, **kwargs):
+        '''Function that return the weighted deviates (to be minimized).
         Input
         ----
         p : parameters for the model atmosphere
@@ -218,32 +242,33 @@ def minimize_synth(p0, x_obs, y_obs, r, f, **options):
         '''
 
         #Definition of the Model spectrum to be iterated
-        x_s, y_s = func(p, atmtype=options['model'], driver='synth',
-        version=options['MOOGv'], r=r, fout=f, **options)
+        options = kwargs['options']
+        x_s, y_s = func(p, atmtype=model, driver='synth', r=r, fout=fout, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_s = sl(x_obs)
         model = flux_s
+        #Error on the flux #needs corrections
+        err = [0.01]*len(y)
         status = 0
         return([status, (y-model)/err])
 
-    #error of the flux.. this should be better calculated
-    err = [0.01]*len(y_obs)
-    fa = {'x':[r, f, x_obs, y_obs, options], 'y':y_obs, 'err':err}
+    #A dictionary which contains the parameters to be passed to the
+    #user-supplied function specified by fcn via the standard Python
+    #keyword dictionary mechanism.  This is the way you can pass additional
+    #data to your user-supplied function without using global variables.
+    fa = {'x_obs' : x_obs, 'r' : r, 'fout' : fout, 'model' : model, 'y':y_obs,
+    'options' : kwargs}
 
-    #set PARINFO structure
-    parinfo = [{'limited': [1, 1], 'limits': [4000.0, 7500.0], 'step': 10},
-    {'limited': [1, 1], 'limits': [0.5, 5.0], 'step': 0.05},
-    {'limited': [1, 1], 'limits': [-2.0, 1.0], 'step': 0.01},
-    {'limited': [1, 1], 'limits': [0.0, 10.0], 'step': 0.01}]
-
-    m = mpfit(myfunct, xall=p0, functkw=fa, parinfo=parinfo)
+    #Minimization starts here
+    m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-10, xtol=1e-10, gtol=1e-10, functkw=fa)
     print('status = %s' % m.status)
     print('Iterations: %s' % m.niter)
     print('Fitted pars:%s' % m.params)
     print('Uncertainties: %s' % m.perror)
+    print('Value of the summed squared residuals: %s' % m.fnorm)
+    print('Number of calls to the function: %s' % m.nfev)
 
-    x_s, y_s = func(m.params, atmtype=options['model'], driver='synth',
-    version=options['MOOGv'], r=r, fout=f, **options)
+    x_s, y_s = func(m.params, atmtype=model, driver='synth', r=r, fout=fout, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)
     #I should create a heaader with the parameters here

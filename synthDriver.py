@@ -9,7 +9,7 @@ from shutil import copyfile
 import yaml
 import numpy as np
 from utils import GetModels, _update_par_synth
-from utils import fun_moog as func
+from utils import fun_moog_synth as func
 from interpolation import interpolator, save_model
 from observations import read_obs_intervals, plot, chi2
 from synthetic import save_synth_spec,read_linelist
@@ -51,6 +51,14 @@ def _getMic(teff, logg, feh):
         mic = 2.72 - (0.457 * logg) + (0.072 * feh)
         return round(mic, 2)
 
+def _getMac(teff, logg):
+    """Calculate macro turbulence (Doyle et al. 2014)."""
+    # 5200 < teff < 6400
+    # 4.0 < logg < 4.6
+    mac = 3.21 + (2.33 * (teff - 5777.) * (10**(-3)))
+    + (2.00 * ((teff - 5777.)**2) * (10**(-6))) - (2.00 * (logg - 4.44))
+    return round(mac, 2)
+
 
 def _options(options=None):
     '''Reads the options inside the config file'''
@@ -58,14 +66,18 @@ def _options(options=None):
                 'model': 'kurucz95',
                 'MOOGv': 2014,
                 'plotpars': 1,
+                'fix_teff': False,
+                'fix_logg': False,
+                'fix_feh': False,
+                'fix_vt': False,
+                'fix_vmac': False,
+                'fix_vsini': False,
                 'plot': False,  #This is irrelevant with the batch.par value
                 'step_wave': 0.01,
                 'step_flux': 5.0,
                 'minimize' : False,
                 'observations' : False,
                 'resolution': None,
-                'vmac': 0.0,
-                'vsini': 0.0,
                 'limb': 0.6,
                 'lorentz': 0.0
                 }
@@ -78,15 +90,13 @@ def _options(options=None):
                 defaults[option[0]] = option[1]
             else:
                 # Clever way to change the boolean
-                if option in ['teff', 'logg', 'feh', 'vt']:
+                if option in ['teff', 'logg', 'feh', 'vt', 'vmac', 'vsini']:
                     option = 'fix_%s' % option
                 defaults[option] = False if defaults[option] else True
         defaults['model'] = defaults['model'].lower()
         defaults['step_wave'] = float(defaults['step_wave'])
         defaults['step_flux'] = float(defaults['step_flux'])
         defaults['plotpars'] = int(defaults['plotpars'])
-        defaults['vmac'] = float(defaults['vmac'])
-        defaults['vsini'] = float(defaults['vsini'])
         defaults['limb'] = float(defaults['limb'])
         defaults['lorentz'] = float(defaults['lorentz'])
         defaults['MOOGv'] = int(defaults['MOOGv'])
@@ -141,7 +151,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
             line = line.split(' ')
 
             #Check if configuration parameters are correct
-            if len(line) not in [1, 2, 5, 6]:
+            if len(line) not in [1, 2, 7, 8]:
                 logger.error('Could not process this information: %s' % line)
                 continue
 
@@ -151,7 +161,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 continue
             #Create synthetic spectrum with solar values and the default options
             if len(line) == 1:
-                initial = [5777, 4.44, 0.00, 1.00]
+                initial = [5777, 4.44, 0.00, 1.00, 3.21, 1.90]
                 options = _options()
                 x_obs, y_obs = (None, None)
                 #Create initial synthetic model
@@ -170,9 +180,10 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     logger.info('Spectral type given: %s' % line[1])
                     Teff, logg = _getSpt(options['spt'])
                     mic = _getMic(Teff, logg)
-                    initial = (Teff, logg, 0.00, mic)
+                    mac = _getMac(Teff, logg)
+                    initial = (Teff, logg, 0.00, mic, mac, 1.90)
                 else:
-                    initial = [5777, 4.44, 0.00, 1.00]
+                    initial = [5777, 4.44, 0.00, 1.00, 3.21, 1.90]
 
                 #Create initial synthetic model
                 r, fout = read_linelist(line[0])
@@ -214,7 +225,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         plot(x_obs, y_obs, x_final, y_final)
 
             #Create spectra with parameters defined by the user but the rest are set to default
-            elif len(line) == 5:
+            elif len(line) == 7:
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
                 initial[0] = int(initial[0])
@@ -224,14 +235,14 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 #Create initial synthetic model
                 r, fout = read_linelist(line[0])
                 logger.info('Getting initial model grid')
-                x_initial, y_initial = func(initial, atmtype=options['model'], driver='synth', version=options['MOOGv'], r=r, fout=fout,**options)
+                x_initial, y_initial = func(initial, atmtype=options['model'], driver='synth', version=options['MOOGv'], r=r, fout=fout, **options)
                 logger.info('Save initial synthetic spectrum')
                 save_synth_spec(x_initial, y_initial, fname='initial.spec')
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
 
             #Create synthetic spectra with values set by the user and options altered.
-            elif len(line) == 6:
+            elif len(line) == 8:
                 logger.info('Initial parameters given by user.')
                 initial = map(float, line[1:-1])
                 initial[0] = int(initial[0])

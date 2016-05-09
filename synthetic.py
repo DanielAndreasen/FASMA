@@ -25,7 +25,7 @@ def save_synth_spec(x, y, fname='initial.spec'):
     return
 
 
-def broadening(x, y, resolution=None, vsini=0.0, epsilon=0.60, vmac=0.0):
+def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
     """This function broadens the given data using velocity kernels,
     e.g. instrumental profile, vsini and vmac.
     Based on http://www.hs.uni-hamburg.de/DE/Ins/Per/Czesla/PyA/PyA/pyaslDoc/aslDoc/broadening.html
@@ -104,10 +104,13 @@ def broadening(x, y, resolution=None, vsini=0.0, epsilon=0.60, vmac=0.0):
         ------
         y_rot : convolved flux
         """
-        if vsini == 0:
-            y_rot = y
-        else:
+        if vsini < 0:
+            vsini = np.abs(vsini)/2.0 #random value
             y_rot = pyasl.fastRotBroad(x, y, epsilon, vsini, effWvl=None)
+        if vsini > 0:
+            y_rot = pyasl.fastRotBroad(x, y, epsilon, vsini, effWvl=None)
+        else:
+            y_rot = y
         return y_rot
 
     def __vmacro_kernel(dlam, Ar, At, Zr, Zt):
