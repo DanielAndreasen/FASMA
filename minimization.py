@@ -9,7 +9,7 @@ from copy import copy
 
 
 class Minimize:
-    """Minimize for best parameters given a line list"""
+    '''Minimize for best parameters given a line list'''
 
     def __init__(self, x0, func, model, weights='null',
                  fix_teff=False, fix_logg=False, fix_feh=False, fix_vt=False,
@@ -39,7 +39,7 @@ class Minimize:
 
 
     def _getMic(self):
-        """Get the microturbulence if this is fixed"""
+        '''Get the microturbulence if this is fixed'''
         if self.x0[1] >= 3.95:
             self.x0[3] = 6.932*self.x0[0]/10000 - 0.348*self.x0[1] - 1.437
         else:
@@ -47,7 +47,7 @@ class Minimize:
 
 
     def print_format(self):
-        """Print the stellar atmospheric parameters in a nice format"""
+        '''Print the stellar atmospheric parameters in a nice format'''
         rest = self.x0 + list((self.slopeEP, self.slopeRW, self.Abdiff))
         if self.iteration == 0:
             if self.GUI:
@@ -61,10 +61,10 @@ class Minimize:
 
 
     def check_bounds(self, i):
-        """
+        '''
         Function which checks if parameters are within bounds.
         Input - parameter: what we want to check; bounds: ze bounds;
-        i: the index of the bounds we want to check"""
+        i: the index of the bounds we want to check'''
         if self.x0[int((i-1)/2)] < self.bounds[i-1]:
             self.x0[int((i-1)/2)] = self.bounds[i-1]
         elif self.x0[int((i-1)/2)] > self.bounds[i]:
@@ -72,7 +72,7 @@ class Minimize:
 
 
     def check_convergence(self, fe_input):
-        """Check the convergence criteria"""
+        '''Check the convergence criteria'''
         self.slopeEP = 0.00 if self.fix_teff else self.slopeEP
         self.slopeRW = 0.00 if self.fix_vt else self.slopeRW
         self.Abdiff = 0.00 if self.fix_logg else self.Abdiff
@@ -86,7 +86,7 @@ class Minimize:
 
 
     def _bump(self, alpha):
-        """Bump to the values in the list, x"""
+        '''Bump to the values in the list, x'''
         for i, X in enumerate(zip(alpha, self.x0)):
             ai, xi = X
             sig = 0.01 if ai*xi == 0 else ai*xi
@@ -95,7 +95,7 @@ class Minimize:
 
 
     def _format_x0(self):
-        """Format the values in x0, so first value is an integer"""
+        '''Format the values in x0, so first value is an integer'''
         self.x0[0] = int(self.x0[0])
         self.x0[1] = round(self.x0[1], 2)
         self.x0[2] = round(self.x0[2], 2)
@@ -189,13 +189,25 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
 
     Input
     -----
-        p0 : initial parameters (teff, logg, feh, vt)
+    p0 : list
+      Initial parameters (teff, logg, feh, vt)
+    x_obs : ndarray
+      Observed wavelength
+    y_obs : ndarray
+      Observed flux
+    r : ...
+      ...
+    fout : str
+      Output file
 
     Output
     -----
-        params : final parameters
-        x_final : final wavelength
-        y_final : final synthetic flux
+    params : list
+      Final parameters
+    x_final : ndarray
+      Final wavelength
+    y_final : ndarray
+      Final synthetic flux
     '''
 
     from utils import fun_moog_synth as func
@@ -204,15 +216,15 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     from synthetic import save_synth_spec
 
     model = kwargs['model']
-    fix_teff = kwargs['fix_teff']
-    fix_logg = kwargs['fix_logg']
-    fix_feh = kwargs['fix_feh']
-    fix_vt = kwargs['fix_vt']
-    fix_vmac = kwargs['fix_vmac']
-    fix_vsini = kwargs['fix_vsini']
+    fix_teff = 1 if kwargs['fix_teff'] else 0
+    fix_logg = 1 if kwargs['fix_logg'] else 0
+    fix_feh = 1 if kwargs['fix_feh'] else 0
+    fix_vt = 1 if kwargs['fix_vt'] else 0
+    fix_vmac = 1 if kwargs['fix_vmac'] else 0
+    fix_vsini = 1 if kwargs['fix_vsini'] else 0
 
     def bounds(i, p, model):
-        """Smart way to calculate the bounds of each of parameters"""
+        '''Smart way to calculate the bounds of each of parameters'''
         if model.lower() == 'kurucz95':
             bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99, 0, 50, 0, 100]
         if model.lower() == 'apogee_kurucz':
@@ -226,39 +238,49 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
             p[int((i-1)/2)] = bounds[i]
         return p
 
-    #set PARINFO structure for all 6 free parameters
-    #Teff, logg, feh, vt, vmac, vsini
-    def fix(s):
-        """Change the boolean to 1/0
-            fixed : 1 is free
-            fixed : 0 is fixed"""
-        return 1 if s is True else 0
-    #The limits are also cheched by the bounds function
-    teff_info = {'limited': [1, 1], 'limits': [2800.0, 7500.0], 'step': 30, 'mpside' : 2, 'fixed' : fix(kwargs['fix_teff'])}
-    logg_info = {'limited': [1, 1], 'limits': [0.5, 5.0], 'step': 0.2, 'mpside' : 2, 'fixed' : fix(kwargs['fix_logg'])}
-    feh_info = {'limited': [1, 1], 'limits': [-5.0, 1.0], 'step': 0.05, 'mpside' : 2, 'fixed' : fix(kwargs['fix_feh'])}
-    vt_info = {'limited': [1, 1], 'limits': [0.0, 9.99], 'step': 0.3, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vt'])}
-    vmac_info = {'limited': [1, 1], 'limits': [0.0, 50.0], 'step': 0.5, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vmac'])}
-    vsini_info = {'limited': [1, 1], 'limits': [0.0, 100.0], 'step': 0.5, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vsini'])}
+    # Set PARINFO structure for all 6 free parameters for mpfit
+    # Teff, logg, feh, vt, vmac, vsini
+    # The limits are also cheched by the bounds function
+    teff_info  = {'limited': [1, 1], 'limits': [2800.0, 7500.0], 'step': 30,   'mpside': 2, 'fixed': fix_teff}
+    logg_info  = {'limited': [1, 1], 'limits': [0.5, 5.0],       'step': 0.2,  'mpside': 2, 'fixed': fix_logg}
+    feh_info   = {'limited': [1, 1], 'limits': [-5.0, 1.0],      'step': 0.05, 'mpside': 2, 'fixed': fix_feh}
+    vt_info    = {'limited': [1, 1], 'limits': [0.0, 9.99],      'step': 0.3,  'mpside': 2, 'fixed': fix_vt}
+    vmac_info  = {'limited': [1, 1], 'limits': [0.0, 50.0],      'step': 0.5,  'mpside': 2, 'fixed': fix_vmac}
+    vsini_info = {'limited': [1, 1], 'limits': [0.0, 100.0],     'step': 0.5,  'mpside': 2, 'fixed': fix_vsini}
 
     parinfo = [teff_info, logg_info, feh_info, vt_info, vmac_info, vsini_info]
-    print(parinfo)
 
-    def myfunct(p, fjac=None, x_obs=None, r=None, fout=None, model=model,
-    y=None, **kwargs):
+    def myfunct(p, fjac=None, x_obs=None, r=None, fout=None, model=None,
+                y=None, **kwargs):
         '''Function that return the weighted deviates (to be minimized).
+
         Input
         ----
-        p : parameters for the model atmosphere
+        p : list
+          Parameters for the model atmosphere
+        fjac : ...
+          ...
+        x_obs : ndarray
+          Wavelength
+        r : ...
+          ...
+        fout : str
+          Output file
+        model : str
+          Model atmosphere type
+        y : ndarray
+          Observed flux?
+
 
         Output
         -----
-        (y-model)/err : deviation
+        (y-ymodel)/err : ndarray
+          Model deviation from observation
         '''
 
-        #Definition of the Model spectrum to be iterated
+        # Definition of the Model spectrum to be iterated
         options = kwargs['options']
-        #Check for bounds
+        # Check for bounds
         p = bounds(1, p, model)
         p = bounds(3, p, model)
         p = bounds(5, p, model)
@@ -268,32 +290,32 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
         x_s, y_s = func(p, atmtype=model, driver='synth', r=r, fout=fout, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_s = sl(x_obs)
-        model = flux_s
-        #Error on the flux #needs corrections
-        err = [0.01]*len(y)
+        ymodel = flux_s
+        # Error on the flux #needs corrections
+        err = np.zeros(len(y)) + 0.01
         status = 0
-        return([status, (y-model)/err])
+        return([status, (y-ymodel)/err])
 
-    #A dictionary which contains the parameters to be passed to the
-    #user-supplied function specified by fcn via the standard Python
-    #keyword dictionary mechanism.  This is the way you can pass additional
-    #data to your user-supplied function without using global variables.
-    fa = {'x_obs' : x_obs, 'r' : r, 'fout' : fout, 'model' : model, 'y':y_obs,
-    'options' : kwargs}
+    # A dictionary which contains the parameters to be passed to the
+    # user-supplied function specified by fcn via the standard Python
+    # keyword dictionary mechanism.  This is the way you can pass additional
+    # data to your user-supplied function without using global variables.
+    fa = {'x_obs': x_obs, 'r': r, 'fout': fout, 'model': model, 'y': y_obs,
+          'options' : kwargs}
 
-    #Minimization starts here
+    # Minimization starts here
     m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-10, xtol=1e-10, gtol=1e-10, functkw=fa)
     print('status = %s' % m.status)
     print('Iterations: %s' % m.niter)
     print('Fitted pars:%s' % m.params)
-    print('Uncertainties: %s' % m.perror)
+    print('Uncertainties: %s' % m.perror)  #TODO: Can we use this or the errors are not realistic?
     print('Value of the summed squared residuals: %s' % m.fnorm)
     print('Number of calls to the function: %s' % m.nfev)
 
     x_s, y_s = func(m.params, atmtype=model, driver='synth', r=r, fout=fout, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)
-    #I should create a heaader with the parameters here
+    # I should create a header with the parameters here
     save_synth_spec(x_obs, flux_final, fname='final.spec')
     return m.params, x_obs, flux_final
 

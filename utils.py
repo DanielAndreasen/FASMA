@@ -49,7 +49,7 @@ kurucz08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
 
 
 class GetModels:
-    """
+    '''
     Find the names of the closest grid points for a given effective
     temperature, surface gravity, and iron abundance (proxy for metallicity).
 
@@ -63,7 +63,7 @@ class GetModels:
       The metallicity for the model atmosphere
     atmtype : str
       The type of atmosphere models to use. Currently only Kurucz from '95.
-    """
+    '''
 
 
     def __init__(self, teff, logg, feh, atmtype):
@@ -91,7 +91,7 @@ class GetModels:
 
 
     def _model_path(self, teff_model, logg_model, feh_model):
-        """Create the path for atmosphere models given Teff, logg, and [Fe/H]
+        '''Create the path for atmosphere models given Teff, logg, and [Fe/H]
 
         Inputs
         ------
@@ -106,7 +106,7 @@ class GetModels:
         ------
         name : str
           The path to the atmosphere model
-        """
+        '''
         name = 'models/%s/' % self.atmtype
         if feh_model < 0:
             name += 'm%s/' % str(abs(feh_model)).replace('.', '')
@@ -121,7 +121,7 @@ class GetModels:
 
 
     def _model_exists(self, teff_model, logg_model, feh_model, upper=True):
-        """Check if a model exists. If not lower/raise Teff
+        '''Check if a model exists. If not lower/raise Teff
 
         Inputs
         ------
@@ -140,7 +140,7 @@ class GetModels:
           Path for the model
         teff_model : int
           The new Teff. Same Teff is returned if the model exists at the right place
-        """
+        '''
 
         fname = self._model_path(teff_model, logg_model, feh_model)
         if os.path.isfile(fname):
@@ -156,7 +156,7 @@ class GetModels:
 
 
     def neighbour(self, arr, val, k=2):
-        """Return the K surrounding neighbours of an array, given a certain value.
+        '''Return the K surrounding neighbours of an array, given a certain value.
 
         Inputs
         ------
@@ -171,7 +171,7 @@ class GetModels:
         ------
         array : list
           A list with the k surrounding neighbours
-        """
+        '''
         for idx, (l1, l2) in enumerate(zip(arr, islice(arr, 1, None))):
             if l1 <= val <= l2:
                 break
@@ -182,7 +182,7 @@ class GetModels:
 
 
     def getmodels(self):
-        """Get the atmosphere models surrounding the requested atmospheric
+        '''Get the atmosphere models surrounding the requested atmospheric
         parameters. This function should be called before using the interpolation
         code within MOOGme.
 
@@ -200,7 +200,7 @@ class GetModels:
         The last three return values are used for the interpolation to do some
         mapping. If only the paths to the models are needed, do not pay attention
         to them.
-        """
+        '''
         # Get list of parameter values
         teff_model = self.neighbour(self.grid['teff'], self.teff, k=4)
         if len(teff_model) < 4:  # Means we are close to an edge
@@ -220,7 +220,7 @@ class GetModels:
 
 
 def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
-    """Update the parameter file (batch.par) with new linelists, atmosphere
+    '''Update the parameter file (batch.par) with new linelists, atmosphere
     models, or others.
 
     Inputs
@@ -260,7 +260,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
     Outputs
     -------
     And updated configuration file
-    """
+    '''
 
     # Path checks for input files
     if not os.path.exists(line_list):
@@ -315,7 +315,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
 
 
 def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
-    """Update the parameter file (batch.par) with new linelists, atmosphere
+    '''Update the parameter file (batch.par) with new linelists, atmosphere
     models, or others.
 
     Inputs
@@ -352,7 +352,7 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
     Outputs
     -------
     And updated parameter file
-    """
+    '''
 
     # Path checks for input files
     if not os.path.exists(line_list):
@@ -417,7 +417,7 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
 
 
 def _run_moog(par='batch.par', driver='abfind'):
-    """Run MOOGSILENT with the given parameter file
+    '''Run MOOGSILENT with the given parameter file
 
     Inputs
     ------
@@ -429,7 +429,7 @@ def _run_moog(par='batch.par', driver='abfind'):
     Output
     ------
       Run MOOG once in silent mode
-    """
+    '''
     if driver == 'abfind':
         os.system('MOOGSILENT > /dev/null')
     elif driver == 'synth':
@@ -440,7 +440,7 @@ def _run_moog(par='batch.par', driver='abfind'):
 
 
 def _read_smooth(fname='smooth.out'):
-    """Read the synthetic spectrum from the summary.out
+    '''Read the synthetic spectrum from the summary.out
 
     Inputs
     ------
@@ -453,14 +453,14 @@ def _read_smooth(fname='smooth.out'):
       The wavelength of the synthetic spectrum
     Flux : ndarray
       The flux of the synthetic spectrum
-    """
+    '''
     wavelength, flux = np.loadtxt(fname, skiprows=2, usecols=(0, 1), unpack=True)
     return wavelength, flux
 
 
 def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
              driver='abfind', version=2014, r=None, fout=None, **options):
-    """Run MOOG and return slopes for abfind mode.
+    '''Run MOOG and return slopes for abfind mode.
 
     Inputs
     ------
@@ -485,7 +485,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
       Run MOOG once on silent mode
     driver == 'abfind' :
       The slopes and abundances for the different elements after a run with MOOG
-    """
+    '''
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
@@ -530,8 +530,9 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         f = np.column_stack(spec)[1]
         return w, f
 
-def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out', driver='synth', version=2014, r=None, fout=None, **options):
-    """Run MOOG and create synthetic spectrum for the synth driver.
+def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
+                   driver='synth', version=2014, r=None, fout=None, **options):
+    '''Run MOOG and create synthetic spectrum for the synth driver.
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt, vmic, vmac)
     :par: The parameter file (batch.par)
@@ -539,25 +540,25 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out', driver='s
     :driver: Which driver to use when running MOOG
     :version: The version of MOOG
     :returns: w, f : wavelength and flux
-    """
+    '''
 
+    #TODO: I think we can manage to merge this with the other fun_moog function
     # Create an atmosphere model from input parameters
-    teff, logg, feh, _ = x[:4]
-    vmac = x[4]
-    vsini = x[5]
+    teff, logg, feh, _, vmac, vsini = x
     grid = GetModels(teff, logg, feh, atmtype)
     models, nt, nl, nf = grid.getmodels()
     model = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
     save_model(model, x[:4])
 
-    #Create synthetic spectra
+    # Create synthetic spectra
     spec = []
-    #Run moog for each linelist file
-    #N is number of intervals
-    N = len(r)
-    print(x)
-    for i in range(N):
-        _update_par_synth('linelist/%s' % fout[i], r[i][0], r[i][1], options=options)
+    # Run moog for each linelist file
+    # N is number of intervals
+    # N = len(r)
+    # for i in range(N):
+    #TODO: Maria: Does this work as well?
+    for i, ri in enumerate(ri):
+        _update_par_synth('linelist/%s' % fout[i], ri[0], ri[1], options=options)
         _run_moog(driver='synth')
         x_synth, y_synth = _read_moog('smooth.out')
         #add broadening
@@ -571,7 +572,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out', driver='s
 
 
 class Readmoog:
-    """Read the output file from MOOG and return some useful informations
+    '''Read the output file from MOOG and return some useful informations
 
     Inputs
     ------
@@ -582,7 +583,7 @@ class Readmoog:
       Path of the output file (default: 'summary.out')
     version : int
       Version of MOOG to be used (default: 2014)
-    """
+    '''
 
     def __init__(self, params=None, fname='summary.out', version=2014):
         self.fname = fname
@@ -601,13 +602,13 @@ class Readmoog:
 
 
     def parameters(self):
-        """Get the atmospheric parameters
+        '''Get the atmospheric parameters
 
         Outputs
         -------
         params : tuple
           The atmospheric parameters (Teff, logg, [Fe/H], vt) in that order
-        """
+        '''
         for line in self.lines:
             if 'Teff' in line:
                 break
@@ -621,7 +622,7 @@ class Readmoog:
 
 
     def fe_statistics(self):
-        """Get statistics on Fe lines
+        '''Get statistics on Fe lines
 
         Outputs
         -------
@@ -642,7 +643,7 @@ class Readmoog:
           (wavelength, ID [version>=2014], EP, loggf, EW, RW, abundance, deviation on abundace)
         linesFe2 : ndarray
           Same as for linesFe1 but for FeII
-        """
+        '''
         self.readdata = False
         self.slopeEP = False
         self.slopeRW = False
@@ -723,7 +724,7 @@ class Readmoog:
 
 
     def elements(self):
-        """Get the elements and abundances from the output file
+        '''Get the elements and abundances from the output file
 
         Outputs
         -------
@@ -731,7 +732,7 @@ class Readmoog:
           The elements, e.g. FeI, TiII
         abundances : list
           The corresponding abundances to the elements
-        """
+        '''
         abundances = []
         element = []
         for line in self.lines:
@@ -747,7 +748,7 @@ class Readmoog:
 
 
 def _slopeSigma(x, y, weights):
-    """Sigma on a slope after fitting a straight line
+    '''Sigma on a slope after fitting a straight line
 
     Inputs
     ------
@@ -762,7 +763,7 @@ def _slopeSigma(x, y, weights):
     ------
     sigma : float
       The deviation on the slope calculated
-    """
+    '''
     N = len(x)
     sxx = np.sum((x-np.mean(x))**2)
     a, b = np.polyfit(x, y, 1, w=weights)
@@ -771,7 +772,7 @@ def _slopeSigma(x, y, weights):
 
 
 def error(linelist, converged, params, atmtype, version=2014, weights='null'):
-    """Error estimation on a given line list
+    '''Error estimation on a given line list
 
     Inputs
     ------
@@ -807,7 +808,7 @@ def error(linelist, converged, params, atmtype, version=2014, weights='null'):
       microturbulence
     errormicro : float
       Error on microturbulence
-    """
+    '''
     # Find the output file and read the current state of it
     idx = 1 if version > 2013 else 0
     if converged:
@@ -871,7 +872,7 @@ def error(linelist, converged, params, atmtype, version=2014, weights='null'):
 
 
 def slope(data, weights='null'):
-    """Calculate the slope of a data set with weights.
+    '''Calculate the slope of a data set with weights.
 
     Inputs
     ------
@@ -892,7 +893,7 @@ def slope(data, weights='null'):
       The slope calculated
     w : ndarray
       The weights used
-    """
+    '''
     import statsmodels.formula.api as sm
     weights = weights.lower()
     options = ['null', 'sigma', 'mad']

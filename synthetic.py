@@ -4,44 +4,55 @@
 from __future__ import division
 import numpy as np
 import os
-from astropy.io import fits as pyfits
+from astropy.io import fits
 
 def save_synth_spec(x, y, fname='initial.spec'):
-    """Save synthetic spectrum of all intervals
+    '''Save synthetic spectrum of all intervals
+
     Input
     ----
-    x : wavelength
-    y : flux
-    fname : filename of fits file
+    x : ndarray
+      Wavelength
+    y : ndarray
+      Flux
+    fname : str
+      Filename of fits file
 
     Output
     -----
     fname fits file
-    """
+    '''
 
-    tbhdu = pyfits.BinTableHDU.from_columns([pyfits.Column(name='wavelength', format='D', array=x), pyfits.Column(name='flux', format='D', array=y)])
+    tbhdu = fits.BinTableHDU.from_columns([fits.Column(name='wavelength', format='D', array=x),
+                                           fits.Column(name='flux', format='D', array=y)])
     tbhdu.writeto('results/%s' % fname, clobber=True)
     print('Synthetic spectrum saved: results/%s' % fname)
-    return
 
 
 def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
-    """This function broadens the given data using velocity kernels,
+    '''This function broadens the given data using velocity kernels,
     e.g. instrumental profile, vsini and vmac.
     Based on http://www.hs.uni-hamburg.de/DE/Ins/Per/Czesla/PyA/PyA/pyaslDoc/aslDoc/broadening.html
     Input
     ----
-    x : wavelength
-    y : flux
-    resolution : instrumental resolution (lambda /delta lambda)
-    vsini : in km/s
-    vmac : in km/s
+    x : ndarray
+      wavelength
+    y : ndarray
+      flux
+    resolution : float
+      Instrumental resolution (lambda /delta lambda)
+    vsini : float
+      vsini in km/s
+    vmac : float
+      vmac in km/s
 
     Output
     -----
-    y_broad : broadened flux
-    x : same wavelength
-    """
+    y_broad : ndarray
+      Broadened flux
+    x : ndarray
+      Same wavelength
+    '''
 
     from PyAstronomy import pyasl
     from scipy.signal import fftconvolve
@@ -49,7 +60,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
 
 
     def instrumental_profile(x, y, resolution):
-        """
+        '''
         Inputs
         -----
         x, y : The abscissa and ordinate of the data.
@@ -68,7 +79,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         Output
         -----
         y_inst : convolved flux
-        """
+        '''
 
         #Deal with zero or None values seperately
         if (resolution is None) or (resolution == 0):
@@ -78,7 +89,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         return y_inst
 
     def vsini_broadening(x, y_inst, epsilon, vsini):
-        """
+        '''
         Apply rotational broadening to a spectrum assuming a linear limb darkening
         law. The adopted limb darkening law is the linear one, parameterize by the
         linear limb darkening parameter: epsilon = 0.6.
@@ -103,17 +114,17 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         Output
         ------
         y_rot : convolved flux
-        """
+        '''
         if vsini == 0:
             y_rot = y
         else:
             y_rot = pyasl.fastRotBroad(x, y, epsilon, vsini, effWvl=None)
         return y_rot
 
-    def __vmacro_kernel(dlam, Ar, At, Zr, Zt):
-        """
+    def _vmacro_kernel(dlam, Ar, At, Zr, Zt):
+        '''
         Macroturbulent velocity kernel.
-        """
+        '''
         dlam[dlam == 0] = 1e-8
         if Zr != Zt:
             return np.array([(2*Ar*idlam/(np.sqrt(np.pi)*Zr**2) * quad(lambda u: np.exp(-1/u**2),0,Zr/idlam)[0] + \
@@ -124,9 +135,9 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
                            * quad(lambda u: np.exp(-1/u**2),0,Zr/idlam)[0]\
                              for idlam in dlam])
 
-    def __broadening_macroturbulent(wave, flux, vmacro_rad, vmacro_tan=None,
-                              return_kernel=False):
-        """
+    def _broadening_macroturbulent(wave, flux, vmacro_rad, vmacro_tan=None,
+                                   return_kernel=False):
+        '''
         Apply macroturbulent broadening.
         The macroturbulent kernel is defined as in [Gray2005]:
 
@@ -154,7 +165,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         Output
         ------
         y_mac : broadened flux [, (wavelength, kernel)]
-        """
+        '''
 
         if vmacro_tan is None:
             vmacro_tan = vmacro_rad
@@ -192,7 +203,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         # Construct the broadening kernel
         wave_k = np.arange(n_kernel)*dwave
         wave_k -= wave_k[-1]/2.
-        kernel = __vmacro_kernel(wave_k, 1.0, 1.0, vmac_rad, vmac_tan)
+        kernel = _vmacro_kernel(wave_k, 1.0, 1.0, vmac_rad, vmac_tan)
         kernel /= sum(kernel)
 
         flux_conv = fftconvolve(1-flux_, kernel, mode='same')
@@ -210,22 +221,22 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         else:
             return flux
 
-    #instrumental broadening
+    # Instrumental broadening
     y_inst = instrumental_profile(x, y, resolution)
-    #vsini broadening
+    # vsini broadening
     y_rot = vsini_broadening(x, y_inst, epsilon, vsini)
-    #vmac broadening
-    y_broad = __broadening_macroturbulent(x, y_rot, vmacro_rad=vmac, vmacro_tan=None,
-    return_kernel=False)
+    # vmac broadening
+    y_broad = _broadening_macroturbulent(x, y_rot, vmacro_rad=vmac,
+                                         vmacro_tan=None, return_kernel=False)
     return x, y_broad
 
 
 def _read_raw_moog(fname='summary.out'):
-    """Read the summary.out and return them
+    '''Read the summary.out and return them
 
     :fname: From the summary_out
     :returns: flux
-    """
+    '''
     import itertools
 
     with open('summary.out', 'r') as f:
@@ -247,7 +258,7 @@ def _read_raw_moog(fname='summary.out'):
 
 
 def _read_moog(fname='smooth.out'):
-    """Read the output of moog - synthetic spectra.
+    '''Read the output of moog - synthetic spectra.
     Input
     -----
     fname: smooth.out
@@ -256,7 +267,7 @@ def _read_moog(fname='smooth.out'):
     ------
     wavelength
     flux
-    """
+    '''
 
     wavelength, flux = np.loadtxt(fname, skiprows=2, usecols=(0, 1), unpack=True)
     return wavelength, flux
@@ -265,7 +276,7 @@ def _read_moog(fname='smooth.out'):
 
 
 def read_wave(linelist):
-    """Read the wavelenth intervals of the line list"""
+    '''Read the wavelenth intervals of the line list'''
 
     with open(linelist, 'r') as f:
 
@@ -282,7 +293,7 @@ def read_wave(linelist):
 
 
 def read_linelist(fname):
-    """Read the file that contains the line list then read the lines
+    '''Read the file that contains the line list then read the lines
     Input
     -----
     fname : file that contains the filenames of the linelist
@@ -291,7 +302,7 @@ def read_linelist(fname):
     ------
     ranges : wavelength ranges of the linelist
     flines : filename of the linelist
-    """
+    '''
 
     with open('linelist/%s' % fname, 'r') as f:
 
@@ -326,7 +337,7 @@ def read_linelist(fname):
 
 
 def read_moog_intervals(fname, options):
-    """Read all the synthetic spectra from all the intervals
+    '''Read all the synthetic spectra from all the intervals
     and save it in a spec (fits) file.
     Input:
     -----
@@ -336,7 +347,7 @@ def read_moog_intervals(fname, options):
     ------
     wavelength
     flux
-    """
+    '''
 
     ranges, fout = read_linelist(fname)
     n_intervals = len(ranges)
@@ -355,7 +366,7 @@ def read_moog_intervals(fname, options):
 
 
 def interpol_synthetic(wave_obs, wave_synth, flux_synth):
-    """Interpolation of the synthetic flux to the observed wavelength.
+    '''Interpolation of the synthetic flux to the observed wavelength.
     Input
     -----
     wave_obs : observed wavelength
@@ -365,7 +376,7 @@ def interpol_synthetic(wave_obs, wave_synth, flux_synth):
     Output
     ------
     int_flux : Interpolated synthetic flux
-    """
+    '''
 
     from scipy.interpolate import InterpolatedUnivariateSpline
 
