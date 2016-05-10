@@ -221,8 +221,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 if options['plot']: #if there in no observed only the synthetic will be plotted
                     plot(x_obs, y_obs, x_initial, y_initial)
                     if options['minimize']:
-                        #Plot initial and final spectra
-                        plot(x_obs, y_obs, x_initial, y_initial)
+                        #Plot also final spectra
                         plot(x_obs, y_obs, x_final, y_final)
 
             #Create spectra with parameters defined by the user but the rest are set to default
@@ -286,8 +285,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 if options['plot']: #if there in no observed only the synthetic will be plotted
                     plot(x_obs, y_obs, x_initial, y_initial)
                     if options['minimize']:
-                        #Plot initial and final spectra
-                        plot(x_obs, y_obs, x_initial, y_initial)
+                        #Plot also final spectra
                         plot(x_obs, y_obs, x_final, y_final)
 
             else:
