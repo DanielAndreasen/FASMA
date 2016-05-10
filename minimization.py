@@ -211,6 +211,21 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     fix_vmac = kwargs['fix_vmac']
     fix_vsini = kwargs['fix_vsini']
 
+    def bounds(i, p, model):
+        """Smart way to calculate the bounds of each of parameters"""
+        if model.lower() == 'kurucz95':
+            bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99, 0, 50, 0, 100]
+        if model.lower() == 'apogee_kurucz':
+            bounds = [3500, 30000, 0.0, 5.0, -5, 1.5, 0, 9.99, 0, 50, 0, 100]
+        if model.lower() == 'marcs':
+            bounds = [2500, 8000, 0.0, 5.0, -5, 1.0, 0, 9.99, 0, 50, 0, 100]
+
+        if p[int((i-1)/2)] < bounds[i-1]:
+            p[int((i-1)/2)] = bounds[i-1]
+        elif p[int((i-1)/2)] > bounds[i]:
+            p[int((i-1)/2)] = bounds[i]
+        return p
+
     #set PARINFO structure for all 6 free parameters
     #Teff, logg, feh, vt, vmac, vsini
     def fix(s):
@@ -218,11 +233,11 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
             fixed : 1 is free
             fixed : 0 is fixed"""
         return 1 if s is True else 0
-
-    teff_info = {'limited': [1, 1], 'limits': [4000.0, 7500.0], 'step': 30, 'mpside' : 2, 'fixed' : fix(kwargs['fix_teff'])}
-    logg_info = {'limited': [1, 1], 'limits': [0.5, 4.8], 'step': 0.2, 'mpside' : 2, 'fixed' : fix(kwargs['fix_logg'])}
+    #The limits are also cheched by the bounds function
+    teff_info = {'limited': [1, 1], 'limits': [2800.0, 7500.0], 'step': 30, 'mpside' : 2, 'fixed' : fix(kwargs['fix_teff'])}
+    logg_info = {'limited': [1, 1], 'limits': [0.5, 5.0], 'step': 0.2, 'mpside' : 2, 'fixed' : fix(kwargs['fix_logg'])}
     feh_info = {'limited': [1, 1], 'limits': [-5.0, 1.0], 'step': 0.05, 'mpside' : 2, 'fixed' : fix(kwargs['fix_feh'])}
-    vt_info = {'limited': [1, 1], 'limits': [0.0, 10.0], 'step': 0.3, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vt'])}
+    vt_info = {'limited': [1, 1], 'limits': [0.0, 9.99], 'step': 0.3, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vt'])}
     vmac_info = {'limited': [1, 1], 'limits': [0.0, 50.0], 'step': 0.5, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vmac'])}
     vsini_info = {'limited': [1, 1], 'limits': [0.0, 100.0], 'step': 0.5, 'mpside' : 2, 'fixed' : fix(kwargs['fix_vsini'])}
 
@@ -243,6 +258,13 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
 
         #Definition of the Model spectrum to be iterated
         options = kwargs['options']
+        #Check for bounds
+        p = bounds(1, p, model)
+        p = bounds(3, p, model)
+        p = bounds(5, p, model)
+        p = bounds(7, p, model)
+        p = bounds(9, p, model)
+        p = bounds(11, p, model)
         x_s, y_s = func(p, atmtype=model, driver='synth', r=r, fout=fout, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_s = sl(x_obs)

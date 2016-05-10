@@ -104,13 +104,10 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         ------
         y_rot : convolved flux
         """
-        if vsini < 0:
-            vsini = np.abs(vsini)/2.0 #random value
-            y_rot = pyasl.fastRotBroad(x, y, epsilon, vsini, effWvl=None)
-        if vsini > 0:
-            y_rot = pyasl.fastRotBroad(x, y, epsilon, vsini, effWvl=None)
-        else:
+        if vsini == 0:
             y_rot = y
+        else:
+            y_rot = pyasl.fastRotBroad(x, y, epsilon, vsini, effWvl=None)
         return y_rot
 
     def __vmacro_kernel(dlam, Ar, At, Zr, Zt):
