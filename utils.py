@@ -4,7 +4,7 @@
 from __future__ import division
 import os
 from itertools import islice
-from interpolation import save_model, interpolator
+from interpolation import interpolator
 import numpy as np
 from glob import glob
 
@@ -28,7 +28,6 @@ apogee_kurucz = {'teff': (3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 
        'feh': (-5.0, -4.5, -4.0, -3.5, -3.0, -2.75, -2.5, -2.25, -2.0, -1.75,
                -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.5),
        'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
-
 
 marcs = {'teff': (2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400,
                   3500, 3600, 3700, 3800, 3900, 4000, 4250, 4500, 4750, 5000,
@@ -216,7 +215,8 @@ class GetModels:
                     fname, Te = self._model_exists(teff_m, logg_m, feh_m, upper)
                     teff_model[i] = Te
                     models.append(fname)
-        return models, teff_model, logg_model, feh_model
+        return {'models': models, 'teff': (self.teff, teff_model),
+                'logg': (self.logg, logg_model), 'feh': (self.feh, feh_model)}
 
 
 def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs):
@@ -414,8 +414,6 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
         moog.writelines(moog_contents)
 
 
-
-
 def _run_moog(par='batch.par', driver='abfind'):
     '''Run MOOGSILENT with the given parameter file
 
@@ -489,10 +487,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
 
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
-    grid = GetModels(teff, logg, feh, atmtype)
-    models, nt, nl, nf = grid.getmodels()
-    model = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
-    save_model(model, x)
+    _ = interpolator(x, atmtype=atmtype)
 
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par, driver=driver)
@@ -530,6 +525,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         f = np.column_stack(spec)[1]
         return w, f
 
+
 def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
                    driver='synth', version=2014, r=None, fout=None, **options):
     '''Run MOOG and create synthetic spectrum for the synth driver.
@@ -545,10 +541,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
     #TODO: I think we can manage to merge this with the other fun_moog function
     # Create an atmosphere model from input parameters
     teff, logg, feh, _, vmac, vsini = x
-    grid = GetModels(teff, logg, feh, atmtype)
-    models, nt, nl, nf = grid.getmodels()
-    model = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
-    save_model(model, x[:4])
+    _ = interpolator(x[0:4], atmtype=atmtype)
 
     # Create synthetic spectra
     spec = []

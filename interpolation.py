@@ -3,6 +3,7 @@ from __future__ import division
 import numpy as np
 import gzip
 from scipy.interpolate import griddata
+from utils import GetModels
 
 
 """
@@ -32,7 +33,7 @@ def read_model(fname):
     return model
 
 
-def interpolator(mnames, teff, logg, feh):
+def interpolator(params, save=True, atmtype='kurucz95'):
     """This is a new approach based on a scipy interpolator.
     Resembles the original interpolator we used but with a change
 
@@ -44,12 +45,19 @@ def interpolator(mnames, teff, logg, feh):
     :out: The interpolated model saved in this file
     """
 
+    m = GetModels(params[0], params[1], params[2], atmtype=atmtype)
+    mdict = m.getmodels()
+    mnames = mdict['models']
+    teff = mdict['teff']
+    logg = mdict['logg']
+    feh = mdict['feh']
+
     # Making the surrounding grid points
     gridpoints = []
     for temp in teff[1]:
         for grav in logg[1]:
             for metal in feh[1]:
-                gridpoints.append((temp,grav,metal))
+                gridpoints.append((temp, grav, metal))
     gridpoints = np.asarray(gridpoints)
 
     # Define the points to obtain at the end
@@ -72,6 +80,8 @@ def interpolator(mnames, teff, logg, feh):
             for idx, model in enumerate(models):
                 tlayer[idx] = model[layer, column]
             newatm[layer, column] = griddata(gridpoints, tlayer, (teff, logg, feh), method='linear', rescale=True)
+    if save:
+        save_model(newatm, params, type=atmtype)
     return newatm
 
 

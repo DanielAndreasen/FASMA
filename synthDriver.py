@@ -8,13 +8,13 @@ import os
 from shutil import copyfile
 import yaml
 import numpy as np
-from utils import GetModels, _update_par_synth
+from utils import _update_par_synth
 from utils import fun_moog_synth as func
-from interpolation import interpolator, save_model
 from observations import read_obs_intervals, plot, chi2
 from synthetic import save_synth_spec,read_linelist
 import seaborn
 from minimization import minimize_synth
+
 
 def _getSpt(spt):
     """Get the spectral type from a string like 'F5V'."""
@@ -50,6 +50,7 @@ def _getMic(teff, logg, feh):
     else:  # Giants Adibekyan 2015
         mic = 2.72 - (0.457 * logg) + (0.072 * feh)
         return round(mic, 2)
+
 
 def _getMac(teff, logg):
     """Calculate macro turbulence (Doyle et al. 2014)."""

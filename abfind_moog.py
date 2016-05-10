@@ -12,21 +12,9 @@ sns.set_style('dark')
 sns.set_context('notebook', font_scale=1.5)
 c = sns.color_palette()
 from utils import Readmoog
-from utils import GetModels, _update_par
+from utils import _update_par
 from interpolation import interpolator
-from interpolation import save_model
 import statsmodels.formula.api as sm
-
-
-def _create_model(teff, logg, feh, vmicro):
-    """Create the atmosphere models"""
-    grid = GetModels(teff=teff, logg=logg, feh=feh, atmtype='kurucz95')
-    models, nt, nl, nf = grid.getmodels()
-    inter_model = interpolator(models,
-                               teff=(teff, nt),
-                               logg=(logg, nl),
-                               feh=(feh, nf))
-    save_model(inter_model, params=(teff, logg, feh, vmicro))
 
 
 def _update_batch(linelist=False):
@@ -128,8 +116,8 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     # Interpolate and transform models
-    _create_model(args.teff, args.logg, args.feh, args.vmicro)
     x = (args.teff, args.logg, args.feh, args.vmicro)
+    _ = interpolator(params=x)
 
     # Update the batch file if a new linelist is used
     _update_batch(args.linelist)

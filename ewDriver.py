@@ -8,9 +8,8 @@ import os
 from shutil import copyfile
 import yaml
 import numpy as np
-from utils import GetModels, _update_par
+from utils import _update_par
 from interpolation import interpolator
-from interpolation import save_model
 from utils import fun_moog, Readmoog
 from utils import error
 from minimization import Minimize
@@ -347,15 +346,8 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                 continue
 
             # Get the initial grid models
-            logger.info('Getting initial model grid')
-            grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
-            models, nt, nl, nf = grid.getmodels()
             logger.info('Initial interpolation of model...')
-            inter_model = interpolator(models,
-                                       teff=(initial[0], nt),
-                                       logg=(initial[1], nl),
-                                       feh=(initial[2], nf))
-            save_model(inter_model, params=initial)
+            _ = interpolator(params=initial, atmtype=options['model'])
             logger.info('Interpolation successful.')
 
             # Adjusting the options for the minimization routine
@@ -407,7 +399,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                         newLineList = False
 
             if options['autofixvt'] and not converged:
-                logger.info('vt is auto fixed') 
+                logger.info('vt is auto fixed')
                 _, _, RWs, _ = fun_moog(parameters, options['model'], weight=options['weights'], version=options['MOOGv'])
                 vt = parameters[-1]
                 if ((vt < 0.05) and (abs(RWs) > 0.050)) or ((vt > 9.95) and (abs(RWs) > 0.050)):

@@ -6,9 +6,8 @@ from __future__ import division
 import logging
 import os
 import numpy as np
-from utils import GetModels, _update_par
+from utils import _update_par
 from interpolation import interpolator
-from interpolation import save_model
 from utils import _run_moog, Readmoog
 import pandas as pd
 
@@ -180,13 +179,8 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
                 continue
 
             # Get the initial grid models
-            logger.info('Getting initial model grid')
-
-            grid = GetModels(teff=initial[0], logg=initial[1], feh=initial[2], atmtype=options['model'])
-            models, nt, nl, nf = grid.getmodels()
-            logger.info('Initial interpolation of model...')
-            inter_model = interpolator(models, teff=(initial[0], nt), logg=(initial[1], nl), feh=(initial[2], nf))
-            save_model(inter_model, params=initial)
+            logger.info('Interpolation of model...')
+            _ = interpolator(params=initial, atmtype=options['model'])
             logger.info('Interpolation successful.')
             _run_moog()
 
