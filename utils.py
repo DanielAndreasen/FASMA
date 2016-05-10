@@ -4,7 +4,6 @@
 from __future__ import division
 import os
 from itertools import islice
-from interpolation import interpolator
 import numpy as np
 from glob import glob
 
@@ -485,6 +484,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
       The slopes and abundances for the different elements after a run with MOOG
     '''
 
+    from interpolation import interpolator
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
     _ = interpolator(x, atmtype=atmtype)
@@ -538,6 +538,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
     :returns: w, f : wavelength and flux
     '''
 
+    from interpolation import interpolator
     #TODO: I think we can manage to merge this with the other fun_moog function
     # Create an atmosphere model from input parameters
     teff, logg, feh, _, vmac, vsini = x
