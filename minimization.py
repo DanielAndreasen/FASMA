@@ -6,7 +6,7 @@ from __future__ import division
 import numpy as np
 import os
 from copy import copy
-
+import time
 
 class Minimize:
     '''Minimize for best parameters given a line list'''
@@ -195,10 +195,10 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
       Observed wavelength
     y_obs : ndarray
       Observed flux
-    r : ...
-      ...
+    r : ndarray
+      ranges of the intervals
     fout : str
-      Output file
+      Input line list files
 
     Output
     -----
@@ -250,7 +250,7 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
 
     parinfo = [teff_info, logg_info, feh_info, vt_info, vmac_info, vsini_info]
 
-    def myfunct(p, fjac=None, x_obs=None, r=None, fout=None, model=None,
+    def myfunct(p, x_obs=None, r=None, fout=None, model=None,
                 y=None, **kwargs):
         '''Function that return the weighted deviates (to be minimized).
 
@@ -258,18 +258,16 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
         ----
         p : list
           Parameters for the model atmosphere
-        fjac : ...
-          ...
         x_obs : ndarray
           Wavelength
-        r : ...
-          ...
+        r : ndarray
+          ranges of the intervals
         fout : str
-          Output file
+          Line list file
         model : str
           Model atmosphere type
         y : ndarray
-          Observed flux?
+          Observed flux
 
 
         Output
@@ -297,30 +295,34 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
         return([status, (y-ymodel)/err])
 
     # A dictionary which contains the parameters to be passed to the
-    # user-supplied function specified by fcn via the standard Python
-    # keyword dictionary mechanism.  This is the way you can pass additional
+    # user-supplied function specified by myfunct via the standard Python
+    # keyword dictionary mechanism. This is the way you can pass additional
     # data to your user-supplied function without using global variables.
     fa = {'x_obs': x_obs, 'r': r, 'fout': fout, 'model': model, 'y': y_obs,
           'options' : kwargs}
 
     # Minimization starts here
-    m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-10, xtol=1e-10, gtol=1e-10, functkw=fa)
+    # Measure time
+    start_time=time.time()
+    m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-5, xtol=1e-5, gtol=1e-10, functkw=fa)
     print('status = %s' % m.status)
     print('Iterations: %s' % m.niter)
     print('Fitted pars:%s' % m.params)
-    print('Uncertainties: %s' % m.perror)  #TODO: Can we use this or the errors are not realistic?
+    print('Uncertainties: %s' % m.perror)  #TODO: We can use them we define a realistic error on the flux
     print('Value of the summed squared residuals: %s' % m.fnorm)
     print('Number of calls to the function: %s' % m.nfev)
-
+    end_time=time.time()-start_time
+    print('Calculations finished in %s sec' % int(end_time)
     x_s, y_s = func(m.params, atmtype=model, driver='synth', r=r, fout=fout, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)
-    # I should create a header with the parameters here
+    #TODO create a header with the parameters in the output file
     save_synth_spec(x_obs, flux_final, fname='final.spec')
     return m.params, x_obs, flux_final
 
 
 def mcmc_synth(x0, observed, limits):
+    '''This could be cool if it worked'''
 
     import emcee
     from utils import interpol_synthetic, fun_moog as func

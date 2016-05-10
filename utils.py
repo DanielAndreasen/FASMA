@@ -6,6 +6,7 @@ import os
 from itertools import islice
 import numpy as np
 from glob import glob
+from synthetic import broadening, _read_moog
 
 kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
@@ -547,11 +548,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
     # Create synthetic spectra
     spec = []
     # Run moog for each linelist file
-    # N is number of intervals
-    # N = len(r)
-    # for i in range(N):
-    #TODO: Maria: Does this work as well?
-    for i, ri in enumerate(ri):
+    for i, ri in enumerate(r):
         _update_par_synth('linelist/%s' % fout[i], ri[0], ri[1], options=options)
         _run_moog(driver='synth')
         x_synth, y_synth = _read_moog('smooth.out')
