@@ -8,8 +8,9 @@ import pandas as pd
 import argparse
 from utils import _update_par as updateBatch
 from utils import _run_moog as runMoog
-from utils import Readmoog, GetModels
-from interpolation import interpolator, save_model
+from utils import Readmoog
+from interpolation import interpolator
+import os
 
 
 def recalSingleLine(line, params=None, version=2014, maxiter=40, driver='abfind'):
@@ -36,6 +37,7 @@ def recalSingleLine(line, params=None, version=2014, maxiter=40, driver='abfind'
         line[3] = loggf
         np.savetxt('temporary.moog', line[:, np.newaxis].T, fmt=fmt, header=header)
         runMoog()
+        # os.system('/home/daniel/Software/moogmay2016/MOOGSILENT > /dev/null')
         if ewdriver:
             d = np.loadtxt('summary.out', skiprows=5, usecols=(6,))
             out = d-line[4]
@@ -90,11 +92,7 @@ if __name__ == '__main__':
     lines = pd.read_csv(fname, skiprows=2, delimiter=r'\s+', names=['WL', 'num', 'EP', 'loggf', 'ele', 'EW'])
 
     params = [5777, 4.44, 0.00, 1.00]
-    teff, logg, feh, _ = params
-    grid = GetModels(teff, logg, feh, args.model)
-    models, nt, nl, nf = grid.getmodels()
-    model = interpolator(models, teff=(teff, nt), logg=(logg, nl), feh=(feh, nf))
-    save_model(model, params)
+    _ = interpolator(params=params, atmtype=args.model, save=True)
 
     cols = ['WL', 'num', 'EP', 'loggf', 'EW']
     fmt2 = ('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f')
