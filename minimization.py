@@ -234,7 +234,7 @@ class Minimize_synth:
         self.fix_vsini = 1 if fix_vsini else 0
 
         # Setting up the bounds
-        if self.model.lower() == 'kurucz95'
+        if self.model.lower() == 'kurucz95':
             self.bounds = [3750, 39000, 0.0, 5.0, -3, 1, 0, 9.99, 0, 50, 0, 100]
         if self.model.lower() == 'apogee_kurucz':
             self.bounds = [3500, 30000, 0.0, 5.0, -5, 1.5, 0, 9.99, 0, 50, 0, 100]
