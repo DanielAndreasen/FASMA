@@ -185,10 +185,41 @@ class Minimize:
 
 
 class Minimize_synth:
-    """docstring for Minimize_synth"""
+    '''Minimize a synthetic spectrum to an observed
+
+    Input
+    -----
+    p0 : list
+      Initial parameters (teff, logg, feh, vt)
+    x_obs : ndarray
+      Observed wavelength
+    y_obs : ndarray
+      Observed flux
+    r : ndarray
+      ranges of the intervals
+    fout : str
+      Input line list files
+
+    Output
+    -----
+    params : list
+      Final parameters
+    x_final : ndarray
+      Final wavelength
+    y_final : ndarray
+      Final synthetic flux
+    '''
+
+
     def __init__(self, p0, x_obs, y_obs, r, fout, model='kurucz95',
                  fix_teff=None, fix_logg=None, fix_feh=None, fix_vt=None,
                  fix_vmac=None, fix_vsini=None,  **kwargs):
+
+        from utils import fun_moog_synth as func
+        from mpfit import mpfit
+        from scipy.interpolate import InterpolatedUnivariateSpline
+        from synthetic import save_synth_spec
+
         self.p0 = p0
         self.x_obs = x_obs
         self.y_obs = y_obs
@@ -233,6 +264,30 @@ class Minimize_synth:
 
 
     def myfunct(self, p, y=None, **kwargs):
+        '''Function that return the weighted deviates (to be minimized).
+
+        Input
+        ----
+        p : list
+          Parameters for the model atmosphere
+        x_obs : ndarray
+          Wavelength
+        r : ndarray
+          ranges of the intervals
+        fout : str
+          Line list file
+        model : str
+          Model atmosphere type
+        y : ndarray
+          Observed flux
+
+
+        Output
+        -----
+        (y-ymodel)/err : ndarray
+          Model deviation from observation
+        '''
+
         options = kwargs['options']
         for i in range(1, 12, 2):
             p = self.bounds(i, p)
