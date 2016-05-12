@@ -312,7 +312,7 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     print('Value of the summed squared residuals: %s' % m.fnorm)
     print('Number of calls to the function: %s' % m.nfev)
     end_time=time.time()-start_time
-    print('Calculations finished in %s sec' % int(end_time)
+    print('Calculations finished in %s sec' % int(end_time))
     x_s, y_s = func(m.params, atmtype=model, driver='synth', r=r, fout=fout, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)

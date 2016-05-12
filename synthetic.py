@@ -58,7 +58,6 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
     from scipy.signal import fftconvolve
     from scipy.integrate import quad
 
-
     def instrumental_profile(x, y, resolution):
         '''
         Inputs
@@ -194,11 +193,9 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         # The kernel might be of too low resolution, or the the wavelength range
         # might be too narrow. In both cases, raise an appropriate error
         if n_kernel == 0:
-            raise ValueError(("Spectrum resolution too low for "
-                          "macroturbulent broadening"))
+            raise ValueError(("Spectrum resolution too low for macroturbulent broadening"))
         elif n_kernel > n_wave:
-            raise ValueError(("Spectrum range too narrow for "
-                          "macroturbulent broadening"))
+            raise ValueError(("Spectrum range too narrow for macroturbulent broadening"))
 
         # Construct the broadening kernel
         wave_k = np.arange(n_kernel)*dwave
@@ -281,14 +278,18 @@ def read_wave(linelist):
     with open(linelist, 'r') as f:
 
         lines = f.readlines()
-    first_line = lines[0].split()
+    for line in lines:
+        if line.startswith('#'):
+            continue
 
-    if len(first_line) == 1:
-        start_wave = first_line[0].split('-')[0]
-        end_wave = first_line[0].split('-')[1]
-    else:
-        start_wave = first_line[0]
-        end_wave = lines[-1].split()[0]
+        first_line = lines[0].split()
+        if len(first_line) == 1:
+            start_wave = first_line[0].split('-')[0]
+            end_wave = first_line[0].split('-')[1]
+        else:
+            start_wave = first_line[0]
+            end_wave = lines[-1].split()[0]
+    print(start_wave)
     return start_wave, end_wave
 
 
@@ -318,16 +319,18 @@ def read_linelist(fname):
             raise IOError('The linelist is not in the linelist directory!')
         flines.append(line[0])
 
+        #Now read each line list interval
         with open('linelist/%s' % line[0], 'r') as f:
 
             lines = f.readlines()
-        first_line = lines[0].split()
 
-        if len(first_line) == 1:
-            start_wave = first_line[0].split('-')[0]
-            end_wave = first_line[0].split('-')[1]
-            r = (float(start_wave), float(end_wave))
-            ranges.append(r)
+        first_line = lines[0].split()
+        #If first line is a comment, then get the ranges from there.
+        if first_line[0].startswith('#'):
+                start_wave = first_line[1]
+                end_wave = first_line[2]
+                r = (float(start_wave), float(end_wave))
+                ranges.append(r)
         else:
             start_wave = first_line[0]
             end_wave = lines[-1].split()[0]

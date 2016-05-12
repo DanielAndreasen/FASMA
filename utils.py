@@ -334,7 +334,7 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
     trudamp         1
     lines           1
     flux/int        1
-    damping         2
+    damping         1
     units           0
     iraf            0
     plot            2
@@ -364,7 +364,7 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
         'lines':      1,
         'terminal':   'x11',
         'flux/int':   0,
-        'damping':    2,
+        'damping':    1,
         'obspectrum': 0,
         'model_in':     'out.atm',
         'smoothed_out': 'smooth.out',
