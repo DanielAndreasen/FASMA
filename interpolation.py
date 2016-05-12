@@ -6,27 +6,19 @@ from scipy.interpolate import griddata
 from utils import GetModels
 
 
-"""
-Following the concept of Sz. Mezeros and C. Allende Prieto: For each set
-of parameters, we identified the 8 immediate neighbors with higher and
-lower values for each parameter in the grid, calculated by numerical
-integration the Rosseland optical depth for each, re-sampled all the
-thermodynamical quantities in the atmosphere (temperature, gas pressure,
-and electron density) on a common optical depth scale for all models
-by linear interpolation, and then interpolated, linearly, all the
-thermodynamical quantities to the parameters (Teff , log g, and [Fe/H])
-of the target model. Other quantities included in the models (Rosseland
-opacities, radiative pressure, etc.) were also interpolated in the same
-way.
-"""
-
-
 def read_model(fname):
-    """Read the model atmosphere
+    '''Read the model atmosphere
 
-    :fname: The gz file of the model atmosphere
-    :returns: The columns and tauross in a tuple
-    """
+    Input
+    -----
+    fname : str
+      The gz file of the model atmosphere.
+
+    Output
+    ------
+    model : ndarray
+      The correct atmosphere, the columns and tauross in a tuple
+    '''
     f = gzip.open(fname, compresslevel=1)
     data = f.readlines()
     model = np.loadtxt(data[23:-2])
@@ -34,16 +26,23 @@ def read_model(fname):
 
 
 def interpolator(params, save=True, atmtype='kurucz95'):
-    """This is a new approach based on a scipy interpolator.
+    '''This is a new approach based on a scipy interpolator.
     Resembles the original interpolator we used but with a change
 
-    :mnames: As generated from GetModels
-    :teff: Requested Effective Temperature and the two closest models in
-           the gridpoints
-    :logg: Requested Surface gravity and the two closest models
-    :feh: Requested metallicity and the two closest models
-    :out: The interpolated model saved in this file
-    """
+    Input
+    -----
+    params : list of length 3
+      Teff, logg, [Fe/H] desired.
+    save : bool
+      Wether the new atmosphere should be saved. Default is True.
+    atmtype : str
+      The atmosphere models being used. Default is Kurucz95.
+
+    Output
+    ------
+    newatm : ndarray
+      New interpolated atmosphere.
+    '''
 
     m = GetModels(params[0], params[1], params[2], atmtype=atmtype)
     mdict = m.getmodels()
@@ -86,13 +85,23 @@ def interpolator(params, save=True, atmtype='kurucz95'):
 
 
 def save_model(model, params, type='kurucz95', fout='out.atm'):
-    """Save the model atmosphere in the right format
+    '''Save the model atmosphere in the right format
 
-    :model: The interpolated model atmosphere
-    :params: Atmospheric parameters in usual order
-    :type: Type of model atmosphere
-    :fout: Which place to save to
-    """
+    Input
+    -----
+    model : ndarray
+      The interpolated model atmosphere.
+    params : list
+      Teff, logg, [Fe/H], vt of the interpolated atmosphere.
+    type : str
+      Type of atmospheric parameters. Default is Kurucz95
+    fout : str
+      Name of the saved atmosphere. Default is out.atm
+
+    Output
+    ------
+    Atmospheric model.
+    '''
     model = model[:, 0:7]
     teff, logg, feh, vt = params
     if type in ['kurucz95', 'apogee_kurucz', 'marcs']:
