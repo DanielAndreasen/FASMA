@@ -24,8 +24,15 @@ way.
 def read_model(fname):
     """Read the model atmosphere
 
-    :fname: The gz file of the model atmosphere
-    :returns: The columns and tauross in a tuple
+    Input
+    -------
+    fname : string
+      The gz file of the model atmosphere.
+
+    Output
+    ---------
+    model : matrix
+      The correct atmosphere, the columns and tauross in a tuple
     """
     f = gzip.open(fname, compresslevel=1)
     data = f.readlines()
@@ -37,12 +44,19 @@ def interpolator(params, save=True, atmtype='kurucz95'):
     """This is a new approach based on a scipy interpolator.
     Resembles the original interpolator we used but with a change
 
-    :mnames: As generated from GetModels
-    :teff: Requested Effective Temperature and the two closest models in
-           the gridpoints
-    :logg: Requested Surface gravity and the two closest models
-    :feh: Requested metallicity and the two closest models
-    :out: The interpolated model saved in this file
+    Input
+    -------
+    params : list of length 3
+      Teff, logg, [Fe/H] desired.
+    save : bolean
+      Wether the new atmosphere should be saved. Default is True.
+    atmtype : string
+      The atmosphere models being used. Default is Kurucz95.
+
+    Output
+    ---------
+    newatm : matrix
+      New interpolated atmosphere.
     """
 
     m = GetModels(params[0], params[1], params[2], atmtype=atmtype)
@@ -88,10 +102,20 @@ def interpolator(params, save=True, atmtype='kurucz95'):
 def save_model(model, params, type='kurucz95', fout='out.atm'):
     """Save the model atmosphere in the right format
 
-    :model: The interpolated model atmosphere
-    :params: Atmospheric parameters in usual order
-    :type: Type of model atmosphere
-    :fout: Which place to save to
+    Input
+    -------
+    model : matrix
+      The interpolated model atmosphere.
+    params : list
+      Teff, logg, [Fe/H], vt of the interpolated atmosphere.
+    type : string
+      Type of atmospheric parameters. Default is Kurucz95
+    fout : string
+      Name of the saved atmosphere. Default is out.atm
+
+    Output
+    ---------
+    Atmospheric model.
     """
     model = model[:, 0:7]
     teff, logg, feh, vt = params
