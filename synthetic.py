@@ -6,6 +6,7 @@ import numpy as np
 import os
 from astropy.io import fits
 
+
 def save_synth_spec(x, y, fname='initial.spec'):
     '''Save synthetic spectrum of all intervals
 
@@ -231,23 +232,27 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
 def _read_raw_moog(fname='summary.out'):
     '''Read the summary.out and return them
 
-    :fname: From the summary_out
-    :returns: flux
+    Inputs
+    ------
+    fname : str (default: summary.out)
+      Filename of the output file from MOOG from summary_out
+
+    Output
+    ------
+    wavelenth : ndarray
+      The wavelenth vector
+    flux : ndarray
+      The flux vector
     '''
-    import itertools
 
-    with open('summary.out', 'r') as f:
-        lines = f.readlines()[:]
+    with open(fname, 'r') as lines:
+        lines.readline()
+        lines.readline()
+        w0, end_wave, dw, flux_step = map(float, lines.readline().split())
 
-    start_wave, end_wave, step, flux_step = lines[2].split()
-    flux_raw = []
-    for line in lines[3:]:
-       line = line.split()
-       flux_raw.append(line)
+    flux = np.loadtxt(fname, skiprows=3)
+    flux = 1.0 - flux
 
-    flux = np.array(list(itertools.chain.from_iterable(flux_raw)))
-    flux = flux.astype(np.float)
-    flux = 1.0-flux
     w0, dw, n = float(start_wave), float(step), len(flux)
     w = w0 + dw * len(flux)
     wavelength = np.linspace(w0, w, n, endpoint=False)
@@ -256,48 +261,53 @@ def _read_raw_moog(fname='summary.out'):
 
 def _read_moog(fname='smooth.out'):
     '''Read the output of moog - synthetic spectra.
+
     Input
     -----
-    fname: smooth.out
+    fname : str (default: smooth.out)
+      The smoothed spectrum from MOOG
 
     Output
     ------
-    wavelength
-    flux
+    wavelength : ndarray
+      The wavelenth vector
+    flux : ndarray
+      The flux vector
     '''
 
     wavelength, flux = np.loadtxt(fname, skiprows=2, usecols=(0, 1), unpack=True)
-    return wavelength, flux
-
     return wavelength, flux
 
 
 def read_wave(linelist):
     '''Read the wavelenth intervals of the line list'''
 
-    with open(linelist, 'r') as f:
+    with open(linelist, 'r') as lines:
+        for line in lines:
+            if line.startswith('#'):
+                continue
+            first_line = line.split()
+            break
 
-        lines = f.readlines()
-    for line in lines:
-        if line.startswith('#'):
-            continue
-
-        first_line = lines[0].split()
-        if len(first_line) == 1:
-            start_wave = first_line[0].split('-')[0]
-            end_wave = first_line[0].split('-')[1]
-        else:
-            start_wave = first_line[0]
-            end_wave = lines[-1].split()[0]
-    print(start_wave)
+    if len(first_line) == 1:
+        start_wave = first_line[0].split('-')[0]
+        end_wave = first_line[0].split('-')[1]
+    else:
+        for line in lines:
+            pass  # Quick way to get to the last line
+        start_wave = first_line[0]
+        end_wave = line.split()[0]
+    # print(start_wave)
     return start_wave, end_wave
 
 
 def read_linelist(fname):
     '''Read the file that contains the line list then read the lines
+
     Input
     -----
-    fname : file that contains the filenames of the linelist
+    fname : str
+      File that contains the filenames of the linelist
 
     Output
     ------
@@ -320,6 +330,7 @@ def read_linelist(fname):
         flines.append(line[0])
 
         #Now read each line list interval
+        # TODO: Isn't this the same as the function "read_wave" above
         with open('linelist/%s' % line[0], 'r') as f:
 
             lines = f.readlines()
@@ -348,23 +359,25 @@ def read_moog_intervals(fname, options):
 
     Output:
     ------
-    wavelength
-    flux
+    wavelength : ndarray
+      The wavelenth vector
+    flux : ndarray
+      The flux vector
     '''
 
     ranges, fout = read_linelist(fname)
-    n_intervals = len(ranges)
     spec = []
-    for i in range(n_intervals):
-        x, y = _read_moog('results/%s.spec' % fout[i])
-        spec.append(_read_moog('results/%s.spec' % fout[i]))
+    for fouti in fout:
+        spec.append(_read_moog('results/%s.spec' % fouti))
 
     w = np.column_stack(spec)[0]
     f = np.column_stack(spec)[1]
 
-    #Add broadening
+    # Add broadening
+    # TODO: Options not defined yet
     wavelength, flux = broadening(w, f, resolution=options['resolution'],
-    vsini=options['vsini'], epsilon=options['limb'], vmac=options['vmac'])
+                                  vsini=options['vsini'],
+                                  epsilon=options['limb'], vmac=options['vmac'])
     return wavelength, flux
 
 
@@ -372,13 +385,17 @@ def interpol_synthetic(wave_obs, wave_synth, flux_synth):
     '''Interpolation of the synthetic flux to the observed wavelength.
     Input
     -----
-    wave_obs : observed wavelength
-    wave_synth : synthetic wavelength
-    flux_synth : synthetic flux
+    wave_obs : ndarray
+      Observed wavelength
+    wave_synth : ndarray
+      Synthetic wavelength
+    flux_synth : ndarray
+      Synthetic flux
 
     Output
     ------
-    int_flux : Interpolated synthetic flux
+    int_flux : ndarray
+      Interpolated synthetic flux
     '''
 
     from scipy.interpolate import InterpolatedUnivariateSpline
