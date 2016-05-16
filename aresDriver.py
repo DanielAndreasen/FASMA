@@ -170,12 +170,17 @@ def update_ares(line_list, spectrum, out, options, fullpath):
 
 def findBadLine():
     """Read logARES.txt and return the last measured line (the bad one)"""
+    linePresent = False
     with open('logARES.txt', 'r') as lines:
         for line in lines:
             if line.startswith('line result'):
                 line = line.split(':')
                 badLine = float(line[-1])
-    return badLine
+                linePresent = True
+    if linePresent:
+        return badLine
+    else:
+        return None
 
 
 def cleanLineList(linelist, badline):
@@ -271,12 +276,15 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                         break
                     else:
                         atomicLine = findBadLine()
-                        print('\tRemoving line: %.2f' % atomicLine)
-                        copyfile('rawLinelist/'+line_list, 'rawLinelist/tmp%i' % index)
-                        line_list = 'tmp%i' % index
-                        cleanLineList('rawLinelist/'+line_list, atomicLine)
-                        update_ares(line_list, spectrum, out, options)
-                        index += 1
+                        if atomicLine:
+                            print('\tRemoving line: %.2f' % atomicLine)
+                            copyfile('rawLinelist/'+line_list, 'rawLinelist/tmp%i' % index)
+                            line_list = 'tmp%i' % index
+                            cleanLineList('rawLinelist/'+line_list, atomicLine)
+                            update_ares(line_list, spectrum, out, options)
+                            index += 1
+                        else:
+                            break
                 for tmp in glob('rawLinelist/tmp*'):
                     os.remove(tmp)
             else:
