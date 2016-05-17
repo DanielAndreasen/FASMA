@@ -221,10 +221,10 @@ def _outlierRunner(type, linelist, parameters, options):
         copyfile(tmpll, 'linelist/'+newName)
         os.remove(tmpll)
         _update_par(line_list='linelist/'+newName)
-        return newLineList, newName
+        return newLineList, newName, parameters
     _update_par(line_list='linelist/'+linelist)
     os.remove(tmpll)
-    return newLineList, linelist
+    return newLineList, linelist, parameters
 
 
 def hasOutlier(MOOGv=2014):
@@ -243,10 +243,11 @@ def hasOutlier(MOOGv=2014):
         dev = abs(fe1i-m1)
         if dev >= s1:
             d[dev] = fe1[i, 0]
-    for i, fe2i in enumerate(fe2[:, 5+idx]):
-        dev = abs(fe2i-m2)
-        if dev >= s2:
-            d[dev] = fe2[i, 0]
+    if fe2.shape[0] > 10:
+        for i, fe2i in enumerate(fe2[:, 5+idx]):
+            dev = abs(fe2i-m2)
+            if dev >= s2:
+                d[dev] = fe2[i, 0]
 
     if len(d.keys()):
         return d
@@ -367,7 +368,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                 continue
 
             if options['outlier']:
-                newLineList, newName = _outlierRunner(options['outlier'], line[0], parameters, options)
+                newLineList, newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
                 line[0] = newName
             else:
                 newLineList = False
@@ -393,7 +394,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                         print('Skipping to next linelist..\n')
                         logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
                     if options['outlier']:
-                        newLineList, newName = _outlierRunner(options['outlier'], line[0], parameters, options)
+                        newLineList, newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
                         line[0] = newName
                     else:
                         newLineList = False
