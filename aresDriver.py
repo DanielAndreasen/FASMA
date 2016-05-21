@@ -23,8 +23,8 @@ def make_linelist(line_file, ares, cut):
     line list and atomic data of make_linelist.dat file"""
 
     # Read the line list and check for multiple identical lines
-    linelist = np.loadtxt(line_file, skiprows=2, usecols=range(4))
-    assert (len(np.unique(linelist[:, 0])) == len(linelist[:, 0])), 'Check for multiple lines the linelist: %s' % line_file
+    linelist = np.loadtxt(line_file, skiprows=2, usecols=range(4), comments='#')
+    #assert (len(np.unique(linelist[:, 0])) == len(linelist[:, 0])), 'Check for multiple lines the linelist: %s' % line_file
 
     # Read the lines and ews in the ares data and check for identical lines
     data = np.loadtxt(ares, usecols=(0, 4))
@@ -41,20 +41,20 @@ def make_linelist(line_file, ares, cut):
     data = data[idx]
     # Wavelength and EW taken from the ares file.
     # Test whether each element of a 1D array is also present in a second array
-    idx = np.in1d(data[:, 0], linelist[:, 0])
+    idx = np.in1d(np.round(data[:, 0],2), np.round(linelist[:, 0],2))
     data = data[idx]
 
     # Sort common elements from ares by wavelength
     idx = np.argsort(data[:, 0])
     data = data[idx]
 
-    # Wavelength and atomic data taken from the make_linelist.dat file.
+    # Wavelength and atomic data taken from the 'linelist' file.
     # Test whether each element of a 1D array is also present in a second array
-    linelist_index = np.in1d(linelist[:, 0], data[:, 0])
-    index_lines_not_found = np.in1d(linelist[:, 0], data[:, 0])
+    linelist_index = np.in1d(np.round(linelist[:, 0],2), np.round(data[:, 0],2))
+    index_lines_not_found = np.in1d(np.round(linelist[:, 0],2), np.round(data[:, 0],2))
     lines_not_found = linelist[~index_lines_not_found, 0]
     if len(lines_not_found):
-        print('\tARES did not find %i lines' % len(lines_not_found))
+        print('\tARES did not find %i lines out of %i ' % (len(lines_not_found), len(linelist[:,0])))
 
     linelist = linelist[linelist_index]
     print('\tLines in the new line list: %i' % len(linelist[:, 0]))
@@ -63,13 +63,17 @@ def make_linelist(line_file, ares, cut):
     idx = np.argsort(linelist[:, 0])
     linelist = linelist[idx]
 
+    ew_idx = []
+    for i, line in enumerate(linelist[:,0]):
+        ew_idx += np.where(np.round(data[:,0],2)==np.round(line,2))
+
     # Merge line list data with the EW from ARES
     # Sort the FeI and the FeII lines using the atomic number and then by wavelength
-    values = np.column_stack((data[:, 0], linelist[:, 1], linelist[:, 2], linelist[:, 3], data[:, 1]))
+    values = np.column_stack((linelist[:, 0], linelist[:, 1], linelist[:, 2], linelist[:, 3], data[ew_idx,1]))
     sorted_values = np.array(sorted(values, key=lambda  e: (e[1], e[0])))
 
     # Write results in MOOG readable format
-    assert np.array_equal(data[:, 0], linelist[:, 0]), 'There is something wrong with the common elements of ARES and the line list'
+    assert np.array_equal(np.round(data[:,0],2), np.unique(np.round(linelist[:, 0],2))), 'There is something wrong with the common elements of ARES and the line list'
     data = zip(sorted_values[:, 0], sorted_values[:, 1], sorted_values[:, 2], sorted_values[:, 3], sorted_values[:, 4])
     fout = '%s.moog' % ares.rpartition('.')[0]
     np.savetxt(fout, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % fout)
