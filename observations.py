@@ -5,7 +5,79 @@ from __future__ import division
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 import os
-from astropy.io import fits as pyfits
+from astropy.io import fits
+
+def local_norm(obs_fname, r, method='linear', plot=False):
+    '''Local Normalisation function. Make a linear fit from the maximum points
+    of each segment.
+    Input
+    -----
+    obs_fname : observations file
+    r : range of the interval
+
+    Output
+    ------
+    new_flux : normalized flux
+    '''
+
+    # Define the area of Normalization, 10A around the center of each interval
+    center = (r[0] + r[1])/2.0
+    start_norm = center - 10.0
+    end_norm =  center + 10.0
+    start_norm = r[0]
+    end_norm =  r[1]
+
+    wave_obs, flux_obs = read_observations(obs_fname, start_norm, end_norm)
+
+    #Divide in 3 and find the maximum points
+    y = np.array_split(flux_obs, 3)
+    x = np.array_split(wave_obs, 3)
+    index_max1 = np.sort(np.argsort(y[0])[-3:]) # this can be done better
+    index_max2 = np.sort(np.argsort(y[1])[-3:]) # this can be done better
+    index_max3 = np.sort(np.argsort(y[2])[-3:]) # this can be done better
+    #index_max = np.sort(np.argsort(flux_obs)[-10:]) # this can be done better
+    f_max1 = y[0][index_max1]
+    f_max2 = y[1][index_max2]
+    f_max3 = y[2][index_max3]
+
+    w_max1 = x[0][index_max1]
+    w_max2 = x[1][index_max2]
+    w_max3 = x[2][index_max3]
+
+    #f_max = flux_obs[index_max]
+    #w_max = wave_obs[index_max]
+    f_max = np.concatenate((f_max1, f_max2, f_max3))
+    w_max = np.concatenate((w_max1, w_max2, w_max3))
+
+    if method == 'scalar':
+        #Divide with the median of maximum values.
+        print(w_max[0], np.median(f_max))
+        new_flux = flux_obs/np.median(f_max)
+
+    if method == 'linear':
+        z = np.polyfit(w_max, f_max, 1)
+        p = np.poly1d(z)
+        f = p(wave_obs)
+        new_flux = flux_obs/p(wave_obs)
+        print(w_max[0], p(wave_obs))
+
+    wave = wave_obs[np.where((wave_obs >= float(r[0])) & (wave_obs <= float(r[1])))]
+    new_flux = new_flux[np.where((wave_obs >= float(r[0])) & (wave_obs <= float(r[1])))]
+
+    if plot:
+        pl.plot(wave_obs, flux_obs)
+        x = [center-7.5, center+7.5]
+        y = [np.median(f_max), np.median(f_max)]
+        pl.plot(x, y, label='continuum')
+        pl.plot(w_max, f_max, 'o')
+        pl.legend()
+        pl.show()
+
+        pl.plot(wave, new_flux, label='linear')
+        pl.legend()
+        pl.show()
+
+    return wave, new_flux
 
 
 def read_observations(fname, start_synth, end_synth):
@@ -30,7 +102,7 @@ def read_observations(fname, start_synth, end_synth):
                 wave, flux = np.loadtxt(lines, unpack=True, usecols=(0, 1))
 
         elif fname[-5:]=='.fits':
-            hdulist = pyfits.open(fname)
+            hdulist = fits.open(fname)
             header = hdulist[0].header
             #Only 1-D spectrum accepted.
             flux = hdulist[0].data #flux data in the primary
@@ -43,7 +115,7 @@ def read_observations(fname, start_synth, end_synth):
             wave = np.linspace(w0, w, n, endpoint=False)
         #These types are produced by MOOGme (fits format).
         elif fname[-5:]=='.spec':
-            hdulist = pyfits.open(fname)
+            hdulist = fits.open(fname)
             x = hdulist[1].data
             flux = x['flux'] #flux data in the primary
             wave = x['wavelength']
@@ -76,7 +148,8 @@ def read_obs_intervals(obs_fname, r):
     N = len(r)
     spec = []
     for i in range(N):
-        spec.append(read_observations(obs_fname, start_synth=r[i][0], end_synth=r[i][1]))
+        #Obtain the normalized spectrum
+        spec.append(local_norm(obs_fname, r[i]))
 
     x_obs = np.column_stack(spec)[0]
     y_obs = np.column_stack(spec)[1]
@@ -114,6 +187,7 @@ def plot(x_obs, y_obs, x, y):
         pl.legend()
         pl.show()
     return
+
 
 #The rest are useless functions for now....
 def plot_synth(fname):
@@ -165,8 +239,8 @@ def chi2(wave_obs, flux_obs, wave_synth, flux_synth):
     """Some x2 statistics"""
 
     #Interpolation of the synthetic flux to the observed wavelength
-    sl = InterpolatedUnivariateSpline(wave_synth, flux_synth, k=1)
-    int_flux = sl(wave_obs)
+    #sl = InterpolatedUnivariateSpline(wave_synth, flux_synth, k=1)
+    #int_flux = sl(wave_obs)
     #f = interp1d(wave_synth, flux_synth, kind='cubic')
     #error = 1./200
     #chi2 = np.sum(((flux_obs - int_flux)/error)**2)
