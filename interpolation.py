@@ -72,12 +72,14 @@ def interpolator(params, save=True, atmtype='kurucz95'):
         models.append(tatm)
 
     layers = range(min([model.shape[0] for model in models]))
-    columns = range(min([model.shape[1] for model in models]))
+    columns = range(min([model.shape[1] for model in models]) - 3)
     newatm = np.zeros((len(layers), len(columns)))
     for layer in layers:
         for column in columns:
             tlayer = [model[layer, column] for model in models]
             newatm[layer, column] = griddata(gridpoints, tlayer, (teff, logg, feh), **options)
+    vt_array = np.zeros(len(layers))+params[-1]*1e5
+    newatm = np.hstack((newatm, vt_array[:, np.newaxis]))
     if save:
         save_model(newatm, params, type=atmtype)
     return newatm
@@ -101,7 +103,6 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     ------
     Atmospheric model.
     '''
-    model = model[:, 0:7]
     teff, logg, feh, vt = params
     if type in ['kurucz95', 'apogee_kurucz', 'marcs']:
         header = 'KURUCZ\n'\
