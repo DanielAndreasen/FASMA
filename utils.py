@@ -756,10 +756,10 @@ def _slopeSigma(x, y, weights):
       The deviation on the slope calculated
     '''
     N = len(x)
-    sxx = np.sum((x-np.mean(x))**2)
+    var = np.var(x) * N
     a, b = np.polyfit(x, y, 1, w=weights)
     chi2 = np.sum((y - a*x-b)**2)
-    return np.sqrt(chi2/((N-2)*sxx))
+    return np.sqrt(chi2/((N-2)*var))
 
 
 def error(linelist, converged, params, atmtype, version=2014, weights='null'):

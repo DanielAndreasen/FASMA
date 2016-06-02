@@ -63,6 +63,7 @@ def interpolator(params, save=True, atmtype='kurucz95'):
     teff = teff[0]
     logg = logg[0]
     feh = feh[0]
+    options = {'method': 'linear', 'rescale': True}
 
     # Reading the models
     models = []
@@ -70,15 +71,13 @@ def interpolator(params, save=True, atmtype='kurucz95'):
         tatm = read_model(mname)
         models.append(tatm)
 
-    layers = min([model.shape[0] for model in models])
-    columns = min([model.shape[1] for model in models])
-    newatm = np.zeros((layers, columns))
-    for layer in range(layers):
-        for column in range(columns):
-            tlayer = np.zeros(len(models))
-            for idx, model in enumerate(models):
-                tlayer[idx] = model[layer, column]
-            newatm[layer, column] = griddata(gridpoints, tlayer, (teff, logg, feh), method='linear', rescale=True)
+    layers = range(min([model.shape[0] for model in models]))
+    columns = range(min([model.shape[1] for model in models]))
+    newatm = np.zeros((len(layers), len(columns)))
+    for layer in layers:
+        for column in columns:
+            tlayer = [model[layer, column] for model in models]
+            newatm[layer, column] = griddata(gridpoints, tlayer, (teff, logg, feh), **options)
     if save:
         save_model(newatm, params, type=atmtype)
     return newatm

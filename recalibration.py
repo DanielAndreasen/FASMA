@@ -125,3 +125,4 @@ if __name__ == '__main__':
     X = lines[['WL', 'num', 'EP', 'newloggf', 'EW']]
     print 'Saving results to: %s' % fout2
     np.savetxt(fout2, X, fmt=fmt2, header=header2)
+    os.remove('temporary.moog')

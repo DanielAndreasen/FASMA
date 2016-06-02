@@ -43,7 +43,7 @@ class Minimize:
         if self.x0[1] >= 3.95:
             self.x0[3] = 6.932*self.x0[0]/10000 - 0.348*self.x0[1] - 1.437
         else:
-            self.x0[3] = 3.7 - 5.1*self.x0[0]/10000
+            self.x0[3] = 2.72 - 0.457*self.x0[1] + 0.072*self.x0[2]
 
 
     def print_format(self):
