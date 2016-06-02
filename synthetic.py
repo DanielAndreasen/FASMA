@@ -88,7 +88,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
             y_inst = pyasl.instrBroadGaussFast(x, y, resolution, edgeHandling="firstlast", fullout=False, maxsig=None)
         return y_inst
 
-    def vsini_broadening(x, y_inst, epsilon, vsini):
+    def vsini_broadening(x, y, epsilon, vsini):
         '''
         Apply rotational broadening to a spectrum assuming a linear limb darkening
         law. The adopted limb darkening law is the linear one, parameterize by the
