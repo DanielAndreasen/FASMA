@@ -8,6 +8,8 @@ import os
 from astropy.io import fits
 
 
+
+
 def local_norm(obs_fname, r, method='linear', plot=False):
     '''Local Normalisation function. Make a linear fit from the maximum points
     of each segment.
