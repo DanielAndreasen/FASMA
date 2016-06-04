@@ -1,0 +1,6 @@
+[submodule "ARES"]
+    path = ARES
+    url = https://github.com/sousasag/ARES.git
+[submodule "TMCALC"]
+    path = TMCALC
+    url = https://github.com/sousasag/TMCALC.git
