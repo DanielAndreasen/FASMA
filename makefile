@@ -15,7 +15,10 @@ install:
 	@echo "Installing dependencies..."
 	@pip install -r requirements.txt
 	@conda install -c anaconda wxpython=3.0.0.0
-#	@pip install -U --trusted-host wxpython.org --pre -f http://wxpython.org/Phoenix/snapshot-builds/ wxPython_Phoenix
+	@echo "Installing ARES"
+	@cd ARES; make install; cd ..
+	@echo "Installing TMCALC"
+	@cd TMCALC; make; cd ..
 	@echo "Dependencies installed"
 	@echo ""
 	@echo "MOOGme is successfully installed!"
