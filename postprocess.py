@@ -139,7 +139,7 @@ if __name__ == '__main__':
         size[np.argmin(size)] = 10  # Be sure to show the "smallest" point
         plt.scatter(df1[args.x], df1[args.y], c=color, s=size, cmap=cm.seismic, label='Converged')
     else:
-        plt.scatter(df1[args.x], df1[args.y], c=color[0], s=40, label='Converged')
+        plt.scatter(df1[args.x], df1[args.y], c=colorSB[0], s=40, label='Converged')
     if not args.convergence:
         if args.z:
             plt.scatter(df2[args.x], df2[args.y], c=df2[args.z].values, cmap=cm.seismic, s=55, marker='x', label='Not converged')
