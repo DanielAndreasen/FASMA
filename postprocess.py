@@ -10,7 +10,7 @@ try:
     import seaborn as sns
     sns.set_style('dark')
     sns.set_context('talk', font_scale=1.2)
-    color = sns.color_palette()
+    colorSB = sns.color_palette()
 except ImportError:
     print 'Please install seaborn: pip install seaborn'
 import matplotlib.pyplot as plt
@@ -162,29 +162,27 @@ if __name__ == '__main__':
               'radiuserr': r'$\sigma R_\odot$',
               'age': r'Age $[Gyr]$'}
 
-    sun = {'teff': 5777,
-           'tefferr': 1,
-           'logg': 4.44,
-           'loggerr': 0.01,
-           'feh': 0.00,
-           'feherr': 0.01,
-           'vt': 1.00,
-           'vterr': 0.01,
-           'lum': 1,
-           'mass': 1,
-           'masserr': 0.01,
-           'radius': 1,
-           'radiuserr': 0.01,
-           'age': 4.567}
-
     plt.xlabel(labels[args.x])
     plt.ylabel(labels[args.y])
     if args.z:
         cbar = plt.colorbar()
         cbar.set_label(labels[args.z])
     if args.s:
-        plt.plot(sun[args.x], sun[args.y], 'y*', ms=20)
-
+        sun = {'teff': 5777,
+               'tefferr': 1,
+               'logg': 4.44,
+               'loggerr': 0.01,
+               'feh': 0.00,
+               'feherr': 0.01,
+               'vt': 1.00,
+               'vterr': 0.01,
+               'lum': 1,
+               'mass': 1,
+               'masserr': 0.01,
+               'radius': 1,
+               'radiuserr': 0.01,
+               'age': 4.567}
+        plt.plot(sun[args.x], sun[args.y], color=colorSB[4], marker='*', ms=20, alpha=0.8)
     if args.ix:
         plt.xlim(plt.xlim()[::-1])
     if args.iy:
