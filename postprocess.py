@@ -84,6 +84,7 @@ def _parser():
     parser.add_argument('-lx', help='Logarithmic x axis', default=False, action='store_true')
     parser.add_argument('-ly', help='Logarithmic y axis', default=False, action='store_true')
     parser.add_argument('-s', help='Place Solar values in the plot', default=False, action='store_true')
+    parser.add_argument('-l', help='Fit a linear regression', default=False, action='store_true')
     args = parser.parse_args()
     return args
 
@@ -146,6 +147,12 @@ if __name__ == '__main__':
         else:
             plt.scatter(df2[args.x], df2[args.y], c=color[2], s=9, marker='d', label='Not converged')
         plt.legend(loc='best', frameon=False)
+
+    if args.l:
+        p = np.polyfit(df1[args.x], df1[args.y], deg=1)
+        print '  y=%.3f*x+%.3f' % (p[0], p[1])
+        yfit = np.poly1d(p)(df1[args.x])
+        plt.plot(df1[args.x], yfit, '-k')
 
     labels = {'teff': r'$T_\mathrm{eff}$ [K]',
               'tefferr': r'$\sigma T_\mathrm{eff}$ [K]',
