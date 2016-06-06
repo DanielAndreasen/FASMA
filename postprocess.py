@@ -83,6 +83,7 @@ def _parser():
     parser.add_argument('-iz', help='Inverse z axis', default=False, action='store_true')
     parser.add_argument('-lx', help='Logarithmic x axis', default=False, action='store_true')
     parser.add_argument('-ly', help='Logarithmic y axis', default=False, action='store_true')
+    parser.add_argument('-s', help='Place Solar values in the plot', default=False, action='store_true')
     args = parser.parse_args()
     return args
 
@@ -161,11 +162,28 @@ if __name__ == '__main__':
               'radiuserr': r'$\sigma R_\odot$',
               'age': r'Age $[Gyr]$'}
 
+    sun = {'teff': 5777,
+           'tefferr': 1,
+           'logg': 4.44,
+           'loggerr': 0.01,
+           'feh': 0.00,
+           'feherr': 0.01,
+           'vt': 1.00,
+           'vterr': 0.01,
+           'lum': 1,
+           'mass': 1,
+           'masserr': 0.01,
+           'radius': 1,
+           'radiuserr': 0.01,
+           'age': 4.567}
+
     plt.xlabel(labels[args.x])
     plt.ylabel(labels[args.y])
     if args.z:
         cbar = plt.colorbar()
         cbar.set_label(labels[args.z])
+    if args.s:
+        plt.plot(sun[args.x], sun[args.y], 'y*', ms=20)
 
     if args.ix:
         plt.xlim(plt.xlim()[::-1])
