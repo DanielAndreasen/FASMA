@@ -10,7 +10,7 @@ import yaml
 import numpy as np
 from utils import _update_par_synth
 from utils import fun_moog_synth as func
-from observations import read_obs_intervals, plot, chi2
+from observations import read_obs_intervals, plot
 from synthetic import save_synth_spec,read_linelist
 import seaborn
 from minimization import minimize_synth
@@ -159,7 +159,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
             # Check if the linelist is inside the directory, if not log it and pass to next linelist
             if not os.path.isfile('linelist/%s' % line[0]):
                 logger.error('Error: linelist/%s not found.' % line[0])
-                continue
+                raise IOError('linelist file does not exist in the linelist folder!')
             #Create synthetic spectrum with solar values and the default options
             if len(line) == 1:
                 initial = [5777, 4.44, 0.00, 1.00, 3.21, 1.90]
@@ -209,10 +209,6 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         logger.info('Starting the minimization procedure...')
                         params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, r, fout, **options)
                         logger.info('Minimization done.')
-                        #This is useless now
-                        #Some statistics. Here synthetic spectrum is interpolated to the observed
-                        chi2(x_obs, y_obs, x_initial, y_initial)
-                        chi2(x_obs, y_obs, x_final, y_final)
 
                 else:
                     x_obs, y_obs = (None, None)
@@ -272,11 +268,6 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         logger.info('Starting the minimization procedure...')
                         params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, r, fout, **options)
                         logger.info('Minimization done.')
-
-                        #Some statistics. Here synthetic spectrum is interpolated to the observed
-                        #This is useless now
-                        chi2(x_obs, y_obs, x_initial, y_initial)
-                        chi2(x_obs, y_obs, x_final, y_final)
 
                 else:
                     x_obs, y_obs = (None, None)

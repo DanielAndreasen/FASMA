@@ -318,6 +318,10 @@ class Minimize_synth:
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_final = sl(x_obs)
         save_synth_spec(x_obs, flux_final, fname='final.spec')
+        chi = ((x_obs - flux_final)**2)
+        chi2 = np.sum(chi)
+        print('This is your chi2 value: '), chi2
+
         return m.params, x_obs, flux_final
 
 
@@ -453,6 +457,9 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     x_s, y_s = func(m.params, atmtype=model, driver='synth', r=r, fout=fout, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)
+    chi = ((x_obs - flux_final)**2)
+    chi2 = np.sum(chi)
+    print('This is your chi2 value: '), chi2
     #TODO create a header with the parameters in the output file
     save_synth_spec(x_obs, flux_final, fname='final.spec')
     return m.params, x_obs, flux_final
