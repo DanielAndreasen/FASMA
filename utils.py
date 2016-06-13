@@ -566,7 +566,6 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
         n_wave = int(range_wave/delta_wave)+1
         dwave = x_synth[1]-x_synth[0]
         n_kernel = int(5*vmacro/dwave)
-        print(n_wave, n_kernel)
         if n_kernel % 2 == 0:
             n_kernel += 1
         # The kernel might be of too low resolution, or the the wavelength range

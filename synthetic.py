@@ -118,7 +118,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         if vsini == 0:
             y_rot = y
         else:
-            y_rot = pyasl.fastRotBroad(x, y, epsilon, vsini, effWvl=None)
+            y_rot = pyasl.rotBroad(x, y, epsilon, vsini, edgeHandling='firstlast')
         return y_rot
 
     def _vmacro_kernel(dlam, Ar, At, Zr, Zt):
@@ -175,7 +175,6 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
 
         # Define central wavelength
         lambda0 = (wave[0] + wave[-1]) / 2.0
-
         vmac_rad = vmacro_rad/(299792458.*1e-3)*lambda0
         vmac_tan = vmacro_tan/(299792458.*1e-3)*lambda0
 
@@ -190,14 +189,12 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         n_kernel = int(5*max(vmac_rad, vmac_tan)/dwave)
         if n_kernel % 2 == 0:
             n_kernel += 1
-
         # The kernel might be of too low resolution, or the the wavelength range
         # might be too narrow. In both cases, raise an appropriate error
         if n_kernel == 0:
             raise ValueError(("Spectrum resolution too low for macroturbulent broadening"))
         elif n_kernel > n_wave:
             raise ValueError(("Spectrum range too narrow for macroturbulent broadening"))
-
         # Construct the broadening kernel
         wave_k = np.arange(n_kernel)*dwave
         wave_k -= wave_k[-1]/2.
