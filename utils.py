@@ -555,7 +555,43 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
         #add broadening
         #This is done here so the x-axis is equidistant.
         #Currently, the wavelength array as to be regularly spaced.
+
+        #Check for enough points for vmac
+        # Define central wavelength
+        lambda0 = (x_synth[0] + x_synth[-1]) / 2.0
+        vmacro = vmac/(299792458.*1e-3)*lambda0
+
+        delta_wave = np.diff(x_synth).min()
+        range_wave = x_synth.ptp()
+        n_wave = int(range_wave/delta_wave)+1
+        dwave = x_synth[1]-x_synth[0]
+        n_kernel = int(5*vmacro/dwave)
+        print(n_wave, n_kernel)
+        if n_kernel % 2 == 0:
+            n_kernel += 1
+        # The kernel might be of too low resolution, or the the wavelength range
+        # might be too narrow. In both cases, raise an appropriate error
+        if n_kernel > n_wave:
+            #Add extra points on both sides
+            ex_points = n_kernel-n_wave
+            print("Spectrum range too narrow for macroturbulent broadening. Adding %s points." % ex_points)
+            if ex_points % 2 == 0:
+                w_s = x_synth[0] - (dwave*((ex_points+2)/2))
+                w_e = x_synth[-1] + (dwave*((ex_points+2)/2))
+                _update_par_synth('linelist/%s' % fout[i], w_s, w_e, options=options)
+                _run_moog(driver='synth')
+                x_synth, y_synth = _read_moog('smooth.out')
+
+            else:
+                ex_points += 1
+                w_s = x_synth[0] - (dwave*((ex_points+2)/2))
+                w_e = x_synth[-1] + (dwave*((ex_points+2)/2))
+                _update_par_synth('linelist/%s' % fout[i], w_s, w_e, options=options)
+                _run_moog(driver='synth')
+                x_synth, y_synth = _read_moog('smooth.out')
+
         spec.append(broadening(x_synth, y_synth, vsini, vmac, resolution=options['resolution'], epsilon=options['limb']))
+
     #Gather all individual spectra to one
     w = np.column_stack(spec)[0]
     f = np.column_stack(spec)[1]
