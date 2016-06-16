@@ -50,6 +50,8 @@ def ew(args):
         fout += ',teffrange'
     if args.autofixvt:
         fout += ',autofixvt'
+    if args.tmcalc:
+        fout += ',tmcalc'
     with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
@@ -161,6 +163,7 @@ def main():
     ew_parser.add_argument('--Fixteff',            help='Fix temperature',     action='store_true', metavar='Fix temperature')
     ew_parser.add_argument('--Fixgravity',         help='Fix gravity',         action='store_true', metavar='Fix gravity')
     ew_parser.add_argument('--FixFeH',             help='Fix metallicity',     action='store_true', metavar='Fix [Fe/H]')
+    ew_parser.add_argument('--tmcalc',             help='Better guess on initial conditions',     action='store_true', metavar='Set initial conditions')
     ew_parser.add_argument('--Fixmicroturbulence', help='Fix microturbulence', action='store_true', metavar='Fix microturbulence')
     ew_parser.add_argument('--refine',             help='Refine parameters',   action='store_true', metavar='Refine parameters')
     ew_parser.add_argument('--Iterations',         help='Maximum number of iterations', default=160, type=int)

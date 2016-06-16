@@ -50,6 +50,8 @@ def ew(args):
         fout += ',teffrange'
     if args.autofixvt:
         fout += ',autofixvt'
+    if args.tmcalc:
+        fout += ',tmcalc'
     with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
@@ -155,6 +157,7 @@ def main():
     ew_parser = subparsers.add_parser('ew', parents=[parent_parser], help='EW method')
     ew_parser.add_argument('linelist',             help='Input linelist file')
     ew_parser.add_argument('--spectralType',       help='Input spectral type (optional)', default=False)
+    ew_parser.add_argument('--tmcalc',             help='Better guess on initial conditions',     action='store_true')
     ew_parser.add_argument('--Fixteff',            help='Fix temperature',     action='store_true')
     ew_parser.add_argument('--Fixgravity',         help='Fix gravity',         action='store_true')
     ew_parser.add_argument('--FixFeH',             help='Fix metallicity',     action='store_true')

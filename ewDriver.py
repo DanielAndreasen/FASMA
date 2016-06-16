@@ -51,6 +51,28 @@ def _getMic(teff, logg, feh):
         return round(mic, 2)
 
 
+def _tmcalc(linelist):
+    """Initial guess estimate
+    """
+    import sys
+    sys.path.append('TMCALC/tmcalc_cython')
+    from tmcalc_module import get_temperature_py as get_teff
+    from tmcalc_module import get_feh_py as get_feh
+
+    data = np.loadtxt('linelist/%s' % linelist, skiprows=1, usecols=(0, 4))
+    X = np.zeros((data.shape[0], 9))
+    X[:, 0] = data[:, 0]
+    X[:, 4] = data[:, 1]
+    np.savetxt('tmp.ares', X, '%.2f')
+
+    teff = get_teff('TMCALC/tmcalc_cython/gteixeira_teff_cal.dat', 'tmp.ares')
+    feh = get_feh('TMCALC/tmcalc_cython/gteixeira_feh_cal.dat', 'tmp.ares', teff[0], teff[1], teff[2], teff[3])[0]
+    teff = teff[0]
+    vt = _getMic(teff, 4.44, feh)
+    os.remove('tmp.ares')
+    return [teff, 4.44, feh, vt]
+
+
 def _renaming(linelist, converged):
     """Save the output in a file related to the linelist"""
     if converged:
@@ -76,7 +98,8 @@ def _options(options=None):
                 'MOOGv': 2014,
                 'outlier': False,
                 'teffrange': False,
-                'autofixvt': False
+                'autofixvt': False,
+                'tmcalc': False
                 }
     if not options:
         return defaults
@@ -138,12 +161,13 @@ def _setup(line):
         options = _options()
     elif len(line) == 2:
         options = _options(line[1])
+        initial = [5777, 4.44, 0.00, 1.00]
         if options['spt']:
             Teff, logg = _getSpt(options['spt'])
             mic = _getMic(Teff, logg, 0.00)
             initial = (Teff, logg, 0.00, mic)
-        else:
-            initial = [5777, 4.44, 0.00, 1.00]
+        if options['tmcalc']:
+            initial = _tmcalc(line[0])
     elif len(line) == 6:
         initial = map(float, line[1:-1])
         initial[0] = int(initial[0])
