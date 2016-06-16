@@ -8,7 +8,7 @@ import os
 from shutil import copyfile
 from glob import glob
 import numpy as np
-
+import collections
 
 def _run_ares():
     """Run ARES"""
@@ -18,66 +18,33 @@ def _run_ares():
             os.remove(tmp)
 
 
-def make_linelist(line_file, ares, cut):
-    """This function creates a MOOG readable file from the ARES output using the
-    line list and atomic data of make_linelist.dat file"""
+def in1d_tol(a, b, tol=0.001):
+    d=np.abs(a-b[:,np.newaxis])
+    return np.any(d<=tol, axis=0)
 
-    # Read the line list and check for multiple identical lines
-    linelist = np.loadtxt(line_file, skiprows=2, usecols=range(4), comments='#')
-    #assert (len(np.unique(linelist[:, 0])) == len(linelist[:, 0])), 'Check for multiple lines the linelist: %s' % line_file
 
-    # Read the lines and ews in the ares data and check for identical lines
-    data = np.loadtxt(ares, usecols=(0, 4))
-    _, idx = np.unique(data[:, 0], return_index=True)
-    data = data[idx]
-    idx = np.argsort(data[:, 0])
-    data = data[idx]
+def make_linelist_new(line_file, ares, cut):
+    import pandas as pd
 
-    # Cut high EW lines away
-    idx = (data[:, 1] < float(cut))
-    N = len(data[~idx, 0])
-    if N:
-        print('\t%s line(s) with EW higher than %s were deleted' % (N, cut))
-    data = data[idx]
-    # Wavelength and EW taken from the ares file.
-    # Test whether each element of a 1D array is also present in a second array
-    idx = np.in1d(np.round(data[:, 0],2), np.round(linelist[:, 0],2))
+    linelist = pd.read_csv(line_file,  skiprows=2, names=['WL', 'num', 'EP', 'loggf', 'element', 'EWsun'], delimiter=r'\s+')
+    data = pd.read_csv(ares, usecols=(0,4), names=['wave', 'EW'],  delimiter=r'\s+')
+
+    idx = in1d_tol(data.wave.values, linelist.WL.values, 0.01)
     data = data[idx]
 
-    # Sort common elements from ares by wavelength
-    idx = np.argsort(data[:, 0])
-    data = data[idx]
+    dout = pd.merge(left=linelist, right=data, left_on='WL', right_on='wave', how='inner')
+    dout = dout.loc[:, ['WL', 'num', 'EP', 'loggf', 'EW']]
+    dout = dout[dout.EW < float(cut)]
+    dout.drop_duplicates('WL', keep='first', inplace=True)
 
-    # Wavelength and atomic data taken from the 'linelist' file.
-    # Test whether each element of a 1D array is also present in a second array
-    linelist_index = np.in1d(np.round(linelist[:, 0],2), np.round(data[:, 0],2))
-    index_lines_not_found = np.in1d(np.round(linelist[:, 0],2), np.round(data[:, 0],2))
-    lines_not_found = linelist[~index_lines_not_found, 0]
-    if len(lines_not_found):
-        print('\tARES did not find %i lines out of %i ' % (len(lines_not_found), len(linelist[:,0])))
-
-    linelist = linelist[linelist_index]
-    print('\tLines in the new line list: %i' % len(linelist[:, 0]))
-
-    # Sort common elements from line list by wavelength
-    idx = np.argsort(linelist[:, 0])
-    linelist = linelist[idx]
-
-    ew_idx = []
-    for i, line in enumerate(linelist[:,0]):
-        ew_idx += np.where(np.round(data[:,0],2)==np.round(line,2))
-
-    # Merge line list data with the EW from ARES
-    # Sort the FeI and the FeII lines using the atomic number and then by wavelength
-    values = np.column_stack((linelist[:, 0], linelist[:, 1], linelist[:, 2], linelist[:, 3], data[ew_idx,1]))
-    sorted_values = np.array(sorted(values, key=lambda  e: (e[1], e[0])))
-
-    # Write results in MOOG readable format
-    assert np.array_equal(np.round(data[:,0],2), np.unique(np.round(linelist[:, 0],2))), 'There is something wrong with the common elements of ARES and the line list'
-    data = zip(sorted_values[:, 0], sorted_values[:, 1], sorted_values[:, 2], sorted_values[:, 3], sorted_values[:, 4])
+    N = len(linelist)
+    N2 = len(dout)
+    if N-N2:
+        print('\tARES did not find %i lines out of %i ' % (N-N2, N))
     fout = '%s.moog' % ares.rpartition('.')[0]
-    np.savetxt(fout, data, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % fout)
+    np.savetxt(fout, dout.values, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % fout)
     os.remove(ares)
+    return
 
 
 def _options(options=None):
