@@ -23,7 +23,7 @@ def in1d_tol(a, b, tol=0.001):
     return np.any(d<=tol, axis=0)
 
 
-def make_linelist_new(line_file, ares, cut):
+def make_linelist(line_file, ares, cut):
     import pandas as pd
 
     linelist = pd.read_csv(line_file,  skiprows=2, names=['WL', 'num', 'EP', 'loggf', 'element', 'EWsun'], delimiter=r'\s+')
