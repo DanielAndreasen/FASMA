@@ -4,9 +4,9 @@
 # My imports
 from __future__ import division
 import numpy as np
-import os
 from copy import copy
 import time
+
 
 class Minimize:
     '''Minimize for best parameters given a line list'''
@@ -37,14 +37,12 @@ class Minimize:
         if self.model.lower() == 'marcs':
             self.bounds = [2500, 8000, 0.0, 5.0, -5, 1.0, 0, 9.99]
 
-
     def _getMic(self):
         '''Get the microturbulence if this is fixed'''
         if self.x0[1] >= 3.95:
             self.x0[3] = 6.932*self.x0[0]/10000 - 0.348*self.x0[1] - 1.437
         else:
             self.x0[3] = 2.72 - 0.457*self.x0[1] + 0.072*self.x0[2]
-
 
     def print_format(self):
         '''Print the stellar atmospheric parameters in a nice format'''
@@ -59,7 +57,6 @@ class Minimize:
         else:
             print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(self.iteration, *rest)
 
-
     def check_bounds(self, i):
         '''
         Function which checks if parameters are within bounds.
@@ -69,7 +66,6 @@ class Minimize:
             self.x0[int((i-1)/2)] = self.bounds[i-1]
         elif self.x0[int((i-1)/2)] > self.bounds[i]:
             self.x0[int((i-1)/2)] = self.bounds[i]
-
 
     def check_convergence(self, fe_input):
         '''Check the convergence criteria'''
@@ -84,7 +80,6 @@ class Minimize:
         cond4 = round(fe_input, 2) == round(self.x0[2]+7.47, 2)
         return cond1 and cond2 and cond3 and cond4
 
-
     def _bump(self, alpha):
         '''Bump to the values in the list, x'''
         for i, X in enumerate(zip(alpha, self.x0)):
@@ -93,14 +88,12 @@ class Minimize:
             if ai:
                 self.x0[i] = np.random.normal(xi, abs(sig))
 
-
     def _format_x0(self):
         '''Format the values in x0, so first value is an integer'''
         self.x0[0] = int(self.x0[0])
         self.x0[1] = round(self.x0[1], 2)
         self.x0[2] = round(self.x0[2], 2)
         self.x0[3] = round(self.x0[3], 2)
-
 
     def minimize(self):
         step = (700, 0.50, 0.50)
@@ -210,15 +203,14 @@ class Minimize_synth:
       Final synthetic flux
     '''
 
+    from utils import fun_moog_synth as func
+    from mpfit import mpfit
+    from scipy.interpolate import InterpolatedUnivariateSpline
+    from synthetic import save_synth_spec
 
     def __init__(self, p0, x_obs, y_obs, r, fout, model='kurucz95',
                  fix_teff=None, fix_logg=None, fix_feh=None, fix_vt=None,
-                 fix_vmac=None, fix_vsini=None,  **kwargs):
-
-        from utils import fun_moog_synth as func
-        from mpfit import mpfit
-        from scipy.interpolate import InterpolatedUnivariateSpline
-        from synthetic import save_synth_spec
+                 fix_vmac=None, fix_vsini=None, **kwargs):
 
         self.p0 = p0
         self.x_obs = x_obs
@@ -254,14 +246,12 @@ class Minimize_synth:
         self.fa = {'x_obs': x_obs, 'r': r, 'fout': fout, 'model': model,
                    'y': y_obs, 'options': kwargs}
 
-
     def bounds(self, i, p):
         if p[int((i-1)/2)] < self.bounds[i-1]:
             p[int((i-1)/2)] = self.bounds[i-1]
         elif p[int((i-1)/2)] > self.bounds[i]:
             p[int((i-1)/2)] = self.bounds[i]
         return p
-
 
     def myfunct(self, p, y=None, **kwargs):
         '''Function that return the weighted deviates (to be minimized).
@@ -301,7 +291,6 @@ class Minimize_synth:
         status = 0
         return([status, (y-ymodel)/err])
 
-
     def minimize(self):
         start_time = time.time()
         m = mpfit(self.myfunct, xall=self.p0, parinfo=self.parinfo,
@@ -310,7 +299,7 @@ class Minimize_synth:
         print('status = %s' % m.status)
         print('Iterations: %s' % m.niter)
         print('Fitted pars:%s' % m.params)
-        print('Uncertainties: %s' % m.perror)  #TODO: We can use them we define a realistic error on the flux
+        print('Uncertainties: %s' % m.perror)  # TODO: We can use them we define a realistic error on the flux
         print('Value of the summed squared residuals: %s' % m.fnorm)
         print('Number of calls to the function: %s' % m.nfev)
         print('Calculations finished in %s sec' % int(end_time))
@@ -322,7 +311,7 @@ class Minimize_synth:
         chi2 = np.sum(chi)
         print('This is your chi2 value: '), chi2
 
-        return m.params, x_obs, flux_final
+        return m.params, x_s, flux_final
 
 
 def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
@@ -440,19 +429,19 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     # keyword dictionary mechanism. This is the way you can pass additional
     # data to your user-supplied function without using global variables.
     fa = {'x_obs': x_obs, 'r': r, 'fout': fout, 'model': model, 'y': y_obs,
-          'options' : kwargs}
+          'options': kwargs}
 
     # Minimization starts here
     # Measure time
-    start_time=time.time()
+    start_time = time.time()
     m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-5, xtol=1e-5, gtol=1e-10, functkw=fa)
     print('status = %s' % m.status)
     print('Iterations: %s' % m.niter)
     print('Fitted pars:%s' % m.params)
-    print('Uncertainties: %s' % m.perror)  #TODO: We can use them we define a realistic error on the flux
+    print('Uncertainties: %s' % m.perror)  #T ODO: We can use them we define a realistic error on the flux
     print('Value of the summed squared residuals: %s' % m.fnorm)
     print('Number of calls to the function: %s' % m.nfev)
-    end_time=time.time()-start_time
+    end_time = time.time()-start_time
     print('Calculations finished in %s sec' % int(end_time))
     x_s, y_s = func(m.params, atmtype=model, driver='synth', r=r, fout=fout, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
@@ -460,7 +449,7 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     chi = ((x_obs - flux_final)**2)
     chi2 = np.sum(chi)
     print('This is your chi2 value: '), chi2
-    #TODO create a header with the parameters in the output file
+    # TODO create a header with the parameters in the output file
     save_synth_spec(x_obs, flux_final, fname='final.spec')
     return m.params, x_obs, flux_final
 
@@ -491,8 +480,6 @@ def mcmc_synth(x0, observed, limits):
             return -np.inf
         return lp + lnlike(theta, x, y, yerr)
 
-
-
     x, y = np.loadtxt(observed, unpack=True, usecols=(0, 1))
     idx = (x >= limits[0]) & (x <= limits[1])
     x, y = x[idx], y[idx]
@@ -501,9 +488,7 @@ def mcmc_synth(x0, observed, limits):
     maxes = y[(y < 1.2)].argsort()[-50:][::-1]
     y /= np.median(y[maxes])
 
-
     x0 = np.array(x0)
-
 
     ndim, nwalkers = 2, 8
     Teff_step, logg_step = 50, 0.1
