@@ -31,7 +31,7 @@ def make_linelist(line_file, ares, cut):
     """
     import pandas as pd
 
-    linelist = pd.read_csv(line_file,  skiprows=2, names=[WL', 'num', 'EP', 'loggf', 'element', 'EWsun'],
+    linelist = pd.read_csv(line_file,  skiprows=2, names=['WL', 'num', 'EP', 'loggf', 'element', 'EWsun'],
     delimiter=r'\s+', converters={'WL':round_up0})
     linelist = linelist.sort_values(['WL'])
 
