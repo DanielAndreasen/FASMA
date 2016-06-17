@@ -18,29 +18,39 @@ def _run_ares():
             os.remove(tmp)
 
 
-def in1d_tol(a, b, tol=0.001):
-    d=np.abs(a-b[:,np.newaxis])
-    return np.any(d<=tol, axis=0)
+def round_up0(i):
+    """Round up to 2nd decimal because of stupid python"""
+    import decimal
+
+    rounded = decimal.Decimal(str(i)).quantize(decimal.Decimal('1.11'), rounding=decimal.ROUND_HALF_UP)
+    return np.float(rounded)
 
 
 def make_linelist(line_file, ares, cut):
+    """Merging linelist with ares file
+    """
     import pandas as pd
 
     linelist = pd.read_csv(line_file,  skiprows=2, names=['WL', 'num', 'EP', 'loggf', 'element', 'EWsun'], delimiter=r'\s+')
-    data = pd.read_csv(ares, usecols=(0,4), names=['wave', 'EW'],  delimiter=r'\s+')
+    linelist = linelist.sort_values(['WL'])
 
-    idx = in1d_tol(data.wave.values, linelist.WL.values, 0.01)
-    data = data[idx]
+    data = pd.read_csv(ares, usecols=(0,4), names=['wave', 'EW'],  delimiter=r'\s+')
+    data = data.sort_values(['wave'])
 
     dout = pd.merge(left=linelist, right=data, left_on='WL', right_on='wave', how='inner')
+    print(dout)
     dout = dout.loc[:, ['WL', 'num', 'EP', 'loggf', 'EW']]
     dout = dout[dout.EW < float(cut)]
     dout.drop_duplicates('WL', keep='first', inplace=True)
+    dout = dout.sort_values(['num', 'WL'])
 
-    N = len(linelist)
     N2 = len(dout)
+    N = len(linelist)
+    print('\tARES measured %i lines.' % len(data))
     if N-N2:
-        print('\tARES did not find %i lines out of %i ' % (N-N2, N))
+        print('\tARES did not find %i lines out of %i of the input line list' % (N-N2, N))
+    print('\tThe final line list has %i lines' % N2)
+
     fout = '%s.moog' % ares.rpartition('.')[0]
     np.savetxt(fout, dout.values, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % fout)
     os.remove(ares)
