@@ -31,9 +31,9 @@ def make_linelist(line_file, ares, cut):
     """Merging linelist with ares file
     """
 
-    linelist = pd.read_csv(line_file,  skiprows=2,
+    linelist = pd.read_csv(line_file, skiprows=2,
                            names=['WL', 'num', 'EP', 'loggf', 'element', 'EWsun'],
-                           delimiter=r'\s+', converters={'WL':round_up0})
+                           delimiter=r'\s+', converters={'WL': round_up0})
     linelist = linelist.sort_values(['WL'])
 
     data = pd.read_csv(ares, usecols=(0, 4), names=['wave', 'EW'], delimiter=r'\s+')
@@ -56,7 +56,7 @@ def make_linelist(line_file, ares, cut):
 
 def _options(options=None):
     '''Reads the options inside the config file'''
-    defaults = {'lambdai':'3900.0',
+    defaults = {'lambdai': '3900.0',
                 'lambdaf': '25000.0',
                 'smoothder': '4',
                 'space': '2.0',
@@ -233,9 +233,9 @@ def aresdriver(starLines='StarMe_ares.cfg'):
             if os.path.isfile('spectra/%s' % spectrum):
                 update_ares(line_list, spectrum, out, options, fullpath=False)
             elif os.path.isfile(spectrum):
-                 update_ares(line_list, spectrum, out, options, fullpath=True)
+                update_ares(line_list, spectrum, out, options, fullpath=True)
             else:
-                 continue
+                continue
 
             print('Using linelist: %s' % line_list)
             print('Using spectrum: %s' % spectrum)

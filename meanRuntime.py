@@ -4,11 +4,11 @@
 # My imports
 from __future__ import division
 import numpy as np
+from datetime import datetime as d
+import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('dark')
 sns.set_context('talk')
-import matplotlib.pyplot as plt
-from datetime import datetime as dt
 
 
 def getTimeStamp(line):
@@ -22,7 +22,7 @@ def getTimeStamp(line):
     s = int(line[0])
     ms = int(line[1])
 
-    return dt(*ymd, hour=h, minute=m, second=s, microsecond=ms)
+    return d(*ymd, hour=h, minute=m, second=s, microsecond=ms)
 
 
 if __name__ == '__main__':

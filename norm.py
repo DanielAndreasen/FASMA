@@ -2,22 +2,20 @@
 # -*- coding: utf8 -*-
 import numpy as np
 from astropy.io import fits as pyfits
-import argparse
-import pylab as pl
-from scipy import stats
-from scipy.interpolate import interp1d, InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline
 from observations import observations
 import logging
 import os
-from matplotlib import pyplot as pl
+import matplotlib.pyplot as plt
+
 
 def _options(options=None):
     """Reads the options inside the config file"""
     defaults = {'output': False,
                 'chunks': False,
-                'iterations':1,
-                'cosmic': False, 
-                'clip':4.0,
+                'iterations': 1,
+                'cosmic': False,
+                'clip': 4.0,
                 'plot': False
                 }
     if not options:
@@ -43,25 +41,25 @@ def remove_cosmic(filename, clip=4.0, num_chunks=50, plot=False):
         return np.median(np.absolute(data - np.median(data, axis)), axis)
 
     def clean(chunks, clip):
-        """Divide into chunks and remove outliers mad*clip from the median flux""" 
+        """Divide into chunks and remove outliers mad*clip from the median flux"""
         wave = chunks[0]
         flux = chunks[1]
         med = np.median(flux)
         sigma = mad(flux)
         n = len(flux)
-        bad_points = flux[np.where(flux> (med + (sigma*clip)))]
-        bad_wave = wave[np.where(flux> (med + (sigma*clip)))]
-        fluxout = np.zeros(n)   
+        bad_points = flux[np.where(flux > (med + (sigma*clip)))]
+        bad_wave = wave[np.where(flux > (med + (sigma*clip)))]
+        fluxout = np.zeros(n)
         for i in range(n):
             if flux[i] < (med + (sigma*clip)):
-	        fluxout[i] = flux[i]   
+                fluxout[i] = flux[i]
             if flux[i] > (med + (sigma*clip)):
-                fluxout[i-2:i+2] = med #this should be done better or iteratively
+                fluxout[i-2:i+2] = med  # this should be done better or iteratively
 
         return wave, fluxout, bad_wave, bad_points
 
     wave_obs, flux_obs, z = observations(filename)
-    #Ignore zero or negative flux points
+    # Ignore zero or negative flux points
     w0 = wave_obs[np.where(flux_obs <= 0)]
     f0 = flux_obs[np.where(flux_obs <= 0)]
     index = np.where(flux_obs <= 0)[0]
@@ -69,7 +67,7 @@ def remove_cosmic(filename, clip=4.0, num_chunks=50, plot=False):
     wave = wave_obs[np.where(flux_obs > 0)]
     flux = flux_obs[np.where(flux_obs > 0)]
 
-    #Divide spectrum in chunks
+    # Divide spectrum in chunks
     spectrum = np.array([wave, flux])
     chunks = np.array_split(spectrum, num_chunks, axis=1)
     clean_flux = np.zeros(len(chunks))
@@ -88,27 +86,28 @@ def remove_cosmic(filename, clip=4.0, num_chunks=50, plot=False):
         for yb in y_bad:
             new_ybad.append(float(yb))
 
-    for x in reversed(w0): 
-        new_wave.insert(index[0],x)
-    for x in reversed(f0): 
-        new_flux.insert(index[0],x)
+    for x in reversed(w0):
+        new_wave.insert(index[0], x)
+    for x in reversed(f0):
+        new_flux.insert(index[0], x)
 
-    flux  = np.array(new_flux, dtype=np.float64)
-    wave  = np.array(new_wave, dtype=np.float64)
+    flux = np.array(new_flux, dtype=np.float64)
+    wave = np.array(new_wave, dtype=np.float64)
     x_bad = np.array(new_xbad, dtype=np.float64)
     y_bad = np.array(new_ybad, dtype=np.float64)
 
-    if plot: 
-        pl.plot(wave, flux)
-        pl.plot(x_bad,y_bad, 'o')
-        pl.show()
+    if plot:
+        plt.plot(wave, flux)
+        plt.plot(x_bad, y_bad, 'o')
+        plt.show()
 
     return wave, flux
+
 
 def normalize(wave_obs, flux_obs, num_chunks, plot=False):
     """Normalise function. Make a polynomial fit from the maximum points of each segment"""
 
-    #Ignore zero or negative flux points
+    # Ignore zero or negative flux points
     w0 = wave_obs[np.where(flux_obs <= 0)]
     f0 = flux_obs[np.where(flux_obs <= 0)]
     index = np.where(flux_obs <= 0)[0]
@@ -119,26 +118,25 @@ def normalize(wave_obs, flux_obs, num_chunks, plot=False):
     spectrum = np.array([wave, flux])
     chunks = np.array_split(spectrum, num_chunks, axis=1)
 
-    clean_flux = np.zeros(len(chunks))
     max_flux = []
     max_wave = []
     for chunk in chunks:
         wave_c = chunk[0]
         flux_c = chunk[1]
-        index_max = np.sort(np.argsort(flux_c)[-8:]) # this can be done better
+        index_max = np.sort(np.argsort(flux_c)[-8:])  # this can be done better
         f_max = flux_c[index_max]
         w_max = wave_c[index_max]
         for x in f_max:
             max_flux.append(float(x))
         for y in w_max:
-             max_wave.append(float(y))
-        
+            max_wave.append(float(y))
+
     f = np.array(max_flux, dtype=np.float64)
     w = np.array(max_wave, dtype=np.float64)
 
     z = np.polyfit(max_wave, max_flux, 5)
     p = np.poly1d(z)
-    #Taking care of the limits
+    # Taking care of the limits
     f[0] = p(wave)[0]
     w[0] = wave[0]
     f[-1] = p(wave)[-1]
@@ -147,19 +145,19 @@ def normalize(wave_obs, flux_obs, num_chunks, plot=False):
     sl = InterpolatedUnivariateSpline(w, f, k=1)
     new_flux = flux/sl(wave)
 
-    #Add here the negative values
+    # Add here the negative values
     wave = np.insert(wave, index[0], w0)
     new_flux = np.insert(new_flux, index[0], f0)
 
     if plot:
-        pl.plot(wave_obs, flux_obs)
-        pl.plot(wave_obs, sl(wave_obs))
-        pl.plot(max_wave, max_flux, 'o')
-        pl.show()
-    
-        pl.plot(wave_obs, flux_obs/sl(wave_obs), label='spline')
-        pl.legend()
-        pl.show()
+        plt.plot(wave_obs, flux_obs)
+        plt.plot(wave_obs, sl(wave_obs))
+        plt.plot(max_wave, max_flux, 'o')
+        plt.show()
+
+        plt.plot(wave_obs, flux_obs/sl(wave_obs), label='spline')
+        plt.legend()
+        plt.show()
 
     return wave, new_flux
 
@@ -203,59 +201,59 @@ def normdriver(starLines='StarMe_norm.cfg', overwrite=None):
                 continue
 
             if len(line) == 1:
-                if os.path.isfile('spectra/%s' % line[0]): 
+                if os.path.isfile('spectra/%s' % line[0]):
                     spectrum = 'spectra/%s' % line[0]
                 elif os.path.isfile(line[0]):
                     spectrum = line[0]
-                else: 
+                else:
                     print('Error: %s not found.' % line[0])
 
                 options = _options()
-                #no need to clean for cosmics
+                # no need to clean for cosmics
                 x_obs, y_obs, header = observations(spectrum)
-                n = (x_obs[-1]-x_obs[0])/20. #divided in chuncks of 20A
+                n = (x_obs[-1]-x_obs[0])/20.  # divided in chuncks of 20A
                 n = int(n)
                 x_n, y_n = normalize(x_obs, y_obs, n)
 
             elif len(line) == 2:
-                if os.path.isfile('spectra/%s' % line[0]): 
+                if os.path.isfile('spectra/%s' % line[0]):
                     spectrum = 'spectra/%s' % line[0]
                 elif os.path.isfile(line[0]):
                     spectrum = line[0]
-                else: 
+                else:
                     print('Error: %s not found.' % line[0])
 
                 options = _options(line[-1])
 
-                if options['cosmic']: #clean for cosmic rays
+                if options['cosmic']:  # clean for cosmic rays
                     if options['plot']:
                         x, y = remove_cosmic(spectrum, clip=options['clip'], num_chunks=50, plot=True)
-                    else: 
+                    else:
                         x, y = remove_cosmic(spectrum, clip=options['clip'], num_chunks=50, plot=False)
-            
+
                     if options['chunks']:
                         x_n, y_n = normalize(x, y, options['chunks'], plot=True)
-                    else: 
+                    else:
                         x_obs, y_obs, header = observations(spectrum)
-                        n = (x_obs[-1]-x_obs[0])/20. #divided in chuncks of 20A
+                        n = (x_obs[-1]-x_obs[0])/20.  # divided in chuncks of 20A
                         n = int(n)
                         x_n, y_n = normalize(x, y, n, plot=True)
 
-                else: #no need to clean for cosmics
+                else:  # no need to clean for cosmics
                     x_obs, y_obs, header = observations(spectrum)
                     if options['plot']:
                         if options['chunks']:
                             print(options)
                             x_n, y_n = normalize(x_obs, y_obs, options['chunks'], plot=True)
-                        else: 
-                            n = (x[-1]-x[0])/20. #divided in chuncks of 20A
+                        else:
+                            n = (x[-1]-x[0])/20.  # divided in chuncks of 20A
                             n = int(n)
                             x_n, y_n = normalize(x_obs, y_obs, n, plot=True)
                     else:
                         if options['chunks']:
                             x_n, y_n = normalize(x_obs, y_obs, options['chunks'], plot=False)
-                        else: 
-                            n = (x[-1]-x[0])/20. #divided in chuncks of 20A
+                        else:
+                            n = (x[-1]-x[0])/20.  # divided in chuncks of 20A
                             n = int(n)
                             x_n, y_n = normalize(x_obs, y_obs, n, plot=False)
                 prihdr = pyfits.Header()
@@ -263,10 +261,8 @@ def normdriver(starLines='StarMe_norm.cfg', overwrite=None):
                 prihdr["CDELT1"] = x_n[1]-x_n[0]
                 prihdr["CRVAL1"] = x_n[0]
                 pyfits.writeto(spectrum+'_norm.fits', y_n, prihdr, clobber=True)
-                #np.savetxt(spectrum+'_norm.txt', zip(x_n, y_n), delimiter='\t')
                 print('The normalized spectrum is here: %s_norm.fits' % spectrum)
     return x_n, y_n
 
 if __name__ == '__main__':
     x_n, y_n = normdriver()
-

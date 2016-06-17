@@ -3,6 +3,10 @@
 from __future__ import division
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import argparse
+
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
@@ -13,9 +17,6 @@ try:
     colorSB = sns.color_palette()
 except ImportError:
     print 'Please install seaborn: pip install seaborn'
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import argparse
 
 
 def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
@@ -94,7 +95,7 @@ if __name__ == '__main__':
     args = _parser()
 
     df = pd.read_csv(args.input, delimiter=r'\s+', comment='#')
-    df = df[(df.convergence == True) | (df.convergence == False)]  # Remove blank lines and comments
+    df = df[(df.convergence) | (~df.convergence)]  # Remove blank lines and comments
     df.teff = pd.to_numeric(df.teff, errors='coarse')
     df.tefferr = pd.to_numeric(df.tefferr, errors='coarse')
     df.logg = pd.to_numeric(df.logg, errors='coarse')
@@ -124,8 +125,8 @@ if __name__ == '__main__':
         age = (10**age)/1e9
         df['age'] = pd.Series(age)
 
-    df1 = df[df.convergence == True]
-    df2 = df[df.convergence == False]
+    df1 = df[df.convergence]
+    df2 = df[~df.convergence]
 
     # Plot the results
     plt.figure()

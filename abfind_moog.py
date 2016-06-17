@@ -5,16 +5,15 @@
 from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
+from utils import Readmoog
+from interpolation import interpolator
+import statsmodels.formula.api as sm
 import os
 import argparse
 import seaborn as sns
 sns.set_style('dark')
 sns.set_context('notebook', font_scale=1.5)
 c = sns.color_palette()
-from utils import Readmoog
-from utils import _update_par
-from interpolation import interpolator
-import statsmodels.formula.api as sm
 
 
 def _update_batch(linelist=False):

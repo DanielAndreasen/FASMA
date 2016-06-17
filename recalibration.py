@@ -47,7 +47,7 @@ def recalSingleLine(line, params=None, version=2014, maxiter=40, driver='abfind'
             out = round(abund[0] - 7.47, 3)
         return out
 
-    ewdriver = True if driver=='ewfind' else False
+    ewdriver = True if driver == 'ewfind' else False
 
     fmt = ('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f')
     header = 'Wavelength     ele    EP     loggf        EW'
@@ -120,7 +120,6 @@ if __name__ == '__main__':
     fmt1 = ('%7.2f', '%7.1f', '%9.2f', '%10.3f', '%10s', '%9.1f')
     print 'Saving results to: %s' % fout1
     np.savetxt(fout1, X, fmt=fmt1, header=header1, comments='')
-
 
     X = lines[['WL', 'num', 'EP', 'newloggf', 'EW']]
     print 'Saving results to: %s' % fout2

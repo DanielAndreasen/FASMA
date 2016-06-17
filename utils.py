@@ -5,46 +5,45 @@ from __future__ import division
 import os
 from itertools import islice
 import numpy as np
-from glob import glob
 from synthetic import broadening, _read_moog
 
 kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
-                6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
-                8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
-                11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
-                14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
-                23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000,
-                32000, 33000, 34000, 35000, 36000, 37000, 38000, 39000),
-       'feh': (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
-               0.1, 0.2, 0.3, 0.5, 1.0),
-       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+                     6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
+                     8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
+                     11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
+                     14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
+                     23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000,
+                     32000, 33000, 34000, 35000, 36000, 37000, 38000, 39000),
+            'feh': (-3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
+                    0.1, 0.2, 0.3, 0.5, 1.0),
+            'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 apogee_kurucz = {'teff': (3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
-                6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
-                8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
-                11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
-                14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
-                23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000),
-       'feh': (-5.0, -4.5, -4.0, -3.5, -3.0, -2.75, -2.5, -2.25, -2.0, -1.75,
-               -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.5),
-       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+                          6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
+                          8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
+                          11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
+                          14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
+                          23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000),
+                 'feh': (-5.0, -4.5, -4.0, -3.5, -3.0, -2.75, -2.5, -2.25, -2.0, -1.75,
+                         -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.5),
+                 'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 marcs = {'teff': (2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400,
                   3500, 3600, 3700, 3800, 3900, 4000, 4250, 4500, 4750, 5000,
                   5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000),
-       'feh': (-5.0, -4.0, -3.0, -2.5, -2.0, -1.5, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0),
-       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+         'feh': (-5.0, -4.0, -3.0, -2.5, -2.0, -1.5, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0),
+         'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 kurucz08 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
-                6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
-                8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
-                11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
-                14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
-                23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000,
-                32000, 33000, 34000, 35000, 3500, 36000, 37000, 38000, 39000),
-       'feh': (-4.0, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
-               0.1, 0.2, 0.3, 0.5, 1.0),
-       'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
+                     6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
+                     8750, 9000, 9250, 9500, 9750, 10000, 10250, 10500, 10750,
+                     11000, 11250, 11500, 11750, 12000, 12250, 12500, 12750, 13000,
+                     14000, 15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000,
+                     23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000, 31000,
+                     32000, 33000, 34000, 35000, 3500, 36000, 37000, 38000, 39000),
+            'feh': (-4.0, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, -0.3, -0.2, -0.1, 0.0,
+                    0.1, 0.2, 0.3, 0.5, 1.0),
+            'logg': (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)}
 
 
 class GetModels:
@@ -63,7 +62,6 @@ class GetModels:
     atmtype : str
       The type of atmosphere models to use. Currently only Kurucz from '95.
     '''
-
 
     def __init__(self, teff, logg, feh, atmtype):
         self.teff = teff
@@ -87,7 +85,6 @@ class GetModels:
             raise ValueError('logg out of bounds: %s' % self.logg)
         if (self.feh < self.grid['feh'][0]) or (self.feh > self.grid['feh'][-1]):
             raise ValueError('[Fe/H] out of bounds: %s' % self.feh)
-
 
     def _model_path(self, teff_model, logg_model, feh_model):
         '''Create the path for atmosphere models given Teff, logg, and [Fe/H]
@@ -117,7 +114,6 @@ class GetModels:
         else:
             name += 'p%s.gz' % str(abs(feh_model)).replace('.', '')
         return name
-
 
     def _model_exists(self, teff_model, logg_model, feh_model, upper=True):
         '''Check if a model exists. If not lower/raise Teff
@@ -153,7 +149,6 @@ class GetModels:
             if os.path.isfile(fname):
                 return fname, teff_model
 
-
     def neighbour(self, arr, val, k=2):
         '''Return the K surrounding neighbours of an array, given a certain value.
 
@@ -178,7 +173,6 @@ class GetModels:
             return [ai for ai in arr[idx:idx+2]]
         elif k == 4:
             return [ai for ai in arr[idx-1:idx+3]]
-
 
     def getmodels(self):
         '''Get the atmosphere models surrounding the requested atmospheric
@@ -269,21 +263,20 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
     default_kwargs = {
         'driver': 'abfind',
         'atmosphere': 1,
-        'molecules':  1,
-        'trudamp':    1,  # Sure, why not? It's a black art anyway!
-        'lines':      1,
-        'terminal':   'x11',
-        'flux/int':   0,
-        'damping':    2,
-        'units':      0,
-        'iraf':       0,
-        'plot':       0,
+        'molecules': 1,
+        'trudamp': 1,  # Sure, why not? It's a black art anyway!
+        'lines': 1,
+        'terminal': 'x11',
+        'flux/int': 0,
+        'damping': 2,
+        'units': 0,
+        'iraf': 0,
+        'plot': 0,
         'obspectrum': 0,
-        'opacit':     0,
-        'freeform':   0,
-        'strong':     0,
-        'summary':    'summary.out'
-        }
+        'opacit': 0,
+        'freeform': 0,
+        'strong': 0,
+        'summary': 'summary.out'}
 
     # Fill the keyword arguments with the defaults if they don't exist already
     for key, value in default_kwargs.iteritems():
@@ -360,20 +353,19 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
 
     default_kwargs = {
         'atmosphere': 1,
-        'molecules':  2,
-        'lines':      1,
-        'terminal':   'x11',
-        'flux/int':   0,
-        'damping':    1,
+        'molecules': 2,
+        'lines': 1,
+        'terminal': 'x11',
+        'flux/int': 0,
+        'damping': 1,
         'obspectrum': 0,
-        'model_in':     'out.atm',
+        'model_in': 'out.atm',
         'smoothed_out': 'smooth.out',
-        'summary':      'summary.out'
-        }
+        'summary': 'summary.out'}
     # Fill the keyword arguments with the defaults if they don't exist already
 
     # Generate a MOOG-compatible run file
-    #out = '%s.spec' % line_list.rpartition('/')[2]
+    # out = '%s.spec' % line_list.rpartition('/')[2]
     out = 'smooth.out'
     moog_contents = "synth\n"\
                     "terminal          %s\n"\
@@ -388,8 +380,7 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
                     "plotpars          %s\n"\
                     "      %s      %s       0.5      1.05\n"\
                     "      0.0     0.0      0.0       0.0\n"\
-                    "      g       0.0      0.0       0.0       0.0       0.0\n" %  (default_kwargs['terminal'], default_kwargs['model_in'], default_kwargs['summary'], out, line_list, kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['step_wave'], kwargs['options']['step_flux'], kwargs['options']['plotpars'], start_wave, end_wave)
-
+                    "      g       0.0      0.0       0.0       0.0       0.0\n" % (default_kwargs['terminal'], default_kwargs['model_in'], default_kwargs['summary'], out, line_list, kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['step_wave'], kwargs['options']['step_flux'], kwargs['options']['plotpars'], start_wave, end_wave)
 
     # Fill the keyword arguments with the defaults if they don't exist already
     for key, value in default_kwargs.iteritems():
@@ -400,7 +391,7 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
                'units,iraf,opacit,freeform,observed_in,obspectrum,histogram,'\
                'synlimits'.split(',')
 
-    #plot and plotpar values are the same
+    # plot and plotpar values are the same
     if 'plotpars' in kwargs:
         if kwargs['plotpars'] != 0:
             settings.append('plot')
@@ -496,32 +487,32 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         m = Readmoog(params=x, fname=results, version=version)
         _, _, _, _, _, _, data, _ = m.fe_statistics()
         if version > 2013:
-            EPs, _ = slope((data[:,2], data[:,6]), weights=weights)
-            RWs, _ = slope((data[:,5], data[:,6]), weights=weights)
+            EPs, _ = slope((data[:, 2], data[:, 6]), weights=weights)
+            RWs, _ = slope((data[:, 5], data[:, 6]), weights=weights)
         else:
-            EPs, _ = slope((data[:,1], data[:,5]), weights=weights)
-            RWs, _ = slope((data[:,4], data[:,5]), weights=weights)
+            EPs, _ = slope((data[:, 1], data[:, 5]), weights=weights)
+            RWs, _ = slope((data[:, 4], data[:, 5]), weights=weights)
         m = Readmoog(params=x, fname=results, version=version)
         fe1, _, fe2, _, _, _, _, _ = m.fe_statistics()
         abundances = [fe1+7.47, fe2+7.47]
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
         return res, EPs, RWs, abundances
     elif driver == 'synth':
-        #Create synthetic spectra
+        # Create synthetic spectra
         spec = []
-        #Run moog for each linelist file
-        #N is number of intervals
+        # Run moog for each linelist file
+        # N is number of intervals
         N = len(r)
-        #Run moog for each linelist file
+        # Run moog for each linelist file
         for i in range(N):
             _update_par_synth('linelist/%s' % fout[i], r[i][0], r[i][1], options=options)
             _run_moog(driver='synth')
             x, y = _read_moog('smooth.out')
-            #add broadening
-            #This is done here so the x-axis is equidistant.
-            #Currently, the wavelength array as to be regularly spaced.
+            # add broadening
+            # This is done here so the x-axis is equidistant.
+            # Currently, the wavelength array as to be regularly spaced.
             spec.append(broadening(x, y, resolution=options['resolution'], vsini=options['vsini'], epsilon=options['limb'], vmac=options['vmac']))
-        #Gather all individual spectra to one
+        # Gather all individual spectra to one
         w = np.column_stack(spec)[0]
         f = np.column_stack(spec)[1]
         return w, f
@@ -540,7 +531,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
     '''
 
     from interpolation import interpolator
-    #TODO: I think we can manage to merge this with the other fun_moog function
+    # TODO: I think we can manage to merge this with the other fun_moog function
     # Create an atmosphere model from input parameters
     teff, logg, feh, _, vmac, vsini = x
     _ = interpolator(x[0:4], atmtype=atmtype)
@@ -552,11 +543,11 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
         _update_par_synth('linelist/%s' % fout[i], ri[0], ri[1], options=options)
         _run_moog(driver='synth')
         x_synth, y_synth = _read_moog('smooth.out')
-        #add broadening
-        #This is done here so the x-axis is equidistant.
-        #Currently, the wavelength array as to be regularly spaced.
+        # add broadening
+        # This is done here so the x-axis is equidistant.
+        # Currently, the wavelength array as to be regularly spaced.
 
-        #Check for enough points for vmac
+        # Check for enough points for vmac
         # Define central wavelength
         lambda0 = (x_synth[0] + x_synth[-1]) / 2.0
         vmacro = vmac/(299792458.*1e-3)*lambda0
@@ -571,7 +562,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
         # The kernel might be of too low resolution, or the the wavelength range
         # might be too narrow. In both cases, raise an appropriate error
         if n_kernel > n_wave:
-            #Add extra points on both sides
+            # Add extra points on both sides
             ex_points = n_kernel-n_wave
             print("Spectrum range too narrow for macroturbulent broadening. Adding %s points." % ex_points)
             if ex_points % 2 == 0:
@@ -591,7 +582,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
 
         spec.append(broadening(x_synth, y_synth, vsini, vmac, resolution=options['resolution'], epsilon=options['limb']))
 
-    #Gather all individual spectra to one
+    # Gather all individual spectra to one
     w = np.column_stack(spec)[0]
     f = np.column_stack(spec)[1]
     return w, f
@@ -626,7 +617,6 @@ class Readmoog:
         else:
             self.parameters()
 
-
     def parameters(self):
         '''Get the atmospheric parameters
 
@@ -645,7 +635,6 @@ class Readmoog:
         self.feh = float(line[-1].split('=')[-1])
         self.params = self.teff, self.logg, self.feh, self.vt
         return self.params
-
 
     def fe_statistics(self):
         '''Get statistics on Fe lines
@@ -748,7 +737,6 @@ class Readmoog:
             raise ValueError('No FeII lines were measured.')
         return self.fe1-7.47, self.sigfe1, self.fe2-7.47, self.sigfe2, self.slopeEP, self.slopeRW, self.linesFe1, self.linesFe2
 
-
     def elements(self):
         '''Get the elements and abundances from the output file
 
@@ -766,7 +754,7 @@ class Readmoog:
             if line.startswith('average abundance'):
                 line = filter(None, line.split('abundance =')[1].split(' '))
                 abundances.append(float(line[0]))
-              # Get element
+            # Get element
             elif line.startswith('Abundance'):
                 line = filter(None, line.split(' '))
                 element.append(str(line[4])+str(line[5]))
@@ -846,11 +834,11 @@ def error(linelist, converged, params, atmtype, version=2014, weights='null'):
     # Read the correct output file (error_summary.out).
     _update_par(line_list='linelist/%s' % linelist, summary='error_summary.out')
     data = summary[6]
-    _, weights = slope((data[:,1+idx], data[:,5+idx]), weights=weights)
+    _, weights = slope((data[:, 1+idx], data[:, 5+idx]), weights=weights)
 
     # Prepare the different things we need
     teff, logg, feh, vt = m.parameters()
-    Fe1, Fe2 = summary[-2], summary[-1]
+    Fe1 = summary[-2]
     sigmafe1 = summary[1]
     sigmafe2 = summary[3]
 

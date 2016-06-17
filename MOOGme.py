@@ -61,6 +61,7 @@ def synth(args):
     """Driver for the synthesis method"""
     print(args)
     raise NotImplementedError('Patience you must have my young Padawan')
+    synthdriver()
 
 
 def abund(args):
@@ -102,7 +103,7 @@ def ares(args):
         rejt = args.rejt
     rejt = 0.999 if rejt > 0.999 else rejt
     plot = 1 if args.plots else 0
-    rvmask = False if args.RVmask==0 else args.RVmask
+    rvmask = False if args.RVmask == 0 else args.RVmask
     out = args.spectrum + '.ares' if not args.output else args.output
 
     # Make the StarMe_ares.cfg file from Gooey
@@ -154,7 +155,6 @@ def main():
     parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
     parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2014', choices=['2013', '2014'], type=str, metavar='MOOG version')
     parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'apogee_kurucz', 'kurucz08', 'marcs', 'PHOENIX'])
-
 
     # For the EW method
     ew_parser = subparsers.add_parser('ew', parents=[parent_parser], help='EW method')

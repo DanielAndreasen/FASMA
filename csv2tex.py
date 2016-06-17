@@ -3,7 +3,6 @@
 
 # My imports
 from __future__ import division
-import numpy as np
 import pandas as pd
 import argparse
 
@@ -27,14 +26,11 @@ def paramError(s1, s2):
     return sout
 
 
-
-
 def _parser():
     parser = argparse.ArgumentParser(description='Convert the result file to a TeX table')
     parser.add_argument('-i', help='Input file', default='results.csv')
     parser.add_argument('-o', help='Output TeX table', default=None)
     return parser.parse_args()
-
 
 
 if __name__ == '__main__':
@@ -59,6 +55,4 @@ if __name__ == '__main__':
     junk = ['tefferr', 'loggerr', 'feherr', 'vterr', 'dloggastero', 'dloggLC', 'convergence']
     df.drop(junk, inplace=True, axis=1)
 
-
-    # print df.to_latex(index=False, escape=False)
     df.to_latex(buf=output, index=False, escape=False)

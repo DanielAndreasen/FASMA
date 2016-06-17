@@ -85,7 +85,7 @@ def _options(options=None):
     """Reads the options inside the config file"""
     defaults = {'spt': False,
                 'weights': 'null',
-                'model':'kurucz95',
+                'model': 'kurucz95',
                 'fix_teff': False,
                 'fix_logg': False,
                 'fix_feh': False,
@@ -248,7 +248,7 @@ def _outlierRunner(type, linelist, parameters, options):
         return newLineList, newName, parameters
     _update_par(line_list='linelist/'+linelist)
     os.remove(tmpll)
-    return newLineList, linelist, parameters
+    return linelist, parameters
 
 
 def hasOutlier(MOOGv=2014):
@@ -290,7 +290,7 @@ def removeOutlier(fname, wavelength):
     with open(fname, 'r') as lines:
         fout = ''
         for line in lines:
-            if line.replace(' ','').startswith(wavelength):
+            if line.replace(' ', '').startswith(wavelength):
                 continue
             fout += line
     with open(fname, 'w') as f:
@@ -367,7 +367,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
 
             # Setting the models to use
             if options['model'] not in ['kurucz95', 'apogee_kurucz', 'marcs']:
-                logger.error('Your request for type: %s is not available' % model)
+                logger.error('Your request for type: %s is not available' % options['model'])
                 continue
 
             # Get the initial grid models
@@ -392,10 +392,8 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                 continue
 
             if options['outlier']:
-                newLineList, newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
+                newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
                 line[0] = newName
-            else:
-                newLineList = False
 
             if options['teffrange']:
                 d = np.loadtxt('rawLinelist/coolNormalDiff.lines')
@@ -418,10 +416,8 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                         print('Skipping to next linelist..\n')
                         logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
                     if options['outlier']:
-                        newLineList, newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
+                        newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
                         line[0] = newName
-                    else:
-                        newLineList = False
 
             if options['autofixvt'] and not converged:
                 logger.info('vt is auto fixed')
@@ -453,9 +449,9 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
             """Correct logg according to Mortier et al. 2014 using light curve and asteroseismic data
             Valid for 5000 < teff < 6500"""
             loggLC = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
-            error_loggLC = round(np.sqrt((4.57e-4*parameters[1])**2 + (parameters[3])**2),2)
+            error_loggLC = round(np.sqrt((4.57e-4*parameters[1])**2 + (parameters[3])**2), 2)
             loggastero = round(parameters[2] - 3.89E-4*parameters[0] + 2.10, 2)
-            error_loggastero = round(np.sqrt((3.89e-4*parameters[1])**2 + (parameters[3])**2),2)
+            error_loggastero = round(np.sqrt((3.89e-4*parameters[1])**2 + (parameters[3])**2), 2)
             parameters.append(loggastero)
             parameters.append(error_loggastero)
             parameters.append(loggLC)

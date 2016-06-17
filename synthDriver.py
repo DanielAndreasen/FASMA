@@ -5,14 +5,10 @@
 from __future__ import division, print_function
 import logging
 import os
-from shutil import copyfile
 import yaml
-import numpy as np
-from utils import _update_par_synth
 from utils import fun_moog_synth as func
 from observations import read_obs_intervals, plot
-from synthetic import save_synth_spec,read_linelist
-import seaborn
+from synthetic import save_synth_spec, read_linelist
 from minimization import minimize_synth
 
 
@@ -73,11 +69,11 @@ def _options(options=None):
                 'fix_vt': False,
                 'fix_vmac': False,
                 'fix_vsini': False,
-                'plot': False,  #This is irrelevant with the batch.par value
+                'plot': False,  # This is irrelevant with the batch.par value
                 'step_wave': 0.01,
                 'step_flux': 5.0,
-                'minimize' : False,
-                'observations' : False,
+                'minimize': False,
+                'observations': False,
                 'resolution': None,
                 'limb': 0.6,
                 'lorentz': 0.0
@@ -151,7 +147,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
             line = line.strip()
             line = line.split(' ')
 
-            #Check if configuration parameters are correct
+            # Check if configuration parameters are correct
             if len(line) not in [1, 2, 7, 8]:
                 logger.error('Could not process this information: %s' % line)
                 continue
@@ -160,12 +156,12 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
             if not os.path.isfile('linelist/%s' % line[0]):
                 logger.error('Error: linelist/%s not found.' % line[0])
                 raise IOError('linelist file does not exist in the linelist folder!')
-            #Create synthetic spectrum with solar values and the default options
+            # Create synthetic spectrum with solar values and the default options
             if len(line) == 1:
                 initial = [5777, 4.44, 0.00, 1.00, 3.21, 1.90]
                 options = _options()
                 x_obs, y_obs = (None, None)
-                #Create initial synthetic model
+                # Create initial synthetic model
                 r, fout = read_linelist(line[0])
                 logger.info('Getting initial model grid')
                 x_initial, y_initial = func(initial, atmtype=options['model'], driver='synth', version=options['MOOGv'], r=r, fout=fout, **options)
@@ -174,7 +170,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 save_synth_spec(x_initial, y_initial, fname='initial.spec')
                 logger.info('Save initial synthetic spectrum')
 
-            #Create synthetic spectrum with solar values and the options defined by the user
+            # Create synthetic spectrum with solar values and the options defined by the user
             elif len(line) == 2:
                 options = _options(line[1])
                 if options['spt']:
@@ -186,7 +182,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 else:
                     initial = [5777, 4.44, 0.00, 1.00, 3.21, 1.90]
 
-                #Create initial synthetic model
+                # Create initial synthetic model
                 r, fout = read_linelist(line[0])
                 logger.info('Getting initial model grid')
                 x_initial, y_initial = func(initial, atmtype=options['model'], driver='synth', version=options['MOOGv'], r=r, fout=fout, **options)
@@ -203,7 +199,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
 
                     print('This is your observed spectrum: %s' % options['observations'])
                     x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], r)
-                    #If observations exists, then why not, find best fit?
+                    # If observations exists, then why not, find best fit?
                     if options['minimize']:
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
@@ -214,21 +210,21 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     x_obs, y_obs = (None, None)
                     x_final, y_final = (None, None)
 
-                if options['plot']: #if there in no observed only the synthetic will be plotted
+                if options['plot']:  # if there in no observed only the synthetic will be plotted
                     plot(x_obs, y_obs, x_initial, y_initial)
                     if options['minimize']:
-                        #Plot also final spectra
+                        # Plot also final spectra
                         plot(x_obs, y_obs, x_final, y_final)
 
-            #Create spectra with parameters defined by the user but the rest are set to default
+            # Create spectra with parameters defined by the user but the rest are set to default
             elif len(line) == 7:
                 logger.info('Initial parameters given by the user.')
                 initial = map(float, line[1::])
                 initial[0] = int(initial[0])
                 options = _options()
-                x_obs, y_obs = (None, None) #No observed spectrum, no plots
+                x_obs, y_obs = (None, None)  # No observed spectrum, no plots
 
-                #Create initial synthetic model
+                # Create initial synthetic model
                 r, fout = read_linelist(line[0])
                 logger.info('Getting initial model grid')
                 x_initial, y_initial = func(initial, atmtype=options['model'], driver='synth', version=options['MOOGv'], r=r, fout=fout, **options)
@@ -237,7 +233,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
 
-            #Create synthetic spectra with values set by the user and options altered.
+            # Create synthetic spectra with values set by the user and options altered.
             elif len(line) == 8:
                 logger.info('Initial parameters given by user.')
                 initial = map(float, line[1:-1])
@@ -245,7 +241,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 options = _options(line[-1])
 
-                #Create initial synthetic model
+                # Create initial synthetic model
                 r, fout = read_linelist(line[0])
                 logger.info('Getting initial model grid')
                 x_initial, y_initial = func(initial, atmtype=options['model'], driver='synth', version=options['MOOGv'], r=r, fout=fout, **options)
@@ -262,7 +258,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
 
                     print('This is your observed spectrum: %s' % options['observations'])
                     x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], r)
-                    #If observations exists, then why not, find best fit?
+                    # If observations exists, then why not, find best fit?
                     if options['minimize']:
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
@@ -273,10 +269,10 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     x_obs, y_obs = (None, None)
                     x_final, y_final = (None, None)
 
-                if options['plot']: #if there in no observed only the synthetic will be plotted
+                if options['plot']:  # if there in no observed only the synthetic will be plotted
                     plot(x_obs, y_obs, x_initial, y_initial)
                     if options['minimize']:
-                        #Plot also final spectra
+                        # Plot also final spectra
                         plot(x_obs, y_obs, x_final, y_final)
 
             else:
@@ -284,7 +280,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 continue
 
             if options['model'] != 'kurucz95' and options['model'] != 'apogee_kurucz' and options['model'] != 'marcs':
-                logger.error('Your request for type: %s is not available' % model)
+                logger.error('Your request for type: %s is not available' % options['model'])
                 continue
 
             # Options not in use will be removed

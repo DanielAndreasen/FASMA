@@ -21,7 +21,6 @@ def save(dic, overwrite):
     vt = dic.pop('microturbulence')
     elements = dic.keys()
 
-
     def _get_header(elements):
         """Get the header and append new elements to it"""
         with open('abundances.csv', 'r') as f:
@@ -31,7 +30,6 @@ def save(dic, overwrite):
             if element not in header:
                 header.append(element)
         return ','.join(header)
-
 
     if not os.path.isfile('abundances.csv'):
         # The file does not exists, so create it and return from here
@@ -62,7 +60,6 @@ def save(dic, overwrite):
             with open('abundances.csv', 'w') as fout:
                 fout.writelines(header + '\n')
 
-
     df = pd.read_csv('abundances.csv', na_values='...')
     rows = df.shape[0]
     for element in header[5:]:
@@ -84,7 +81,7 @@ def save(dic, overwrite):
 
 def _options(options=None):
     '''Reads the options inside the config file'''
-    defaults = {'model':'kurucz95',
+    defaults = {'model': 'kurucz95',
                 'MOOGv': 2014
                 }
     if not options:
@@ -123,14 +120,14 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    #Check if there is a directory called linelist, if not create it and ask the user to put files there
+    # Check if there is a directory called linelist, if not create it and ask the user to put files there
     if not os.path.isdir('linelist'):
         logger.error('Error: The directory linelist does not exist!')
         os.mkdir('linelist')
         logger.info('linelist directory was created')
         raise IOError('linelist directory did not exist! Put the linelists inside that directory, please.')
 
-    #Create results directory
+    # Create results directory
     if not os.path.isdir('results'):
         os.mkdir('results')
         logger.info('results directory was created')
@@ -148,7 +145,6 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
             # Check if the linelist is inside the directory if not log it and pass to next linelist
             if not os.path.isfile('linelist/%s' % line[0]):
                 logger.error('Error: linelist/%s not found.' % line[0])
-                parameters = None
                 continue
             else:
                 _update_par(line_list='linelist/%s' % line[0])
@@ -175,7 +171,7 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
 
             # Setting the models to use
             if options['model'] not in ['kurucz95', 'apogee_kurucz']:
-                logger.error('Your request for type: %s is not available' % model)
+                logger.error('Your request for type: %s is not available' % options['model'])
                 continue
 
             # Get the initial grid models
@@ -186,11 +182,11 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
 
             m = Readmoog()
             elements, abundances = m.elements()
-            abundance_dict={'linelist': line[0],
-                            'Temperature': initial[0],
-                            'Gravity': initial[1],
-                            '[Fe/H]': initial[2],
-                            'microturbulence': initial[3]}
+            abundance_dict = {'linelist': line[0],
+                              'Temperature': initial[0],
+                              'Gravity': initial[1],
+                              '[Fe/H]': initial[2],
+                              'microturbulence': initial[3]}
 
             for element, abundance in zip(elements, abundances):
                 abundance_dict[element] = abundance
@@ -210,12 +206,10 @@ if __name__ == '__main__':
     pd.set_option('display.width', 1000)
     df = pd.read_csv('abundances.csv')
 
-    teff_fmt = lambda x: '%d' % x
-    par_fmt = lambda x: '%.2f' % x
-    s = df.to_string(justify='right', formatters={'temperature': teff_fmt,
-                                                   'logg': par_fmt,
-                                                   '[Fe/H]': par_fmt,
-                                                   'vt': par_fmt})
+    s = df.to_string(justify='right', formatters={'temperature': lambda x: '%d' % x,
+                                                  'logg': lambda x: '%.2f' % x,
+                                                  '[Fe/H]': lambda x: '%.2f' % x,
+                                                  'vt': lambda x: '%.2f' % x})
     for i, line in enumerate(s.split('\n')):
         if i == 0:
             print line

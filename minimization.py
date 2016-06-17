@@ -438,7 +438,7 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     print('status = %s' % m.status)
     print('Iterations: %s' % m.niter)
     print('Fitted pars:%s' % m.params)
-    print('Uncertainties: %s' % m.perror)  #T ODO: We can use them we define a realistic error on the flux
+    print('Uncertainties: %s' % m.perror)  # TODO: We can use them we define a realistic error on the flux
     print('Value of the summed squared residuals: %s' % m.fnorm)
     print('Number of calls to the function: %s' % m.nfev)
     end_time = time.time()-start_time

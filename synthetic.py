@@ -81,7 +81,7 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         y_inst : convolved flux
         '''
 
-        #Deal with zero or None values seperately
+        # Deal with zero or None values seperately
         if (resolution is None) or (resolution == 0):
             y_inst = y
         else:
@@ -127,12 +127,12 @@ def broadening(x, y, vsini, vmac, resolution=None, epsilon=0.60):
         '''
         dlam[dlam == 0] = 1e-8
         if Zr != Zt:
-            return np.array([(2*Ar*idlam/(np.sqrt(np.pi)*Zr**2) * quad(lambda u: np.exp(-1/u**2),0,Zr/idlam)[0] + \
-                          2*At*idlam/(np.sqrt(np.pi)*Zt**2) * quad(lambda u: np.exp(-1/u**2),0,Zt/idlam)[0])
+            return np.array([(2*Ar*idlam/(np.sqrt(np.pi)*Zr**2) * quad(lambda u: np.exp(-1/u**2), 0, Zr/idlam)[0] +
+                              2*At*idlam/(np.sqrt(np.pi)*Zt**2) * quad(lambda u: np.exp(-1/u**2), 0, Zt/idlam)[0])
                              for idlam in dlam])
         else:
-            return np.array([(2*Ar*idlam/(np.sqrt(np.pi)*Zr**2) + 2*At*idlam/(np.sqrt(np.pi)*Zt**2))\
-                           * quad(lambda u: np.exp(-1/u**2),0,Zr/idlam)[0]\
+            return np.array([(2*Ar*idlam/(np.sqrt(np.pi)*Zr**2) + 2*At*idlam/(np.sqrt(np.pi)*Zt**2)) *
+                             quad(lambda u: np.exp(-1/u**2), 0, Zr/idlam)[0]
                              for idlam in dlam])
 
     def _broadening_macroturbulent(wave, flux, vmacro_rad, vmacro_tan=None,
@@ -245,7 +245,7 @@ def _read_raw_moog(fname='summary.out'):
     with open(fname, 'r') as lines:
         lines.readline()
         lines.readline()
-        w0, end_wave, dw, flux_step = map(float, lines.readline().split())
+        start_wave, end_wave, step, flux_step = map(float, lines.readline().split())
 
     flux = np.loadtxt(fname, skiprows=3)
     flux = 1.0 - flux
@@ -316,7 +316,6 @@ def read_linelist(fname):
 
         lines = f.readlines()
 
-    n_intervals = len(lines)
     ranges = []
     flines = []
     for line in lines:
@@ -326,14 +325,14 @@ def read_linelist(fname):
             raise IOError('The linelist is not in the linelist directory!')
         flines.append(line[0])
 
-        #Now read each line list interval
+        # Now read each line list interval
         # TODO: Isn't this the same as the function "read_wave" above
         with open('linelist/%s' % line[0], 'r') as f:
 
             lines = f.readlines()
 
         first_line = lines[0].split()
-        #If first line is a comment, then get the ranges from there.
+        # If first line is a comment, then get the ranges from there.
         if first_line[0].startswith('#'):
                 start_wave = first_line[1]
                 end_wave = first_line[2]
