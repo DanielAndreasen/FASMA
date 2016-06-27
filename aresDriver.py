@@ -68,7 +68,8 @@ def _options(options=None):
                 'snr': False,
                 'output': False,
                 'rvmask': '"0,0"',
-                'force': False
+                'force': False,
+                'extra': None
                 }
     if not options:
         defaults['rejt'] = '3;5764,5766,6047,6053,6068,6076'
@@ -101,7 +102,7 @@ def _options(options=None):
         return defaults
 
 
-def update_ares(line_list, spectrum, out, options, fullpath):
+def update_ares(line_list, spectrum, out, options):
     """Driver for ARES"""
 
     default_options = options
@@ -126,7 +127,7 @@ def update_ares(line_list, spectrum, out, options, fullpath):
     else:
         out = '%s.ares' % spectrum.rpartition('.')[0]
 
-    if fullpath:
+    if options['fullpath']:
         fout = 'specfits=\'%s\'\n' % spectrum
     else:
         fout = 'specfits=\'spectra/%s\'\n' % spectrum
@@ -171,6 +172,41 @@ def cleanLineList(linelist, badline):
             fout += line
     with open(linelist, 'w') as f:
         f.writelines(fout)
+
+
+def aresRunner(linelist, spectrum, out, options):
+    print('Using linelist: %s' % linelist)
+    print('Using spectrum: %s' % spectrum)
+    print('Your ARES output: linelist/%s' % out.replace('.ares', '.moog'))
+
+    update_ares(linelist, spectrum, out, options)
+    if options['force']:
+        index = 1
+        while True:
+            _run_ares()
+            print('linelist/'+out)
+            if os.path.isfile('linelist/'+out):
+                break
+            else:
+                atomicLine = findBadLine()
+                if atomicLine:
+                    print('\tRemoving line: %.2f' % atomicLine)
+                    copyfile('rawLinelist/'+linelist, 'rawLinelist/tmp%i' % index)
+                    tmplinelist = 'tmp%i' % index
+                    cleanLineList('rawLinelist/'+tmplinelist, atomicLine)
+                    update_ares(tmplinelist, spectrum, out, options)
+                    index += 1
+                else:
+                    break
+        for tmp in glob('rawLinelist/tmp*'):
+            os.remove(tmp)
+    else:
+        _run_ares()
+    try:
+        make_linelist('rawLinelist/'+linelist, 'linelist/'+out, cut=options['EWcut'])
+    except IOError:
+        raise IOError('ARES did not run properly. Take a look at "logARES.txt" for more help.')
+    print('\n')
 
 
 def aresdriver(starLines='StarMe_ares.cfg'):
@@ -231,48 +267,18 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 out = '%s.ares' % spectrum.rpartition('/')[2].rpartition('.')[0]
                 options['output'] = out
             if os.path.isfile('spectra/%s' % spectrum):
-                update_ares(line_list, spectrum, out, options, fullpath=False)
+                options['fullpath'] = False
             elif os.path.isfile(spectrum):
-                update_ares(line_list, spectrum, out, options, fullpath=True)
+                options['fullpath'] = True
             else:
                 continue
 
-            print('Using linelist: %s' % line_list)
-            print('Using spectrum: %s' % spectrum)
-            if options['output']:
-                out = options['output']
-                print('Your ARES output: linelist/%s' % out.replace('.ares', '.moog'))
-            else:
-                out = '%s.ares' % spectrum.rpartition('.')[0]
-                print('Your ARES output: linelist/%s' % out.replace('.ares', '.moog'))
-
-            if options['force']:
-                index = 1
-                while True:
-                    _run_ares()
-                    if os.path.isfile('linelist/'+out) or os.path.isfile('linelist/'+options['output']):
-                        break
-                    else:
-                        atomicLine = findBadLine()
-                        if atomicLine:
-                            print('\tRemoving line: %.2f' % atomicLine)
-                            copyfile('rawLinelist/'+line_list, 'rawLinelist/tmp%i' % index)
-                            line_list = 'tmp%i' % index
-                            cleanLineList('rawLinelist/'+line_list, atomicLine)
-                            update_ares(line_list, spectrum, out, options)
-                            index += 1
-                        else:
-                            break
-                for tmp in glob('rawLinelist/tmp*'):
-                    os.remove(tmp)
-            else:
-                _run_ares()
-            line_list = line[0]
-            try:
-                make_linelist('rawLinelist/'+line_list, 'linelist/'+out, cut=options['EWcut'])
-            except IOError:
-                raise IOError('ARES did not run properly. Take a look at "logARES.txt" for more help.')
-            print('\n')
+            aresRunner(line_list, spectrum, out, options)
+            if options['extra'] is not None:
+                line_list = options['extra']
+                out = out.replace('.ares', '_sec.ares')
+                options['output'] = out
+                aresRunner(line_list, spectrum, out, options)
 
     os.remove('logARES.txt')
 
