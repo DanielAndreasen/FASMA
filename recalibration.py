@@ -37,7 +37,6 @@ def recalSingleLine(line, params=None, version=2014, maxiter=40, driver='abfind'
         line[3] = loggf
         np.savetxt('temporary.moog', line[:, np.newaxis].T, fmt=fmt, header=header)
         runMoog()
-        # os.system('/home/daniel/Software/moogmay2016/MOOGSILENT > /dev/null')
         if ewdriver:
             d = np.loadtxt('summary.out', skiprows=5, usecols=(6,))
             out = d-line[4]
