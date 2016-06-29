@@ -12,8 +12,20 @@ from utils import Readmoog
 from interpolation import interpolator
 import os
 
+
 def solar_abundance(atom):
-    """Give atomic number and return solar abundance from Asplund et al. 2009"""
+    '''Give atomic number and return solar abundance from Asplund et al. 2009
+
+    Input
+    -----
+    atom : int
+      The atomic number
+
+    Output
+    ------
+    abundance : float
+      The solar abundance of the atom
+    '''
 
     solar = [12.00, 10.93, 1.05, 1.38, 2.70, 8.43, 7.83, 8.69, 4.56, 7.93,
              6.24, 7.60, 6.45, 7.51, 5.41, 7.12, 5.50, 6.40, 5.03, 6.34,
@@ -25,8 +37,8 @@ def solar_abundance(atom):
              0.10, 0.85, -0.12, 0.85, 0.26, 1.40, 1.38, 1.62, 0.92, 1.17,
              0.90, 1.75, 0.65, -5.00, -5.00, -5.00, -5.00, -5.00, -5.00,
              0.02, -5.00, -0.54, -5.00, -5.00, -5.00]
-
     return solar[atom-1]
+
 
 def recalSingleLine(line, params=None, version=2014, maxiter=40, driver='abfind'):
     '''Recalibrate a single line and return the new loggf
