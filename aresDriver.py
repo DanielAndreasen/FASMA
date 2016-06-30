@@ -27,6 +27,29 @@ def round_up0(i):
     return np.float(rounded)
 
 
+def get_snr(fname='logARES.txt'):
+    """Get the SNR from ARES
+
+    Input
+    -----
+    fname : str
+      Name of the logfile of ARES
+
+    Output
+    ------
+    snr : int
+      The SNR either provided by ARES or measured
+    """
+
+    with open(fname, 'r') as lines:
+        for line in lines:
+            if line.startswith('S/N'):
+                break
+    line = line.strip('\n').split(':')
+    snr = int(float(line[1]))
+    return snr
+
+
 def make_linelist(line_file, ares, cut):
     """Merging linelist with ares file
     """
@@ -47,10 +70,13 @@ def make_linelist(line_file, ares, cut):
 
     N2 = len(dout)
     N = len(linelist)
+    snr = get_snr()
     print('\tARES measured %i/%i lines.' % (N2, N))
+    print('\tSNR used: %i' % snr)
 
     fout = '%s.moog' % ares.rpartition('.')[0]
-    np.savetxt(fout, dout.values, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % fout)
+    hdr = '%s - SNR: %s' % (fout, snr)
+    np.savetxt(fout, dout.values, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % hdr)
     os.remove(ares)
 
 
