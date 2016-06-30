@@ -14,7 +14,7 @@ import pandas as pd
 
 def _run_ares():
     """Run ARES"""
-    os.system('ARES > /dev/null')
+    os.system('ARES/ARES > /dev/null')
     for tmp in ['tmp', 'tmp2', 'tmp3']:
         if os.path.isfile(tmp):
             os.remove(tmp)
