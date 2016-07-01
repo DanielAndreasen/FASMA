@@ -33,7 +33,7 @@ def ew(args):
             args.microturbulence = 1.00
         fout += '%s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence)
 
-    fout += 'model:%s,iterations:%s,weights:%s,RWcrit:%s,EPcrit:%s,ABdiffcrit:%s,MOOGv:%s' % (args.model, args.Iterations, args.weights, args.RWslope, args.EPslope, args.Fedifference, args.MOOGv)
+    fout += 'model:%s,iterations:%s,weights:%s,RWcrit:%s,EPcrit:%s,ABdiffcrit:%s,MOOGv:%s,sigma:%s' % (args.model, args.Iterations, args.weights, args.RWslope, args.EPslope, args.Fedifference, args.MOOGv, args.sigma)
     if args.outlier:
         fout += ',outlier:%s' % args.outlier
     if args.refine:
@@ -147,7 +147,7 @@ def main():
     # Common to all
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument('--temperature',     help='Input initial temperature',      default=5777,  type=int)
-    parent_parser.add_argument('--surfacegravity',  help='Input initial gravity',          default=4.44,  type=float,)
+    parent_parser.add_argument('--surfacegravity',  help='Input initial gravity',          default=4.44,  type=float)
     parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float)
     parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
     parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2014', choices=['2013', '2014'], type=str)
@@ -157,11 +157,11 @@ def main():
     ew_parser = subparsers.add_parser('ew', parents=[parent_parser], help='EW method')
     ew_parser.add_argument('linelist',             help='Input linelist file')
     ew_parser.add_argument('--spectralType',       help='Input spectral type (optional)', default=False)
-    ew_parser.add_argument('--tmcalc',             help='Better guess on initial conditions',     action='store_true')
     ew_parser.add_argument('--Fixteff',            help='Fix temperature',     action='store_true')
     ew_parser.add_argument('--Fixgravity',         help='Fix gravity',         action='store_true')
     ew_parser.add_argument('--FixFeH',             help='Fix metallicity',     action='store_true')
     ew_parser.add_argument('--Fixmicroturbulence', help='Fix microturbulence', action='store_true')
+    ew_parser.add_argument('--tmcalc',             help='Better guess on initial conditions',     action='store_true')
     ew_parser.add_argument('--refine',             help='Refine parameters',   action='store_true')
     ew_parser.add_argument('--Iterations',         help='Maximum number of iterations', default=160, type=int)
     ew_parser.add_argument('--outlier',            help='Remove outliers', default='False', choices=['False', '1Iter', '1Once', 'allIter', 'allOnce'])
@@ -172,6 +172,7 @@ def main():
     ew_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
     ew_parser.add_argument('--teffrange',          help='Give warning at high Teff, and remove lines at low Teff', action='store_true', default=False)
     ew_parser.add_argument('--autofixvt',          help='Auto fix vt if it goes too low or too high', action='store_true', default=False)
+    ew_parser.add_argument('--sigma',              help='Number of sigma, for sigma clipping outliers (default: 3)', type=float, default=3)
     ew_parser.set_defaults(driver=ew)
 
     # For the synhtesis method

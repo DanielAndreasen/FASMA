@@ -99,7 +99,8 @@ def _options(options=None):
                 'outlier': False,
                 'teffrange': False,
                 'autofixvt': False,
-                'tmcalc': False
+                'tmcalc': False,
+                'sigma': 3
                 }
     if not options:
         return defaults
@@ -187,7 +188,7 @@ def _outlierRunner(type, linelist, parameters, options):
     _update_par(line_list=tmpll)
     newLineList = False
     Noutlier = 0
-    outliers = hasOutlier()
+    outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
     if type == '1Iter':
         # Remove one outlier above 3 sigma iteratively
         while outliers:
@@ -199,7 +200,7 @@ def _outlierRunner(type, linelist, parameters, options):
             print('Restarting the minimization routine...\n')
             function = Minimize(parameters, fun_moog, **options)
             parameters, converged = function.minimize()
-            outliers = hasOutlier()
+            outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
 
     elif type == '1Once':
         # Remove one outlier above 3 sigma once
@@ -212,7 +213,7 @@ def _outlierRunner(type, linelist, parameters, options):
             print('Restarting the minimization routine...')
             function = Minimize(parameters, fun_moog, **options)
             parameters, converged = function.minimize()
-            outliers = hasOutlier()
+            outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
 
     elif type == 'allIter':
         # Remove all outliers above 3 sigma iteratively
@@ -225,7 +226,7 @@ def _outlierRunner(type, linelist, parameters, options):
             print('Restarting the minimization routine...')
             function = Minimize(parameters, fun_moog, **options)
             parameters, converged = function.minimize()
-            outliers = hasOutlier()
+            outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
 
     elif type == 'allOnce':
         # Remove all outliers above 3 sigma once
@@ -238,7 +239,7 @@ def _outlierRunner(type, linelist, parameters, options):
             print('Restarting the minimization routine...')
             function = Minimize(parameters, fun_moog, **options)
             parameters, converged = function.minimize()
-            outliers = hasOutlier()
+            outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
 
     if newLineList:
         newName = linelist.replace('.moog', '_outlier.moog')
@@ -251,7 +252,7 @@ def _outlierRunner(type, linelist, parameters, options):
     return linelist, parameters
 
 
-def hasOutlier(MOOGv=2014):
+def hasOutlier(MOOGv=2014, n=3):
     """Function that reads the summary.out file and return a dictionary
     with key being the deviation (above 3 sigma), and value the wavelength"""
     idx = 1 if MOOGv > 2013 else 0
@@ -260,7 +261,7 @@ def hasOutlier(MOOGv=2014):
     fe1 = d[-2]  # All the FeI lines
     fe2 = d[-1]  # All the FeII lines
     m1, m2 = np.mean(fe1[:, 5+idx]), np.mean(fe2[:, 5+idx])
-    s1, s2 = 3*np.std(fe1[:, 5+idx]), 3*np.std(fe2[:, 5+idx])
+    s1, s2 = n*np.std(fe1[:, 5+idx]), n*np.std(fe2[:, 5+idx])
 
     d = {}
     for i, fe1i in enumerate(fe1[:, 5+idx]):
