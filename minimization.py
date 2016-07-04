@@ -114,26 +114,17 @@ class Minimize:
         while self.iteration < self.maxiterations:
             # Step for Teff
             if (abs(self.slopeEP) >= self.EPcrit) and not self.fix_teff:
-                s = np.sign(self.slopeEP)
-                step_i = s * step[0]/abs(np.log(abs(self.slopeEP)+0.0005))**3
-                step_i = s*1 if abs(step_i) < 1 else step_i
-                self.x0[0] += step_i
+                self.x0[0] += 4000*self.slopeEP
                 self.check_bounds(1)
 
             # Step for VT
             if (abs(self.slopeRW) >= self.RWcrit) and not self.fix_vt:
-                s = np.sign(self.slopeRW)
-                step_i = s * step[2]/abs(np.log(abs(self.slopeRW)+0.0005))**3
-                step_i = s*0.01 if abs(step_i) < 0.01 else step_i
-                self.x0[3] += step_i
+                self.x0[3] += 2.5*self.slopeRW
                 self.check_bounds(7)
 
             # Step for logg
             if (abs(self.Abdiff) >= self.ABdiffcrit) and not self.fix_logg:
-                s = -np.sign(self.Abdiff)
-                step_i = s * abs(self.Abdiff)
-                step_i = s*0.01 if abs(step_i) < 0.01 else step_i
-                self.x0[1] += step_i
+                self.x0[1] -= self.Abdiff
                 self.check_bounds(3)
 
             # Step for [Fe/H]
