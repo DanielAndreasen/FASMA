@@ -246,7 +246,7 @@ def _outlierRunner(type, linelist, parameters, options):
         copyfile(tmpll, 'linelist/'+newName)
         os.remove(tmpll)
         _update_par(line_list='linelist/'+newName)
-        return newLineList, newName, parameters
+        return newName, parameters
     _update_par(line_list='linelist/'+linelist)
     os.remove(tmpll)
     return linelist, parameters
