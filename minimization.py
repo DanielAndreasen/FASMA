@@ -114,12 +114,12 @@ class Minimize:
         while self.iteration < self.maxiterations:
             # Step for Teff
             if (abs(self.slopeEP) >= self.EPcrit) and not self.fix_teff:
-                self.x0[0] += 4000*self.slopeEP
+                self.x0[0] += 2000*self.slopeEP
                 self.check_bounds(1)
 
             # Step for VT
             if (abs(self.slopeRW) >= self.RWcrit) and not self.fix_vt:
-                self.x0[3] += 2.5*self.slopeRW
+                self.x0[3] += 1.5*self.slopeRW
                 self.check_bounds(7)
 
             # Step for logg
