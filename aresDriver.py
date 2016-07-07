@@ -64,7 +64,7 @@ def make_linelist(line_file, ares, cut):
 
     dout = pd.merge(left=linelist, right=data, left_on='WL', right_on='wave', how='inner')
     dout = dout.loc[:, ['WL', 'num', 'EP', 'loggf', 'EW']]
-    dout = dout[dout.EW < float(cut)]
+    dout = dout[(dout.EW < float(cut)) & (dout.EW >= 5.0)]
     dout.drop_duplicates('WL', keep='first', inplace=True)
     dout = dout.sort_values(['num', 'WL'])
 
