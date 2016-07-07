@@ -420,7 +420,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
                         newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
                         line[0] = newName
 
-            if options['autofixvt'] and not converged:
+            if options['autofixvt'] and (not converged):
                 logger.info('vt is auto fixed')
                 _, _, RWs, _ = fun_moog(parameters, options['model'], weight=options['weights'], version=options['MOOGv'])
                 vt = parameters[-1]
