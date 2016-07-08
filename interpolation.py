@@ -120,4 +120,6 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
              '         8.1    822.0     22.1' % (vt*1e5, feh, 7.47+feh)
 
     _fmt = ('%15.8E', '%8.1f', '%.3E', '%.3E', '%.3E', '%.3E', '%.3E')
+    while model.shape[1] < len(_fmt):
+        model = np.column_stack((model, np.zeros_like(model[:, 0])))
     np.savetxt(fout, model, header=header, footer=footer, comments='', delimiter=' ', fmt=_fmt)
