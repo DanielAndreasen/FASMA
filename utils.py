@@ -139,15 +139,43 @@ class GetModels:
 
         fname = self._model_path(teff_model, logg_model, feh_model)
         if os.path.isfile(fname):
-            return fname, teff_model
+            return fname, teff_model, logg_model
 
+        # Change the Teff (up or down) to compensate for the gap
+        teff_model0 = teff_model
         idx = np.where(teff_model == self.grid['teff'])[0][0]
         while True:
             idx = idx+1 if upper else idx-1
-            teff_model = self.grid['teff'][idx]
+            try:
+                teff_model = self.grid['teff'][idx]
+            except IndexError:
+                teff_model = teff_model0
+                break
             fname = self._model_path(teff_model, logg_model, feh_model)
             if os.path.isfile(fname):
-                return fname, teff_model
+                return fname, teff_model, logg_model
+
+        # Change logg to compensate for missing values
+        idx = np.where(logg_model == self.grid['logg'])[0][0]
+        while True:
+            idx += 1
+            logg_model = self.grid['logg'][idx]
+            fname = self._model_path(teff_model, logg_model, feh_model)
+            if os.path.isfile(fname):
+                return fname, teff_model, logg_model
+
+    def _looping_models(self, teff_model, logg_model, feh_model):
+        models = []
+        for i, teff_m in enumerate(teff_model):
+            for j, logg_m in enumerate(logg_model):
+                for feh_m in feh_model:
+                    upper = True if self.teff < teff_m else False
+                    fname, Te, ge = self._model_exists(teff_m, logg_m, feh_m, upper)
+                    teff_model[i] = Te
+                    logg_model[j] = ge
+                    models.append(fname)
+        return models, teff_model, logg_model
+
 
     def neighbour(self, arr, val, k=2):
         '''Return the K surrounding neighbours of an array, given a certain value.
@@ -201,14 +229,21 @@ class GetModels:
         logg_model = self.neighbour(self.grid['logg'], self.logg, k=2)
         feh_model = self.neighbour(self.grid['feh'], self.feh, k=2)
 
-        models = []
-        for i, teff_m in enumerate(teff_model):
-            for logg_m in logg_model:
-                for feh_m in feh_model:
-                    upper = True if self.teff < teff_m else False
-                    fname, Te = self._model_exists(teff_m, logg_m, feh_m, upper)
-                    teff_model[i] = Te
-                    models.append(fname)
+        ratio = 1 - (logg_model[1]-self.logg)/(logg_model[1]-logg_model[0])
+
+        teff0 = tuple(teff_model)
+        logg0 = tuple(logg_model)
+        models, teff_model, logg_model = self._looping_models(teff_model, logg_model, feh_model)
+
+        if logg_model != logg0:
+            if len(np.unique(logg_model)) == 1:  # We have the same values, change one
+                idx = np.where(logg_model[1] == self.grid['logg'])[0][0]
+                logg_model[1] = self.grid['logg'][idx+1]
+            models = []
+            teff_model = list(teff0)
+            models, teff_model, logg_model = self._looping_models(teff_model, logg_model, feh_model)
+
+        self.logg = logg_model[1] - (1-ratio)*(logg_model[1]-logg_model[0])
         return {'models': models, 'teff': (self.teff, teff_model),
                 'logg': (self.logg, logg_model), 'feh': (self.feh, feh_model)}
 
@@ -479,7 +514,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
     from interpolation import interpolator
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
-    _ = interpolator(x, atmtype=atmtype)
+    _, x = interpolator(x, atmtype=atmtype)
 
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par, driver=driver)
@@ -496,7 +531,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         fe1, _, fe2, _, _, _, _, _ = m.fe_statistics()
         abundances = [fe1+7.47, fe2+7.47]
         res = EPs**2 + RWs**2 + np.diff(abundances)[0]**2
-        return res, EPs, RWs, abundances
+        return res, EPs, RWs, abundances, x
     elif driver == 'synth':
         # Create synthetic spectra
         spec = []
@@ -533,6 +568,8 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
     from interpolation import interpolator
     # TODO: I think we can manage to merge this with the other fun_moog function
     # Create an atmosphere model from input parameters
+    # TODO: interpolator also return the parameters, which might change if it
+    # is not possible to retrieve them
     teff, logg, feh, _, vmac, vsini = x
     _ = interpolator(x[0:4], atmtype=atmtype)
 

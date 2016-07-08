@@ -44,8 +44,12 @@ def interpolator(params, save=True, atmtype='kurucz95'):
       New interpolated atmosphere.
     '''
 
+    params = list(params)
     m = GetModels(params[0], params[1], params[2], atmtype=atmtype)
     mdict = m.getmodels()
+    params[0] = mdict['teff'][0]
+    params[1] = mdict['logg'][0]
+    params[2] = mdict['feh'][0]
     mnames = mdict['models']
     teff = mdict['teff']
     logg = mdict['logg']
@@ -82,7 +86,7 @@ def interpolator(params, save=True, atmtype='kurucz95'):
     newatm = np.hstack((newatm, vt_array[:, np.newaxis]))
     if save:
         save_model(newatm, params, type=atmtype)
-    return newatm
+    return newatm, params
 
 
 def save_model(model, params, type='kurucz95', fout='out.atm'):

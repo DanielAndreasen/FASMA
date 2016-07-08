@@ -96,10 +96,8 @@ class Minimize:
         self.x0[3] = round(self.x0[3], 2)
 
     def minimize(self):
-        step = (700, 0.50, 0.50)
-
         self._format_x0()
-        res, self.slopeEP, self.slopeRW, abundances = self.func(self.x0, self.model, version=self.MOOGv)
+        res, self.slopeEP, self.slopeRW, abundances, self.x0 = self.func(self.x0, self.model, version=self.MOOGv)
         self.Abdiff = np.diff(abundances)[0]
         self.x0 = list(self.x0)
 
@@ -150,7 +148,7 @@ class Minimize:
             parameters.append(copy(self.x0))
 
             self._format_x0()
-            res, self.slopeEP, self.slopeRW, abundances = self.func(self.x0, self.model, weights=self.weights, version=self.MOOGv)
+            res, self.slopeEP, self.slopeRW, abundances, self.x0 = self.func(self.x0, self.model, weights=self.weights, version=self.MOOGv)
             self.Abdiff = np.diff(abundances)[0]
             self.iteration += 1
             self.print_format()
