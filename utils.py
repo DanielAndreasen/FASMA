@@ -176,7 +176,6 @@ class GetModels:
                     models.append(fname)
         return models, teff_model, logg_model
 
-
     def neighbour(self, arr, val, k=2):
         '''Return the K surrounding neighbours of an array, given a certain value.
 
