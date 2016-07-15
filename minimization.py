@@ -72,7 +72,7 @@ class Minimize:
         self.slopeEP = 0.00 if self.fix_teff else self.slopeEP
         self.slopeRW = 0.00 if self.fix_vt else self.slopeRW
         self.Abdiff = 0.00 if self.fix_logg else self.Abdiff
-        self.x0[2] = fe_input+7.47 if self.fix_feh else self.x0[2]
+        self.x0[2] = fe_input+7.47 if not self.fix_feh else self.x0[2]
 
         cond1 = abs(self.slopeRW) <= self.RWcrit
         cond2 = abs(self.Abdiff) <= self.ABdiffcrit
