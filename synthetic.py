@@ -5,6 +5,7 @@ from __future__ import division
 import numpy as np
 import os
 from astropy.io import fits
+import pandas as pd
 
 
 def save_synth_spec(x, y, fname='initial.spec'):
@@ -276,105 +277,51 @@ def _read_moog(fname='smooth.out'):
     return wavelength, flux
 
 
-def read_wave(linelist):
-    '''Read the wavelenth intervals of the line list'''
-
-    with open(linelist, 'r') as lines:
-        for line in lines:
-            if line.startswith('#'):
-                continue
-            first_line = line.split()
-            break
-
-    if len(first_line) == 1:
-        start_wave = first_line[0].split('-')[0]
-        end_wave = first_line[0].split('-')[1]
-    else:
-        for line in lines:
-            pass  # Quick way to get to the last line
-        start_wave = first_line[0]
-        end_wave = line.split()[0]
-    # print(start_wave)
-    return start_wave, end_wave
-
-
-def read_linelist(fname):
-    '''Read the file that contains the line list then read the lines
+def read_linelist(fname, intname='intervals.lst'):
+    '''Read the line list return atomic data and ranges
 
     Input
     -----
     fname : str
-      File that contains the filenames of the linelist
+      File that contains the linelist
+    intname : str
+      File that contains the intervals
 
     Output
     ------
     ranges : wavelength ranges of the linelist
-    flines : filename of the linelist
+    atomic : atomic data
     '''
 
-    with open('linelist/%s' % fname, 'r') as f:
+    if not os.path.isfile(fname):
+        raise IOError('The linelist is not in the rawLinelist directory!')
 
-        lines = f.readlines()
+    if not os.path.isfile('rawLinelist/%s' % intname):
+        raise IOError('The interval list is not in the rawLinelist directory!')
 
-    ranges = []
-    flines = []
-    for line in lines:
-        line = line.split()
-        # Check if linelist files are inside the directory, if not break
-        if not os.path.isfile('linelist/%s' % line[0]):
-            raise IOError('The linelist is not in the linelist directory!')
-        flines.append(line[0])
+    lines = pd.read_csv(fname, skiprows=1, delimiter='\t', usecols=range(6),
+    names=['wl', 'elem', 'excit', 'loggf', 'vdwaals', 'Do'],
+    converters={'Do': lambda x : x.replace("nan"," "), 'vdwaals': lambda x : float(x)})
+    lines.sort_values(by='wl', inplace=True)
 
-        # Now read each line list interval
-        # TODO: Isn't this the same as the function "read_wave" above
-        with open('linelist/%s' % line[0], 'r') as f:
+    intervals = pd.read_csv(intname, comment='#', names=['start', 'end'], delimiter='\t')
+    ranges = intervals.values
+    atomic = []
+    N = []
+    for i, ri in enumerate(intervals.values):
+        a = lines[(lines.wl>ri[0]) & (lines.wl<ri[1])]
+        a = a.as_matrix()
+        atomic.append(a)
+        N.append(len(lines[(lines.wl>ri[0]) & (lines.wl<ri[1])]))
+    N = sum(N)
+    atomic = np.vstack(atomic)
+    print('Linelist contains %s lines in %s intervals' % (N, len(ranges)))
 
-            lines = f.readlines()
-
-        first_line = lines[0].split()
-        # If first line is a comment, then get the ranges from there.
-        if first_line[0].startswith('#'):
-                start_wave = first_line[1]
-                end_wave = first_line[2]
-                r = (float(start_wave), float(end_wave))
-                ranges.append(r)
-        else:
-            start_wave = first_line[0]
-            end_wave = lines[-1].split()[0]
-            r = (float(start_wave), float(end_wave))
-            ranges.append(r)
-    return ranges, flines
-
-
-def read_moog_intervals(fname, options):
-    '''Read all the synthetic spectra from all the intervals
-    and save it in a spec (fits) file.
-    Input:
-    -----
-    fname: Line list that includes the line list files
-
-    Output:
-    ------
-    wavelength : ndarray
-      The wavelenth vector
-    flux : ndarray
-      The flux vector
-    '''
-
-    ranges, fout = read_linelist(fname)
-    spec = []
-    for fouti in fout:
-        spec.append(_read_moog('results/%s.spec' % fouti))
-
-    w = np.column_stack(spec)[0]
-    f = np.column_stack(spec)[1]
-
-    # Add broadening
-    # TODO: Options not defined yet
-    wavelength, flux = broadening(w, f, resolution=options['resolution'],
-                                  vsini=options['vsini'],
-                                  epsilon=options['limb'], vmac=options['vmac'])
-    return wavelength, flux
+    # Create line list for MOOG
+    fmt = ["%8s", "%9s", "%10s", "%10s", "%6s", "%6s"]
+    header = 'Wavelength     ele       EP      loggf   vdwaals   Do'
+    np.savetxt('linelist.moog', atomic, fmt=fmt, header=header)
+    return ranges, atomic
 
 
 def interpol_synthetic(wave_obs, wave_synth, flux_synth):
