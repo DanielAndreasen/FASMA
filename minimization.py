@@ -303,7 +303,7 @@ class Minimize_synth:
         return m.params, x_s, flux_final
 
 
-def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
+def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
     '''Minimize a synthetic spectrum to an observed
 
      Input
@@ -314,10 +314,10 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
        Observed wavelength
      y_obs : ndarray
        Observed flux
-     r : ndarray
+     ranges : ndarray
        ranges of the intervals
-     fout : str
-       Input line list files
+     atomic_data : ndarray
+       Atomic data
 
      Output
      -----
@@ -369,8 +369,7 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
 
     parinfo = [teff_info, logg_info, feh_info, vt_info, vmac_info, vsini_info]
 
-    def myfunct(p, x_obs=None, r=None, fout=None, model=None,
-                y=None, **kwargs):
+    def myfunct(p, x_obs=None, ranges=None, model=None, y=None, **kwargs):
         '''Function that return the weighted deviates (to be minimized).
 
         Input
@@ -379,10 +378,10 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
           Parameters for the model atmosphere
         x_obs : ndarray
           Wavelength
-        r : ndarray
+        ranges : ndarray
           ranges of the intervals
-        fout : str
-          Line list file
+        atomic_data : ndarray
+          Atomic data
         model : str
           Model atmosphere type
         y : ndarray
@@ -404,7 +403,7 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
         p = bounds(7, p, model)
         p = bounds(9, p, model)
         p = bounds(11, p, model)
-        x_s, y_s = func(p, atmtype=model, driver='synth', r=r, fout=fout, **options)
+        x_s, y_s = func(p, atmtype=model, driver='synth', ranges=ranges, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_s = sl(x_obs)
         ymodel = flux_s
@@ -417,13 +416,12 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     # user-supplied function specified by myfunct via the standard Python
     # keyword dictionary mechanism. This is the way you can pass additional
     # data to your user-supplied function without using global variables.
-    fa = {'x_obs': x_obs, 'r': r, 'fout': fout, 'model': model, 'y': y_obs,
-          'options': kwargs}
+    fa = {'x_obs': x_obs, 'ranges': ranges, 'model': model, 'y': y_obs, 'options': kwargs}
 
     # Minimization starts here
     # Measure time
     start_time = time.time()
-    m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-5, xtol=1e-5, gtol=1e-10, functkw=fa)
+    m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-4, xtol=1e-4, gtol=1e-10, functkw=fa)
     print('status = %s' % m.status)
     print('Iterations: %s' % m.niter)
     print('Fitted pars:%s' % m.params)
@@ -432,7 +430,7 @@ def minimize_synth(p0, x_obs, y_obs, r, fout, **kwargs):
     print('Number of calls to the function: %s' % m.nfev)
     end_time = time.time()-start_time
     print('Calculations finished in %s sec' % int(end_time))
-    x_s, y_s = func(m.params, atmtype=model, driver='synth', r=r, fout=fout, **kwargs)
+    x_s, y_s = func(m.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)
     chi = ((x_obs - flux_final)**2)
