@@ -341,7 +341,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         moog.writelines(moog_contents)
 
 
-def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
+def _update_par_synth(start_wave, end_wave, **kwargs):
     '''Update the parameter file (batch.par) with new linelists, atmosphere
     models, or others.
 
@@ -381,19 +381,19 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
     And updated parameter file
     '''
 
-    # Path checks for input files
-    if not os.path.exists(line_list):
-        raise IOError('Line list file "%s" could not be found.' % (line_list))
-
     default_kwargs = {
         'atmosphere': 1,
-        'molecules': 2,
+        'molecules': 1,
         'lines': 1,
+        'trudamp': 1,
+        'strong': 0,
+        'units': 0,
+        'opacit': 0,
         'terminal': 'x11',
         'flux/int': 0,
-        'damping': 1,
         'obspectrum': 0,
         'model_in': 'out.atm',
+        'lines_in': 'linelist.moog',
         'smoothed_out': 'smooth.out',
         'summary': 'summary.out'}
     # Fill the keyword arguments with the defaults if they don't exist already
@@ -407,14 +407,19 @@ def _update_par_synth(line_list, start_wave, end_wave, **kwargs):
                     "summary_out       '%s'\n"\
                     "smoothed_out      '%s'\n"\
                     "standard_out      'result.out'\n"\
-                    "lines_in          '%s'\n"\
+                    "lines_in          'linelist.moog'\n"\
                     "plot              %s\n"\
                     "synlimits\n"\
                     "      %s      %s       %s      %s\n"\
                     "plotpars          %s\n"\
                     "      %s      %s       0.5      1.05\n"\
                     "      0.0     0.0      0.0       0.0\n"\
-                    "      g       0.0      0.0       0.0       0.0       0.0\n" % (default_kwargs['terminal'], default_kwargs['model_in'], default_kwargs['summary'], out, line_list, kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['step_wave'], kwargs['options']['step_flux'], kwargs['options']['plotpars'], start_wave, end_wave)
+                    "      g       0.0      0.0       0.0       0.0       0.0\n"\
+                    "damping        %s\n"    % (default_kwargs['terminal'],
+                    default_kwargs['model_in'], default_kwargs['summary'], out,
+                    kwargs['options']['plotpars'], start_wave, end_wave,
+                    kwargs['options']['step_wave'], kwargs['options']['step_flux'],
+                    kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['damping'])
 
     # Fill the keyword arguments with the defaults if they don't exist already
     for key, value in default_kwargs.iteritems():
@@ -552,8 +557,8 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         return w, f
 
 
-def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
-                   driver='synth', version=2014, r=None, fout=None, **options):
+def fun_moog_synth(x, atmtype, par='batch.par', ranges=None, results='summary.out',
+                   driver='synth', version=2014, **options):
     '''Run MOOG and create synthetic spectrum for the synth driver.
 
     :x: A tuple/list with values (teff, logg, [Fe/H], vt, vmic, vmac)
@@ -565,23 +570,21 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
     '''
 
     from interpolation import interpolator
-    # TODO: I think we can manage to merge this with the other fun_moog function
     # Create an atmosphere model from input parameters
-    # TODO: interpolator also return the parameters, which might change if it
-    # is not possible to retrieve them
     teff, logg, feh, _, vmac, vsini = x
     _ = interpolator(x[0:4], atmtype=atmtype)
 
-    # Create synthetic spectra
+    #Create synthetic spectrum
+    start = ranges[0][0]
+    end = ranges[-1][-1]
+    _update_par_synth(start, end, options=options)
+    _run_moog(driver='synth')
+    x, y = _read_moog('smooth.out')
+
     spec = []
-    # Run moog for each linelist file
-    for i, ri in enumerate(r):
-        _update_par_synth('linelist/%s' % fout[i], ri[0], ri[1], options=options)
-        _run_moog(driver='synth')
-        x_synth, y_synth = _read_moog('smooth.out')
-        # add broadening
-        # This is done here so the x-axis is equidistant.
-        # Currently, the wavelength array as to be regularly spaced.
+    for i, ri in enumerate(ranges):
+        x_synth = x[(x>ri[0]) & (x<ri[1])]
+        y_synth = y[(x>ri[0]) & (x<ri[1])]
 
         # Check for enough points for vmac
         # Define central wavelength
@@ -604,7 +607,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
             if ex_points % 2 == 0:
                 w_s = x_synth[0] - (dwave*((ex_points+2)/2))
                 w_e = x_synth[-1] + (dwave*((ex_points+2)/2))
-                _update_par_synth('linelist/%s' % fout[i], w_s, w_e, options=options)
+                _update_par_synth(w_s, w_e, options=options)
                 _run_moog(driver='synth')
                 x_synth, y_synth = _read_moog('smooth.out')
 
@@ -612,10 +615,9 @@ def fun_moog_synth(x, atmtype, par='batch.par', results='summary.out',
                 ex_points += 1
                 w_s = x_synth[0] - (dwave*((ex_points+2)/2))
                 w_e = x_synth[-1] + (dwave*((ex_points+2)/2))
-                _update_par_synth('linelist/%s' % fout[i], w_s, w_e, options=options)
+                _update_par_synth(w_s, w_e, options=options)
                 _run_moog(driver='synth')
                 x_synth, y_synth = _read_moog('smooth.out')
-
         spec.append(broadening(x_synth, y_synth, vsini, vmac, resolution=options['resolution'], epsilon=options['limb']))
 
     # Gather all individual spectra to one
