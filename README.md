@@ -15,9 +15,10 @@ TODO
 
    - [x] Interpolate the atmospheric models.
    - [x] Minimization for MOOG to determine parameters.
-   - [x] Change atmospheric models (only Kurucz95 available).
+   - [x] Change atmospheric models (Kurucz, MARCS available).
    - [x] Freeze parameters.
    - [x] Nice graphics.
+   - [ ] Synthesis
    - [ ] Package like a real python package (pypi).
 
 
