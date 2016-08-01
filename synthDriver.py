@@ -62,7 +62,7 @@ def _options(options=None):
     defaults = {'spt': False,
                 'model': 'kurucz95',
                 'MOOGv': 2014,
-                'plotpars': 1,
+                'plotpars': 0,
                 'fix_teff': False,
                 'fix_logg': False,
                 'fix_feh': False,
@@ -75,6 +75,7 @@ def _options(options=None):
                 'step_flux': 10.0,
                 'minimize': False,
                 'observations': False,
+                'snr': 100.0,
                 'resolution': None,
                 'limb': 0.6,
                 'lorentz': 0.0
@@ -94,11 +95,24 @@ def _options(options=None):
         defaults['model'] = defaults['model'].lower()
         defaults['step_wave'] = float(defaults['step_wave'])
         defaults['step_flux'] = float(defaults['step_flux'])
+        defaults['snr'] = float(defaults['snr'])
         defaults['plotpars'] = int(defaults['plotpars'])
         defaults['limb'] = float(defaults['limb'])
         defaults['lorentz'] = float(defaults['lorentz'])
         defaults['MOOGv'] = int(defaults['MOOGv'])
         return defaults
+
+
+def wave_step(dl_obs, step_wave=0.01):
+    '''Find the step of synthesis in wavelength depending the observations'''
+
+    if dl_obs < step_wave:
+        step_wave = dl_obs
+    elif dl_obs > step_wave:
+        step_wave = dl_obs
+    else:
+        step_wave
+    return round(step_wave,3)
 
 
 def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
@@ -195,12 +209,15 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         logger.error('Error: %s not found.' % options['observations'])
                         continue
                     print('This is your observed spectrum: %s' % options['observations'])
-                    x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges)
+                    x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
+                    dl_obs = x_obs[1] - x_obs[0]
+                    print('Observed spectrum contains %s points' % len(x_obs))
                     # If observations exists, then why not, find best fit?
                     if options['minimize']:
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
-                        params, x_final, y_final = minimize_synth_all(initial, x_obs, y_obs, ranges=ranges, **options)
+                        options['step_wave'] = wave_step(dl_obs)
+                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
                         logger.info('Minimization done.')
 
                 else:
@@ -254,14 +271,17 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     if (not (os.path.isfile('spectra/%s' % options['observations'])) and (not os.path.isfile(options['observations']))):
                         logger.error('Error: %s not found.' % options['observations'])
                         continue
-
                     print('This is your observed spectrum: %s' % options['observations'])
-                    x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges)
+                    x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
+                    dl_obs = x_obs[1] - x_obs[0]
+                    print('Observed spectrum contains %s points' % len(x_obs))
+
                     # If observations exists, then why not, find best fit?
                     if options['minimize']:
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
-                        params, x_final, y_final = minimize_synth_all(initial, x_obs, y_obs, ranges=ranges, **options)
+                        options['step_wave'] = wave_step(dl_obs)
+                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
                         logger.info('Minimization done.')
 
                 else:

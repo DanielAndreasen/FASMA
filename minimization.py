@@ -335,6 +335,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
     from synthetic import save_synth_spec
 
     model = kwargs['model']
+    y_obserr = 1.0/(2.0*kwargs['snr'])
     fix_teff = 1 if kwargs['fix_teff'] else 0
     fix_logg = 1 if kwargs['fix_logg'] else 0
     fix_feh = 1 if kwargs['fix_feh'] else 0
@@ -357,19 +358,56 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
             p[int((i-1)/2)] = bounds[i]
         return p
 
-    # Set PARINFO structure for all 6 free parameters for mpfit
-    # Teff, logg, feh, vt, vmac, vsini
-    # The limits are also cheched by the bounds function
-    teff_info  = {'limited': [1, 1], 'limits': [2800.0, 7500.0], 'step': 30,   'mpside': 2, 'fixed': fix_teff}
-    logg_info  = {'limited': [1, 1], 'limits': [0.5, 5.0],       'step': 0.2,  'mpside': 2, 'fixed': fix_logg}
-    feh_info   = {'limited': [1, 1], 'limits': [-5.0, 1.0],      'step': 0.05, 'mpside': 2, 'fixed': fix_feh}
-    vt_info    = {'limited': [1, 1], 'limits': [0.0, 9.99],      'step': 0.3,  'mpside': 2, 'fixed': fix_vt}
-    vmac_info  = {'limited': [1, 1], 'limits': [0.0, 50.0],      'step': 0.5,  'mpside': 2, 'fixed': fix_vmac}
-    vsini_info = {'limited': [1, 1], 'limits': [0.0, 100.0],     'step': 0.5,  'mpside': 2, 'fixed': fix_vsini}
 
-    parinfo = [teff_info, logg_info, feh_info, vt_info, vmac_info, vsini_info]
+    def convergence_info(m, parinfo, dof):
+        """
+        Information on convergence. All values greater than zero can
+        represent success (however status == 5 may indicate failure to
+        converge).
+        If the fit is unweighted (i.e. no errors were given, or the weights
+        were uniformly set to unity), then .perror will probably not represent
+        the true parameter uncertainties.
+        *If* you can assume that the true reduced chi-squared value is unity --
+        meaning that the fit is implicitly assumed to be of good quality --
+        then the estimated parameter uncertainties can be computed by scaling
+        .perror by the measured chi-squared value.
+        """
 
-    def myfunct(p, x_obs=None, ranges=None, model=None, y=None, **kwargs):
+        if m.status == -16:
+            print('status = %s : A parameter or function value has become infinite or an undefined number.' % m.status)
+        if -15 <= m.status <= -1:
+            print('status = %s : MYFUNCT or iterfunct functions return to terminate the fitting process. ' % m.status)
+        if m.status == 0:
+            print('status = %s : Improper input parameters.' % m.status)
+        if m.status == 1:
+            print('status = %s : Both actual and predicted relative reductions in the sum of squares are at most ftol.' % m.status)
+        if m.status == 2:
+            print('status = %s : Relative error between two consecutive iterates is at most xtol.' % m.status)
+        if m.status == 3:
+            print('status = %s : Conditions for status = 1 and status = 2 both hold.' % m.status)
+        if m.status == 4:
+            print('status = %s : The cosine of the angle between fvec and any column of the jacobian is at most gtol in absolute value.' % status)
+        if m.status == 5:
+            print('status = %s : The maximum number of iterations has been reached.' % m.status)
+        if m.status == 6:
+            print('status = %s : ftol is too small.' % m.status)
+        if m.status == 7:
+            print('status = %s : xtol is too small.' % m.status)
+        if m.status == 8:
+            print('status = %s : gtol is too small.' % m.status)
+
+        print('Iterations: %s' % m.niter)
+        print('Fitted parameters with uncertainties:')
+        # scaled uncertainties
+        pcerror = m.perror * np.sqrt(m.fnorm / dof)
+        for i, x in enumerate(m.params):
+            print( "\t%s: %s +- %s (scaled error +- %s)" % (parinfo[i]['parname'], round(x, 3), round(m.perror[i], 3), round(pcerror[i], 3)))
+        print('Value of the summed squared residuals: %s' % m.fnorm)
+        print('Number of calls to the function: %s' % m.nfev)
+        return
+
+
+    def myfunct(p, x_obs=None, ranges=None, model=None, y=None, y_obserr=0.01, **kwargs):
         '''Function that return the weighted deviates (to be minimized).
 
         Input
@@ -393,6 +431,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         (y-ymodel)/err : ndarray
           Model deviation from observation
         '''
+        import re
 
         # Definition of the Model spectrum to be iterated
         options = kwargs['options']
@@ -408,34 +447,55 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         flux_s = sl(x_obs)
         ymodel = flux_s
         # Error on the flux #needs corrections
-        err = np.zeros(len(y)) + 0.01
+        err = np.zeros(len(y)) + y_obserr
         status = 0
+        #Print parameters at each function call
+        with open('summary.out', 'r') as f:
+            f.readline()
+            model_info = f.readline()
+        model_info = re.sub('                              ', ' ', model_info)
+        print(model_info)
+
         return([status, (y-ymodel)/err])
+
+    # Set PARINFO structure for all 6 free parameters for mpfit
+    # Teff, logg, feh, vt, vmac, vsini
+    # The limits are also cheched by the bounds function
+    teff_info  = {'parname':'Teff',   'limited': [1, 1], 'limits': [2800.0, 7500.0], 'step': 100,   'mpside': 2, 'fixed': fix_teff}
+    logg_info  = {'parname':'logg',   'limited': [1, 1], 'limits': [0.5, 5.0],       'step': 0.1,  'mpside': 2, 'fixed': fix_logg}
+    feh_info   = {'parname':'[Fe/H]', 'limited': [1, 1], 'limits': [-5.0, 1.0],      'step': 0.05, 'mpside': 2, 'fixed': fix_feh}
+    vt_info    = {'parname':'vt',     'limited': [1, 1], 'limits': [0.0, 9.99],      'step': 0.5,  'mpside': 2, 'fixed': fix_vt}
+    vmac_info  = {'parname':'vmac',   'limited': [1, 1], 'limits': [0.0, 50.0],      'step': 2.0,  'mpside': 2, 'fixed': fix_vmac}
+    vsini_info = {'parname':'vsini',  'limited': [1, 1], 'limits': [0.0, 100.0],     'step': 2.0,  'mpside': 2, 'fixed': fix_vsini}
+
+    parinfo = [teff_info, logg_info, feh_info, vt_info, vmac_info, vsini_info]
 
     # A dictionary which contains the parameters to be passed to the
     # user-supplied function specified by myfunct via the standard Python
     # keyword dictionary mechanism. This is the way you can pass additional
     # data to your user-supplied function without using global variables.
-    fa = {'x_obs': x_obs, 'ranges': ranges, 'model': model, 'y': y_obs, 'options': kwargs}
+    fa = {'x_obs': x_obs, 'ranges': ranges, 'model': model, 'y': y_obs, 'y_obserr': y_obserr, 'options': kwargs}
 
     # Minimization starts here
     # Measure time
     start_time = time.time()
-    m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-4, xtol=1e-4, gtol=1e-10, functkw=fa)
-    print('status = %s' % m.status)
-    print('Iterations: %s' % m.niter)
-    print('Fitted pars:%s' % m.params)
-    print('Uncertainties: %s' % m.perror)  # TODO: We can use them we define a realistic error on the flux
-    print('Value of the summed squared residuals: %s' % m.fnorm)
-    print('Number of calls to the function: %s' % m.nfev)
+    m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-5, xtol=1e-5, gtol=1e-4, functkw=fa)
+    #Print results
+    dof = len(y_obs)-len(m.params)
+    convergence_info(m, parinfo, dof)
     end_time = time.time()-start_time
     print('Calculations finished in %s sec' % int(end_time))
+    #Final synthetic spectrum
     x_s, y_s = func(m.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
     flux_final = sl(x_obs)
-    chi = ((x_obs - flux_final)**2)
-    chi2 = np.sum(chi)
-    print('This is your chi2 value: '), chi2
+
+    err = np.zeros(len(y_obs)) + y_obserr
+    chi = ((y_obs - flux_final)**2/(err**2))
+    print('dof', (len(y_obs)+len(m.params)))
+    chi2 = np.sum(chi)/dof
+    print('This is your reduced chi2 value: '), round(chi2,2)
+
     # TODO create a header with the parameters in the output file
     save_synth_spec(x_obs, flux_final, fname='final.spec')
     return m.params, x_obs, flux_final
