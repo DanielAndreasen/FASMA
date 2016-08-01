@@ -9,7 +9,7 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 
 
-def local_norm(obs_fname, r, method='linear', plot=False):
+def local_norm(obs_fname, r, snr, method='linear', plot=False):
     '''Local Normalisation function. Make a linear fit from the maximum points
     of each segment.
     Input
@@ -28,15 +28,17 @@ def local_norm(obs_fname, r, method='linear', plot=False):
     end_norm = center + 10.0
     start_norm = r[0]
     end_norm = r[1]
-
+    #Transform SNR to noise
+    noise = 1.0/(2.0*snr)
+    #Read observations
     wave_obs, flux_obs = read_observations(obs_fname, start_norm, end_norm)
 
     # Divide in 3 and find the maximum points
     y = np.array_split(flux_obs, 3)
     x = np.array_split(wave_obs, 3)
-    index_max1 = np.sort(np.argsort(y[0])[-3:])  # this can be done better
-    index_max2 = np.sort(np.argsort(y[1])[-3:])  # this can be done better
-    index_max3 = np.sort(np.argsort(y[2])[-3:])  # this can be done better
+    index_max1 = np.sort(np.argsort(y[0])[-5:])  # this can be done better
+    index_max2 = np.sort(np.argsort(y[1])[-5:])  # this can be done better
+    index_max3 = np.sort(np.argsort(y[2])[-5:])  # this can be done better
     # index_max = np.sort(np.argsort(flux_obs)[-10:]) # this can be done better
     f_max1 = y[0][index_max1]
     f_max2 = y[1][index_max2]
@@ -49,36 +51,32 @@ def local_norm(obs_fname, r, method='linear', plot=False):
     # f_max = flux_obs[index_max]
     # w_max = wave_obs[index_max]
     f_max = np.concatenate((f_max1, f_max2, f_max3))
+    f_max = f_max - noise
+    std = np.std(f_max, ddof=1)
     w_max = np.concatenate((w_max1, w_max2, w_max3))
 
     if method == 'scalar':
         # Divide with the median of maximum values.
-        print(w_max[0], np.median(f_max))
         new_flux = flux_obs/np.median(f_max)
 
     if method == 'linear':
         z = np.polyfit(w_max, f_max, 1)
         p = np.poly1d(z)
-        f = p(wave_obs)
+        #f = p(wave_obs)
         new_flux = flux_obs/p(wave_obs)
-        print(w_max[0], p(wave_obs))
 
     wave = wave_obs[np.where((wave_obs >= float(r[0])) & (wave_obs <= float(r[1])))]
     new_flux = new_flux[np.where((wave_obs >= float(r[0])) & (wave_obs <= float(r[1])))]
-
     if plot:
         plt.plot(wave_obs, flux_obs)
-        x = [center-7.5, center+7.5]
+        x = [center, center]
         y = [np.median(f_max), np.median(f_max)]
-        plt.plot(x, y, label='continuum')
+        plt.plot(x, y)
         plt.plot(w_max, f_max, 'o')
-        plt.legend()
         plt.show()
 
-        plt.plot(wave, new_flux, label='linear')
-        plt.legend()
+        plt.plot(wave, new_flux)
         plt.show()
-
     return wave, new_flux
 
 
@@ -131,7 +129,7 @@ def read_observations(fname, start_synth, end_synth):
     return wavelength_obs, flux_obs
 
 
-def read_obs_intervals(obs_fname, r):
+def read_obs_intervals(obs_fname, r, snr=100, method='scalar'):
     """Read only the spectral chunks from the observed spectrum
     This function does the same as read_observations but for the whole linelist.
     Input
@@ -151,7 +149,7 @@ def read_obs_intervals(obs_fname, r):
     spec = []
     for i in range(N):
         # Obtain the normalized spectrum
-        spec.append(local_norm(obs_fname, r[i]))
+        spec.append(local_norm(obs_fname, r[i], snr, method))
 
     x_obs = np.column_stack(spec)[0]
     y_obs = np.column_stack(spec)[1]
@@ -187,52 +185,6 @@ def plot(x_obs, y_obs, x, y):
         plt.legend()
         plt.show()
     return
-
-
-# The rest are useless functions for now....
-def plot_synth(fname):
-    """Function to plot synthetic spectrum
-    """
-    from synthetic import _read_raw_moog, _read_moog
-
-    if fname == 'smooth.out':
-        x, y = _read_moog(fname='smooth.out')
-        plt.plot(x, y)
-        plt.show()
-        plt.close()
-    elif fname == 'summary.out':
-        x, y = _read_raw_moog('summary.out')
-        # z = pyasl.instrBroadGaussFast(x, y, 50000, edgeHandling="firstlast")
-        plt.plot(x, y)
-        # plt.plot(x, z)
-        plt.show()
-        plt.close()
-    else:
-        if os.path.isfile(fname):
-            x, y = _read_moog(fname)
-            plt.plot(x, y)
-            plt.show()
-            plt.close()
-        else:
-            print('Synthetic spectrum does not exist.')
-    return
-
-
-def interpol_synthetic(wave_obs, wave_synth, flux_synth):
-    """Interpolation of the synthetic flux to the observed wavelength"""
-    sl = InterpolatedUnivariateSpline(wave_synth, flux_synth, k=1)
-    int_flux = sl(wave_obs)
-    return int_flux
-
-
-def normalize(x, y, num=20, k=1):
-    index_max = np.sort(np.argsort(y)[-num:])
-    f_obs_max = y[index_max]
-    w_obs_max = x[index_max]
-    sl = InterpolatedUnivariateSpline(w_obs_max, f_obs_max, k=1)
-    continuum = sl(x)
-    norm = y/continuum
-    return x, norm
 
 
 def chi2(wave_obs, flux_obs, wave_synth, flux_synth):
