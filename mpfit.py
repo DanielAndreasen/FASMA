@@ -2265,7 +2265,7 @@ class mpfit:
 
         if self.debug:
             print 'Entering calc_covar...'
-        if numpy.rank(rr) != 2:
+        if numpy.ndim(rr) != 2:
             print 'ERROR: r must be a two-dimensional matrix'
             return -1
         s = rr.shape
