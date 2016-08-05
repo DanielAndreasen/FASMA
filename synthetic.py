@@ -4,11 +4,11 @@
 from __future__ import division
 import numpy as np
 import os
-from astropy.io import fits
 import pandas as pd
+from astropy.io import fits
 
 
-def save_synth_spec(x, y, fname='initial.spec'):
+def save_synth_spec(x, y, y_obs=None, initial=initial, final=None, fname='initial.spec', **options):
     '''Save synthetic spectrum of all intervals
 
     Input
@@ -24,10 +24,40 @@ def save_synth_spec(x, y, fname='initial.spec'):
     -----
     fname fits file
     '''
+    #Create header
+    header = fits.Header()
+    header['CRVAL1'] = x[0]
+    header['CDELT1'] = x[1] - x[0]
+    header['Teff_initial']   = initial[0]
+    header['logg_initial']   = initial[1]
+    header['[Fe/H]_initial'] = initial[2]
+    header['vt_initial']     = initial[3]
+    header['vmac_initial']   = initial[4]
+    header['vsini_initial']  = initial[5]
+    header['Model atmosphere'] = options['model']
+    header['Damping option'] = options['damping']
+    header['Interval_file'] = options['inter_file']
+
+    if final:
+        header['Teff_final']   = params[0]
+        header['logg_final']   = params[1]
+        header['[Fe/H]_final'] = params[2]
+        header['vt_final']     = params[3]
+        header['vmac_final']   = params[4]
+        header['vsini_final']  = params[5]
+        header['Observations'] = options['observations']
+        header['Resolution'] = options['resolution']
+        header['SNR'] = options['snr']
+
+    if options['observations']:
+        fname = options['observations'].split('.')[0] + '.spec'
+    else:
+        fname = str(initial[0]) + '_' + str(initial[1]) + '_' + str(initial[2]) '_' + str(initial[3]) + '_' + str(initial[4]) + '_' + str(initial[5]) + '.spec'
 
     tbhdu = fits.BinTableHDU.from_columns([fits.Column(name='wavelength', format='D', array=x),
-                                           fits.Column(name='flux', format='D', array=y)])
-    tbhdu.writeto('results/%s' % fname, clobber=True)
+                                           fits.Column(name='flux', format='D', array=y),
+                                           fits.Column(name='y_obs', format='D', array=y_obs)])
+    tbhdu.writeto('results/%s' % fname, header=header, clobber=True)
     print('Synthetic spectrum saved: results/%s' % fname)
 
 
@@ -242,17 +272,27 @@ def _read_raw_moog(fname='summary.out'):
     flux : ndarray
       The flux vector
     '''
+    import itertools
 
-    with open(fname, 'r') as lines:
-        lines.readline()
-        lines.readline()
-        start_wave, end_wave, step, flux_step = map(float, lines.readline().split())
+    with open('summary.out', 'r') as f:
+        f.readline()
+        f.readline()
+        start_wave, end_wave, step, flux_step = map(float, f.readline().split())
+        lines = f.readlines()
 
-    flux = np.loadtxt(fname, skiprows=3)
+    data = []
+    for line in lines:
+        line = line.replace('\n','').split(' ')
+        line = filter(None, line)
+        data.append(line)
+
+    flux = list(itertools.chain(*data))
+    flux = np.array(flux)
+    flux = flux.astype(np.float)
     flux = 1.0 - flux
 
     w0, dw, n = float(start_wave), float(step), len(flux)
-    w = w0 + dw * len(flux)
+    w = w0 + dw * n
     wavelength = np.linspace(w0, w, n, endpoint=False)
     return wavelength, flux
 
@@ -293,13 +333,10 @@ def read_linelist(fname, intname='intervals.lst'):
     atomic : atomic data
     '''
 
-    if not os.path.isfile(fname):
-        raise IOError('The linelist is not in the rawLinelist directory!')
-
     if not os.path.isfile('rawLinelist/%s' % intname):
         raise IOError('The interval list is not in the rawLinelist directory!')
 
-    lines = pd.read_csv(fname, skiprows=1, delimiter='\t', usecols=range(6),
+    lines = pd.read_csv(fname, skiprows=1, comment='#', delimiter='\t', usecols=range(6),
     names=['wl', 'elem', 'excit', 'loggf', 'vdwaals', 'Do'],
     converters={'Do': lambda x : x.replace("nan"," "), 'vdwaals': lambda x : float(x)})
     lines.sort_values(by='wl', inplace=True)

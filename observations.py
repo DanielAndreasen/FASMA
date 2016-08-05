@@ -156,7 +156,7 @@ def read_obs_intervals(obs_fname, r, snr=100, method='scalar'):
     return x_obs, y_obs
 
 
-def plot(x_obs, y_obs, x, y):
+def plot(x_obs, y_obs, x, y, res=False):
     """Function to plot synthetic spectrum.
     Input
     -----
@@ -176,15 +176,70 @@ def plot(x_obs, y_obs, x, y):
     # if there is not observed spectrum, plot only synthetic (case 1, 3)
     if x_obs is None:
         plt.plot(x, y, label='synthetic')
+        if res:
+            sl = InterpolatedUnivariateSpline(x, y, k=1)
+            ymodel = sl(x_obs)
+            plt.plot(x_obs, (y-ymodel)*100, label='residuals')
         plt.legend()
         plt.show()
     # if both exist
     else:
         plt.plot(x, y, label='synthetic')
         plt.plot(x_obs, y_obs, label='observed')
+        if res:
+            sl = InterpolatedUnivariateSpline(x, y, k=1)
+            ymodel = sl(x_obs)
+            plt.plot(x_obs, (y-ymodel)*100, label='residuals')
+
         plt.legend()
         plt.show()
     return
+
+
+# The rest are useless functions for now....
+def plot_synth(fname):
+    """Function to plot synthetic spectrum
+    """
+    from synthetic import _read_raw_moog, _read_moog
+
+    if fname == 'smooth.out':
+        x, y = _read_moog(fname='smooth.out')
+        plt.plot(x, y)
+        plt.show()
+        plt.close()
+    elif fname == 'summary.out':
+        x, y = _read_raw_moog('summary.out')
+        # z = pyasl.instrBroadGaussFast(x, y, 50000, edgeHandling="firstlast")
+        plt.plot(x, y)
+        # plt.plot(x, z)
+        plt.show()
+        plt.close()
+    else:
+        if os.path.isfile(fname):
+            x, y = _read_moog(fname)
+            plt.plot(x, y)
+            plt.show()
+            plt.close()
+        else:
+            print('Synthetic spectrum does not exist.')
+    return
+
+
+def interpol_synthetic(wave_obs, wave_synth, flux_synth):
+    """Interpolation of the synthetic flux to the observed wavelength"""
+    sl = InterpolatedUnivariateSpline(wave_synth, flux_synth, k=1)
+    int_flux = sl(wave_obs)
+    return int_flux
+
+
+def normalize(x, y, num=20, k=1):
+    index_max = np.sort(np.argsort(y)[-num:])
+    f_obs_max = y[index_max]
+    w_obs_max = x[index_max]
+    sl = InterpolatedUnivariateSpline(w_obs_max, f_obs_max, k=1)
+    continuum = sl(x)
+    norm = y/continuum
+    return x, norm
 
 
 def chi2(wave_obs, flux_obs, wave_synth, flux_synth):

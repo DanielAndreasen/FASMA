@@ -70,11 +70,13 @@ def _options(options=None):
                 'fix_vmac': False,
                 'fix_vsini': False,
                 'plot': False,  # This is irrelevant with the batch.par value
+                'res': False,
                 'damping': 1,
                 'step_wave': 0.01,
                 'step_flux': 10.0,
                 'minimize': False,
                 'observations': False,
+                'inter_file': 'intervals.lst',
                 'snr': 100.0,
                 'resolution': None,
                 'limb': 0.6,
@@ -115,6 +117,30 @@ def wave_step(dl_obs, step_wave=0.01):
     return round(step_wave,3)
 
 
+def _output(overwrite=None, header=None, parameters=None):
+    """Create the output file 'results.csv'
+
+    Input
+    -----
+    overwrite - Overwrite the file
+    header    - Only use True if this is for the file to be created
+    """
+    if header:
+        hdr = ['linelist', 'observations', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
+               'vt', 'vterr', 'chi2', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt',
+               'fixvmac', 'fixvsini', 'model', 'resolution', 'snr']
+        if overwrite:
+            with open('results.csv', 'w') as output:
+                output.write('\t'.join(hdr)+'\n')
+        else:
+            if not os.path.isfile('results.csv'):
+                with open('results.csv', 'w') as output:
+                    output.write('\t'.join(hdr)+'\n')
+    else:
+        with open('results.csv', 'a') as output:
+            output.write('\t'.join(map(str, parameters))+'\n')
+
+
 def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
     """The function that glues everything together
 
@@ -146,6 +172,9 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
         os.mkdir('results')
         logger.info('results directory was created')
 
+    # Creating the output file
+    _output(overwrite=overwrite, header=True)
+
     with open(starLines, 'r') as lines:
         for line in lines:
             if not line[0].isalpha():
@@ -165,7 +194,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 logger.error('Error: rawLinelist/%s not found.' % line[0])
                 raise IOError('Linelist file does not exist in the folder!')
 
-            ranges, atomic_data = read_linelist(line[0])
+            ranges, atomic_data = read_linelist(line[0], intname=options['inter_file'])
             # Create synthetic spectrum with solar values and the default options
             if len(line) == 1:
                 initial = [5777, 4.44, 0.00, 1.00, 3.21, 1.90]
@@ -177,7 +206,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 ranges=ranges, driver='synth', version=options['MOOGv'], **options)
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
-                save_synth_spec(x_initial, y_initial, fname='initial.spec')
+                save_synth_spec(x_initial, y_initial, y_obs=None, initial=initial, final=None, fname='initial.spec', **options)
                 logger.info('Save initial synthetic spectrum')
                 print('Synthetic spectrum contains %s points' % len(x_initial))
 
@@ -199,19 +228,24 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 ranges=ranges, driver='synth', version=options['MOOGv'], **options)
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
-                save_synth_spec(x_initial, y_initial, fname='initial.spec')
+                save_synth_spec(x_initial, y_initial, y_obs=None, initial=initial, final=None, fname='initial.spec', **options)
                 logger.info('Save initial synthetic spectrum')
                 print('Synthetic spectrum contains %s points' % len(x_initial))
 
                 if options['observations']:
+                    print('This is your observed spectrum: %s' % options['observations'])
                     # Check if observations exit, if not pass another line
-                    if (not (os.path.isfile('spectra/%s' % options['observations'])) and (not os.path.isfile(options['observations']))):
+                    if os.path.isfile('spectra/%s' % options['observations']):
+                        x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
+                        dl_obs = x_obs[1] - x_obs[0]
+                        print('Observed spectrum contains %s points' % len(x_obs))
+                    if  os.path.isfile(options['observations']):
+                        x_obs, y_obs = read_obs_intervals(options['observations'], ranges, snr=options['snr'])
+                        dl_obs = x_obs[1] - x_obs[0]
+                        print('Observed spectrum contains %s points' % len(x_obs))
+                    else:
                         logger.error('Error: %s not found.' % options['observations'])
                         continue
-                    print('This is your observed spectrum: %s' % options['observations'])
-                    x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
-                    dl_obs = x_obs[1] - x_obs[0]
-                    print('Observed spectrum contains %s points' % len(x_obs))
                     # If observations exists, then why not, find best fit?
                     if options['minimize']:
                         print('Starting minimization...')
@@ -219,16 +253,17 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         options['step_wave'] = wave_step(dl_obs)
                         params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
                         logger.info('Minimization done.')
+                        save_synth_spec(x_final, y_final, y_obs=y_obs, initial=initial, final=(params[0],params[2],params[4],params[6],params[8]), fname='final.spec', **options)
 
                 else:
                     x_obs, y_obs = (None, None)
                     x_final, y_final = (None, None)
 
                 if options['plot']:  # if there in no observed only the synthetic will be plotted
-                    plot(x_obs, y_obs, x_initial, y_initial)
+                    plot(x_obs, y_obs, x_initial, y_initial, res=options['res'])
                     if options['minimize']:
                         # Plot also final spectra
-                        plot(x_obs, y_obs, x_final, y_final)
+                        plot(x_obs, y_obs, x_final, y_final, res=options['res'])
 
             # Create spectra with parameters defined by the user but the rest are set to default
             elif len(line) == 7:
@@ -243,7 +278,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 x_initial, y_initial = func(initial, atmtype=options['model'],
                 ranges=ranges, driver='synth', version=options['MOOGv'], **options)
                 logger.info('Save initial synthetic spectrum')
-                save_synth_spec(x_initial, y_initial, fname='initial.spec')
+                save_synth_spec(x_initial, y_initial, y_obs=None, initial=initial, final=None, fname='initial.spec', **options)
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
                 print('Synthetic spectrum contains %s points' % len(x_initial))
@@ -261,21 +296,25 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 x_initial, y_initial = func(initial, atmtype=options['model'],
                 ranges=ranges, driver='synth', version=options['MOOGv'], **options)
                 logger.info('Save initial synthetic spectrum')
-                save_synth_spec(x_initial, y_initial, fname='initial.spec')
+                save_synth_spec(x_initial, y_initial, y_obs=None, initial=initial, final=None, fname='initial.spec', **options)
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
                 print('Synthetic spectrum contains %s points' % len(x_initial))
 
                 if options['observations']:
+                    print('This is your observed spectrum: %s' % options['observations'])
                     # Check if observations exit, if not pass another line
-                    if (not (os.path.isfile('spectra/%s' % options['observations'])) and (not os.path.isfile(options['observations']))):
+                    if os.path.isfile('spectra/%s' % options['observations']):
+                        x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
+                        dl_obs = x_obs[1] - x_obs[0]
+                        print('Observed spectrum contains %s points' % len(x_obs))
+                    if  os.path.isfile(options['observations']):
+                        x_obs, y_obs = read_obs_intervals(options['observations'], ranges, snr=options['snr'])
+                        dl_obs = x_obs[1] - x_obs[0]
+                        print('Observed spectrum contains %s points' % len(x_obs))
+                    else:
                         logger.error('Error: %s not found.' % options['observations'])
                         continue
-                    print('This is your observed spectrum: %s' % options['observations'])
-                    x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
-                    dl_obs = x_obs[1] - x_obs[0]
-                    print('Observed spectrum contains %s points' % len(x_obs))
-
                     # If observations exists, then why not, find best fit?
                     if options['minimize']:
                         print('Starting minimization...')
@@ -283,16 +322,18 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         options['step_wave'] = wave_step(dl_obs)
                         params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
                         logger.info('Minimization done.')
+                        save_synth_spec(x_final, y_final, y_obs=y_obs, initial=initial, final=(params[0],params[2],params[4],params[6],params[8]), fname='final.spec', **options)
+
 
                 else:
                     x_obs, y_obs = (None, None)
                     x_final, y_final = (None, None)
 
                 if options['plot']:  # if there in no observed only the synthetic will be plotted
-                    plot(x_obs, y_obs, x_initial, y_initial)
+                    plot(x_obs, y_obs, x_initial, y_initial, res=options['res'])
                     if options['minimize']:
                         # Plot also final spectra
-                        plot(x_obs, y_obs, x_final, y_final)
+                        plot(x_obs, y_obs, x_final, y_final, res=options['res'])
 
             else:
                 logger.error('Could not process information for this line list: %s' % line)
@@ -309,6 +350,10 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 options['GUI'] = True  # Running GUI mode
             options.pop('spt')
 
+            tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
+            options['fix_vsini'], options['model'], options['resolution'], options['snr']]
+            _output(parameters=tmp)
+            logger.info('Saved results to: results.csv')
     return
 
 if __name__ == '__main__':
