@@ -501,7 +501,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         with open('summary.out', 'r') as f:
             f.readline()
             model_info = f.readline()
-        model_info = re.sub('                              ', ' ', model_info) #This can be done better
+        model_info = re.sub('                              ', ' ', model_info)
         print(model_info)
         return([status, (y-ymodel)/err])
 

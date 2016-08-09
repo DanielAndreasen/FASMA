@@ -179,7 +179,7 @@ def plot(x_obs, y_obs, x, y, res=False):
         if res:
             sl = InterpolatedUnivariateSpline(x, y, k=1)
             ymodel = sl(x_obs)
-            plt.plot(x_obs, (y-ymodel)*100, label='residuals')
+            plt.plot(x_obs, (y_obs-ymodel)*10, label='residuals')
         plt.legend()
         plt.show()
     # if both exist
@@ -189,7 +189,7 @@ def plot(x_obs, y_obs, x, y, res=False):
         if res:
             sl = InterpolatedUnivariateSpline(x, y, k=1)
             ymodel = sl(x_obs)
-            plt.plot(x_obs, (y-ymodel)*100, label='residuals')
+            plt.plot(x_obs, (y_obs-ymodel)*10, label='residuals')
 
         plt.legend()
         plt.show()

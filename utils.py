@@ -5,7 +5,7 @@ from __future__ import division
 import os
 from itertools import islice
 import numpy as np
-from synthetic import broadening, _read_moog
+from synthetic import broadening, _read_raw_moog, _read_moog
 
 kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                      6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
@@ -364,12 +364,12 @@ def _update_par_synth(start_wave, end_wave, **kwargs):
     damping         1
     units           0
     iraf            0
-    plot            2
+    plot            0
     obspectrum      1       Unless obspectrum is provided to the function.
     opacit          0
     freeform        0
     strong          0       Unless a strong lines list is provided.
-    plotpars        1       0.75 Gaussian smoothing by default. Show full
+    plotpars        0       0.75 Gaussian smoothing by default. Show full
                             synthesized spectral range with y:[0, 1.2]vsini
     histogram       0
     synlimits               Defaults to the wavelength range provided and
@@ -412,14 +412,11 @@ def _update_par_synth(start_wave, end_wave, **kwargs):
                     "synlimits\n"\
                     "      %s      %s       %s      %s\n"\
                     "plotpars          %s\n"\
-                    "      %s      %s       0.5      1.05\n"\
-                    "      0.0     0.0      0.0       0.0\n"\
-                    "      g       0.0      0.0       0.0       0.0       0.0\n"\
                     "damping        %s\n"    % (default_kwargs['terminal'],
                     default_kwargs['model_in'], default_kwargs['summary'], out,
                     kwargs['options']['plotpars'], start_wave, end_wave,
                     kwargs['options']['step_wave'], kwargs['options']['step_flux'],
-                    kwargs['options']['plotpars'], start_wave, end_wave, kwargs['options']['damping'])
+                    kwargs['options']['plotpars'], kwargs['options']['damping'])
 
     # Fill the keyword arguments with the defaults if they don't exist already
     for key, value in default_kwargs.iteritems():
@@ -465,25 +462,6 @@ def _run_moog(par='batch.par', driver='abfind'):
             f.writelines('batch.par\nq')
         os.system('MOOGSILENT < stupid.tmp > /dev/null')
         os.remove('stupid.tmp')
-
-
-def _read_smooth(fname='smooth.out'):
-    '''Read the synthetic spectrum from the summary.out
-
-    Inputs
-    ------
-    fname: str
-      Path to summary_out (default: 'smooth.out')
-
-    Outputs
-    -------
-    Wavelength : ndarray
-      The wavelength of the synthetic spectrum
-    Flux : ndarray
-      The flux of the synthetic spectrum
-    '''
-    wavelength, flux = np.loadtxt(fname, skiprows=2, usecols=(0, 1), unpack=True)
-    return wavelength, flux
 
 
 def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
@@ -546,7 +524,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
         for i in range(N):
             _update_par_synth('linelist/%s' % fout[i], r[i][0], r[i][1], options=options)
             _run_moog(driver='synth')
-            x, y = _read_moog('smooth.out')
+            x, y = _read_raw_moog('summary.out')
             # add broadening
             # This is done here so the x-axis is equidistant.
             # Currently, the wavelength array as to be regularly spaced.
@@ -572,14 +550,14 @@ def fun_moog_synth(x, atmtype, par='batch.par', ranges=None, results='summary.ou
     from interpolation import interpolator
     # Create an atmosphere model from input parameters
     teff, logg, feh, _, vmac, vsini = x
-    _ = interpolator(x[0:4], atmtype=atmtype)
+    _, x = interpolator(x[0:4], atmtype=atmtype)
 
     #Create synthetic spectrum
     start = ranges[0][0]
     end = ranges[-1][-1]
     _update_par_synth(start, end, options=options)
     _run_moog(driver='synth')
-    x, y = _read_moog('smooth.out')
+    x, y = _read_raw_moog('summary.out')
 
     spec = []
     for i, ri in enumerate(ranges):
@@ -609,7 +587,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', ranges=None, results='summary.ou
                 w_e = x_synth[-1] + (dwave*((ex_points+2)/2))
                 _update_par_synth(w_s, w_e, options=options)
                 _run_moog(driver='synth')
-                x_synth, y_synth = _read_moog('smooth.out')
+                x_synth, y_synth = _read_raw_moog('summary.out')
 
             else:
                 ex_points += 1
@@ -617,7 +595,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', ranges=None, results='summary.ou
                 w_e = x_synth[-1] + (dwave*((ex_points+2)/2))
                 _update_par_synth(w_s, w_e, options=options)
                 _run_moog(driver='synth')
-                x_synth, y_synth = _read_moog('smooth.out')
+                x_synth, y_synth = _read_raw_moog('summary.out')
         spec.append(broadening(x_synth, y_synth, vsini, vmac, resolution=options['resolution'], epsilon=options['limb']))
 
     # Gather all individual spectra to one
