@@ -5,7 +5,7 @@ from __future__ import division
 import os
 from itertools import islice
 import numpy as np
-from synthetic import broadening, _read_raw_moog, _read_moog
+from synthetic import broadening, _read_raw_moog
 
 kurucz95 = {'teff': (3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000,
                      6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000, 8250, 8500,
@@ -412,11 +412,11 @@ def _update_par_synth(start_wave, end_wave, **kwargs):
                     "synlimits\n"\
                     "      %s      %s       %s      %s\n"\
                     "plotpars          %s\n"\
-                    "damping        %s\n"    % (default_kwargs['terminal'],
-                    default_kwargs['model_in'], default_kwargs['summary'], out,
-                    kwargs['options']['plotpars'], start_wave, end_wave,
-                    kwargs['options']['step_wave'], kwargs['options']['step_flux'],
-                    kwargs['options']['plotpars'], kwargs['options']['damping'])
+                    "damping        %s\n" % (default_kwargs['terminal'],
+                                             default_kwargs['model_in'], default_kwargs['summary'], out,
+                                             kwargs['options']['plotpars'], start_wave, end_wave,
+                                             kwargs['options']['step_wave'], kwargs['options']['step_flux'],
+                                             kwargs['options']['plotpars'], kwargs['options']['damping'])
 
     # Fill the keyword arguments with the defaults if they don't exist already
     for key, value in default_kwargs.iteritems():
@@ -496,7 +496,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
     from interpolation import interpolator
     # Create an atmosphere model from input parameters
     teff, logg, feh, _ = x
-    _, x = interpolator(x, atmtype=atmtype)
+    _, x = interpolator(x, atmtype=atmtype, result=True)
 
     # Run MOOG and get the slopes and abundaces
     _run_moog(par=par, driver=driver)
@@ -550,9 +550,9 @@ def fun_moog_synth(x, atmtype, par='batch.par', ranges=None, results='summary.ou
     from interpolation import interpolator
     # Create an atmosphere model from input parameters
     teff, logg, feh, _, vmac, vsini = x
-    _, x = interpolator(x[0:4], atmtype=atmtype)
+    interpolator(x[0:4], atmtype=atmtype)
 
-    #Create synthetic spectrum
+    # Create synthetic spectrum
     start = ranges[0][0]
     end = ranges[-1][-1]
     _update_par_synth(start, end, options=options)
@@ -561,8 +561,8 @@ def fun_moog_synth(x, atmtype, par='batch.par', ranges=None, results='summary.ou
 
     spec = []
     for i, ri in enumerate(ranges):
-        x_synth = x[(x>ri[0]) & (x<ri[1])]
-        y_synth = y[(x>ri[0]) & (x<ri[1])]
+        x_synth = x[(x > ri[0]) & (x < ri[1])]
+        y_synth = y[(x > ri[0]) & (x < ri[1])]
 
         # Check for enough points for vmac
         # Define central wavelength
