@@ -176,7 +176,7 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
 
             # Get the initial grid models
             logger.info('Interpolation of model...')
-            _ = interpolator(params=initial, atmtype=options['model'])
+            interpolator(params=initial, atmtype=options['model'])
             logger.info('Interpolation successful.')
             _run_moog()
 

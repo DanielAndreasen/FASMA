@@ -119,7 +119,7 @@ if __name__ == '__main__':
     lines = pd.read_csv(fname, skiprows=2, delimiter=r'\s+', names=['WL', 'num', 'EP', 'loggf', 'ele', 'EW'])
 
     params = [5777, 4.44, 0.00, 1.00]
-    _ = interpolator(params=params, atmtype=args.model, save=True)
+    interpolator(params=params, atmtype=args.model, save=True)
 
     cols = ['WL', 'num', 'EP', 'loggf', 'EW']
     fmt2 = ('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f')

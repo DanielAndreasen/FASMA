@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
     # Interpolate and transform models
     x = (args.teff, args.logg, args.feh, args.vmicro)
-    _ = interpolator(params=x)
+    interpolator(params=x)
 
     # Update the batch file if a new linelist is used
     _update_batch(args.linelist)
