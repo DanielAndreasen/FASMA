@@ -25,7 +25,7 @@ def read_model(fname):
     return model
 
 
-def interpolator(params, save=True, atmtype='kurucz95'):
+def interpolator(params, save=True, atmtype='kurucz95', result=None):
     '''This is a new approach based on a scipy interpolator.
     Resembles the original interpolator we used but with a change
 
@@ -86,7 +86,8 @@ def interpolator(params, save=True, atmtype='kurucz95'):
     newatm = np.hstack((newatm, vt_array[:, np.newaxis]))
     if save:
         save_model(newatm, params, type=atmtype)
-    return newatm, params
+    if result:
+        return newatm, params
 
 
 def save_model(model, params, type='kurucz95', fout='out.atm'):
