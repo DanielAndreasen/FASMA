@@ -7,6 +7,7 @@ PyYAML
 statsmodels
 patsy
 argparse
-pandas
+pandas>=0.17.0
 isochrones
+PyAstronomy
 # emcee
