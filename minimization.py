@@ -3,6 +3,7 @@
 
 # My imports
 from __future__ import division
+#from __future__ import print_function
 import numpy as np
 from copy import copy
 import time
@@ -498,11 +499,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         err = np.zeros(len(y)) + y_obserr
         status = 0
         #Print parameters at each function call
-        with open('summary.out', 'r') as f:
-            f.readline()
-            model_info = f.readline()
-        model_info = re.sub('                              ', ' ', model_info)
-        print(model_info)
+        print('   Teff:{:8.1f}   logg: {:1.2f}   [Fe/H]: {:1.2f}   vt: {:1.2f}   vmac: {:1.2f}   vsini: {:1.2f}'.format(*p))
         return([status, (y-ymodel)/err])
 
 
