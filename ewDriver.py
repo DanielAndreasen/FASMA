@@ -16,7 +16,20 @@ from minimization import Minimize
 
 
 def _getSpt(spt):
-    """Get the spectral type from a string like 'F5V'."""
+    """Get the spectral type from a string like 'F5V'.
+
+    Input
+    -----
+    spt : str
+      The spectral type given in the form: F5V
+
+    Output
+    ------
+    teff : int
+      The effective temperature corresponding to the spectral type
+    logg : float
+      The surface gravity corresponding to the spectral type
+    """
     if len(spt) > 4:
         raise ValueError('Spectral type most be of the form: F8V')
     if '.' in spt:
@@ -42,7 +55,24 @@ def _getSpt(spt):
 
 
 def _getMic(teff, logg, feh):
-    """Calculate micro turbulence."""
+    """Calculate micro turbulence based on emperical relations.
+    For dwarfs (logg>=3.95) we use the relation by Tsantaki 2013,
+    and for giants (logg<3.95) we use the relation by Adibekyan 2015
+
+    Input
+    -----
+    teff : int
+      The effective temperature
+    logg : float
+      The surface gravity
+    feh : float
+      The metallicity ([Fe/H] notation)
+
+    Output
+    ------
+    vt : float
+      The microturbulence
+    """
     if logg >= 3.95:  # Dwarfs Tsantaki 2013
         mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
         return round(mic, 2)
@@ -52,7 +82,23 @@ def _getMic(teff, logg, feh):
 
 
 def _tmcalc(linelist):
-    """Initial guess estimate
+    """Initial guess on atmospheric parameters. Estimate based on TMCalc
+
+    Input
+    -----
+    linelist : str
+      The raw output from ARES
+
+    Output
+    ------
+    teff : int
+      The effective temperature
+    logg : float
+      Solar surface gravity, 4.44. TMCalc can not give an estimate on this
+    feh : float
+      The metallicity ([Fe/H] notation)
+    vt : float
+      The microturbulence calculated from the emperical relation in _getMic
     """
     import sys
     sys.path.append('TMCALC/tmcalc_cython')
@@ -74,7 +120,20 @@ def _tmcalc(linelist):
 
 
 def _renaming(linelist, converged):
-    """Save the output in a file related to the linelist"""
+    """Save the output in a file related to the linelist.
+
+    Input
+    -----
+    linelist : str
+      The PATH for the line list
+    converged : bool
+      True if the minimization converged, False otherwise
+
+    Output
+    ------
+    results/<linelist>(.NC).out : file
+      Copy the final summary.out to this file
+    """
     if converged:
         copyfile('summary.out', 'results/%s.out' % linelist)
     else:
@@ -82,7 +141,18 @@ def _renaming(linelist, converged):
 
 
 def _options(options=None):
-    """Reads the options inside the config file"""
+    """Reads the options inside the config file.
+
+    Input
+    -----
+    options : str (optional)
+      The line from the configuration file with the user options
+
+    Output
+    ------
+    defaults : dict
+      A dictionary with all the options for the EW method.
+    """
     defaults = {'spt': False,
                 'weights': 'null',
                 'model': 'kurucz95',
@@ -131,8 +201,18 @@ def _output(overwrite=None, header=None, parameters=None):
 
     Input
     -----
-    overwrite - Overwrite the file
-    header    - Only use True if this is for the file to be created
+    overwrite : bool
+      Overwrite the results.csv file
+    header : bool
+      Only use True if this is for the file to be created
+    parameters : list
+      The parameters for the star to be saved
+
+    Output
+    ------
+    results.csv : file
+      If overwrite is True, then make a new file, otherwise append the results
+      to this file
     """
     if header:
         hdr = ['linelist', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
@@ -152,7 +232,20 @@ def _output(overwrite=None, header=None, parameters=None):
 
 
 def _setup(line):
-    """Do the setup with initial parameters and options"""
+    """Do the setup with initial parameters and options.
+
+    Input
+    -----
+    line : list
+      A line from the configuration file after being split at spaces
+
+    Output
+    ------
+    initial : list
+      The initial parameters for a given star
+    options : dict
+      The options to use for a given star
+    """
     if len(line) == 1:
         initial = [5777, 4.44, 0.00, 1.00]
         options = _options()
@@ -177,11 +270,33 @@ def _setup(line):
 
 
 def _outlierRunner(type, linelist, parameters, options):
-    """Remove the potential outliers based on a given type
+    """Remove the potential outliers based on a given method. After outliers
+    are removed, then restarts the minimization routine at the previous best
+    found parameters.
 
     Input
     -----
-    type - Can be '1Iter', '1Once', 'allIter', or 'allOnce'
+    type : str
+      The method to remove outliers (above n sigma).
+       '1Iter': Remove 1 outlier iteratively.
+       '1Once': Remove 1 outlier once.
+       'allIter': Remove all outliers iteratively.
+       'allOnce': Remove all outliers once.
+    linelist : str
+      The name of the line list
+    parameters : list
+      The parameters (used as a starting point for the minimization when it
+      restarts)
+    options : dict
+      The options dictionary
+
+    Output
+    ------
+    linelist : str
+      The new name of the line list contains a _outlier.moog ending. Only
+      applies if the were removed outliers.
+    parameters : list
+      The new parameters after outlier removal
     """
     tmpll = 'linelist/tmplinelist.moog'
     copyfile('linelist/'+linelist, tmpll)
@@ -254,7 +369,20 @@ def _outlierRunner(type, linelist, parameters, options):
 
 def hasOutlier(MOOGv=2014, n=3):
     """Function that reads the summary.out file and return a dictionary
-    with key being the deviation (above 3 sigma), and value the wavelength"""
+    with key being the deviation (above n sigma), and value the wavelength.
+
+    Input
+    -----
+    MOOGv : int
+      The version of MOOG (default: 2014)
+    n : float
+      The number of sigma for the outlier identification (default: 3)
+
+    Output
+    ------
+    d : dict
+      A dictionary with {n*deviation: wavelength}
+    """
     idx = 1 if MOOGv > 2013 else 0
     s = Readmoog(version=MOOGv)
     d = s.fe_statistics()
@@ -281,11 +409,19 @@ def hasOutlier(MOOGv=2014, n=3):
 
 
 def removeOutlier(fname, wavelength):
-    """Remove an outlier from the linelist fname, and save it in the same name
+    """Remove an outlier from a line list, and save it in the same name
 
-    Input:
-    fname      -- Name of the linelist
-    wavelength -- The wavelength of the line to remove
+    Input
+    -----
+    fname : str
+      Name of the line list
+    wavelength : float
+      The wavelength of the line to remove
+
+    Output
+    ------
+    fname : file
+      Remove the line from the line list and save it in the same name
     """
     wavelength = str(round(wavelength, 2))
     with open(fname, 'r') as lines:
@@ -299,15 +435,21 @@ def removeOutlier(fname, wavelength):
 
 
 def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
-    """The function that glues everything together
+    """The function that glues everything together for the EW method
 
-    Input:
-    starLines   -   Configuration file (default: StarMe.cfg)
-    overwrite   -   Overwrite the results.csv file (default: False)
+    Input
+    -----
+    starLines : str
+      Configuration file (default: StarMe_ew.cfg)
+    overwrite : bool
+      Overwrite the results.csv file (default: False)
 
-    Output:
-    <linelist>.(NC).out     -   NC=not converged.
-    results.csv             -   Easy readable table with results from many linelists
+    Output
+    ------
+    <linelist>.(NC).out : file
+      The output line list; NC=not converged.
+    results.csv : file
+      Easy readable table with results from many linelists
     """
     try:  # Cleaning from previous runs
         os.remove('captain.log')
