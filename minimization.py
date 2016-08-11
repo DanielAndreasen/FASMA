@@ -3,7 +3,6 @@
 
 # My imports
 from __future__ import division
-#from __future__ import print_function
 import numpy as np
 from copy import copy
 import time
@@ -487,10 +486,10 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         p = bounds(9, p, model)
         p = bounds(11, p, model)
 
-        if fix_vt == 1:
-            p[3] = _getMic(p[0], p[1], p[2])
-        if fix_vmac == 1:
-            p[4] = _getMac(p[0], p[1])
+        #if fix_vt == 1:
+        #    p[3] = _getMic(p[0], p[1], p[2])
+        #if fix_vmac == 1:
+        #    p[4] = _getMac(p[0], p[1])
 
         x_s, y_s = func(p, atmtype=model, driver='synth', ranges=ranges, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
@@ -529,7 +528,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
     dof = len(y_obs)-len(m.params)
     parameters = convergence_info(m, parinfo, dof)
     end_time = time.time()-start_time
-    print('Calculations finished in %s sec' % int(end_time))
+    print('Minimization finished in %s sec' % int(end_time))
     #Final synthetic spectrum
     x_s, y_s = func(m.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
     sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)

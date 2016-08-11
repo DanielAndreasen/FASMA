@@ -258,6 +258,9 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
                         options['step_wave'] = wave_step(dl_obs)
+                        # Exclude some continuum points
+                        y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
+                        x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
                         params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
@@ -335,6 +338,9 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
                         options['step_wave'] = wave_step(dl_obs)
+                        # Exclude some continuum points
+                        y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
+                        x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
                         params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         if options['save']:
