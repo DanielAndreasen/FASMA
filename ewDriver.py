@@ -196,17 +196,24 @@ def _options(options=None):
         return defaults
 
 
-def _output(overwrite=None, header=None, parameters=None):
+def _output(linelist=None, parameters=None, converged=None, options=None,
+            overwrite=None, header=None):
     """Create the output file 'results.csv'
 
     Input
     -----
+    linelist : str
+      The line list for the star
+    parameters : list
+      The parameters for the star to be saved
+    converged : bool
+      True if the minimization routine converged, False otherwise
+    options : dict
+      The options dictionary
     overwrite : bool
       Overwrite the results.csv file
     header : bool
       Only use True if this is for the file to be created
-    parameters : list
-      The parameters for the star to be saved
 
     Output
     ------
@@ -227,8 +234,13 @@ def _output(overwrite=None, header=None, parameters=None):
                 with open('results.csv', 'w') as output:
                     output.write('\t'.join(hdr)+'\n')
     else:
+        tmp = [linelist] + parameters + [converged, options['fix_teff'],
+                                         options['fix_logg'], options['fix_feh'],
+                                         options['fix_vt'], options['outlier']] +\
+            [options['weights'], options['model'], options['refine'],
+             options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
         with open('results.csv', 'a') as output:
-            output.write('\t'.join(map(str, parameters))+'\n')
+            output.write('\t'.join(map(str, tmp))+'\n')
 
 
 def _setup(line):
@@ -325,7 +337,7 @@ def _outlierRunner(type, linelist, parameters, options):
             wavelength = outliers[max(outliers.keys())]
             removeOutlier(tmpll, wavelength)
             print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-            print('Restarting the minimization routine...')
+            print('Restarting the minimization routine...\n')
             function = Minimize(parameters, fun_moog, **options)
             parameters, converged = function.minimize()
             outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
@@ -338,7 +350,7 @@ def _outlierRunner(type, linelist, parameters, options):
                 removeOutlier(tmpll, wavelength)
                 Noutlier += 1
                 print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-            print('Restarting the minimization routine...')
+            print('Restarting the minimization routine...\n')
             function = Minimize(parameters, fun_moog, **options)
             parameters, converged = function.minimize()
             outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
@@ -351,7 +363,7 @@ def _outlierRunner(type, linelist, parameters, options):
                 removeOutlier(tmpll, wavelength)
                 Noutlier += 1
                 print('Removing line: %.2f. Outliers removed: %d' % (wavelength, Noutlier))
-            print('Restarting the minimization routine...')
+            print('Restarting the minimization routine...\n')
             function = Minimize(parameters, fun_moog, **options)
             parameters, converged = function.minimize()
             outliers = hasOutlier(MOOGv=options['MOOGv'], n=options['sigma'])
@@ -434,6 +446,310 @@ def removeOutlier(fname, wavelength):
         f.writelines(fout)
 
 
+def genStar(starLines):
+    """A generator for the configuration file.
+
+    Input
+    -----
+    starLines : str
+      The name of the configuration file
+
+    Output
+    ------
+    initial : list
+      The initial parameters for the minimization
+    options : dict
+      The options dictionary
+    """
+
+    lines = open(starLines, 'r')
+    for line in lines:
+        if not line[0].isalnum():
+            # Header
+            continue
+        line = line.strip()
+        line = line.split(' ')
+        if len(line) not in [1, 2, 5, 6]:
+            # Not the expected format
+            continue
+        initial, options = _setup(line)
+        yield initial, options, line
+
+
+def _prepare(linelist, initial, options):
+    """Prepare the run with setup and first interpolation.
+
+    Input
+    -----
+    linelist : str
+      The line list to be used
+    initial : list
+      The initial parameters for the minimization
+    options : dict
+      The options dictionary
+
+    Output
+    ------
+    options : dict
+      The updated options dictionary with the GUI keyword
+
+    If the line list does not exists the return None
+    """
+
+    if not os.path.isfile('linelist/%s' % linelist):
+        return None
+    else:
+        _update_par(line_list='linelist/%s' % linelist)
+
+    # Make the initial interpolation
+    interpolator(params=initial, atmtype=options['model'])
+
+    # Adjusting the options for the minimization routine
+    if __name__ == '__main__':
+        options['GUI'] = False  # Running batch mode
+    else:
+        options['GUI'] = True  # Running GUI mode
+
+    return options
+
+
+def _minizationRunner(initial, options):
+    """A function to run the minimization routine
+
+    Input
+    -----
+    initial : list
+      The initial parameters for the minimization
+    options : dict
+      The options dictionary
+
+    Output
+    ------
+    parameters : list
+      The best found parameters
+    converged : bool
+      True if the minimization routine converged, False otherwise
+    """
+    # Run the minimization routine first time
+    function = Minimize(initial, fun_moog, **options)
+    try:
+        parameters, converged = function.minimize()
+        return parameters, converged
+    except ValueError:
+        print('No FeII lines were measured.')
+        print('Skipping to next linelist..\n')
+        return None
+
+
+def _teffrangeRunner(linelist, parameters, options):
+    """Adjust the line list if the temperature is too low for the normal
+    line list be Sousa+ 2008, to represent that of Tsantaki+ 2013.
+
+    Input
+    -----
+    linelist : str
+      The line list
+    parameters : list
+      The initial parameters for the minimization routine
+    options : dict
+      The options dictionary
+
+    Output
+    ------
+    linelist : str
+      The line list will have a new name if the outlier was removed
+    parameters : list
+      The initial parameters for the minimization routine
+    converged : bool
+      True if the minimization routine converged, False otherwise
+    """
+    d = np.loadtxt('rawLinelist/coolNormalDiff.lines')
+    ll = np.loadtxt('linelist/%s' % linelist, skiprows=1, usecols=(0,))
+    normalLL = np.in1d(ll, d)
+    if np.any(normalLL) and (parameters[0] < 5200):
+        print('Removing lines to compensate for low Teff\n')
+        for li in ll[normalLL]:
+            removeOutlier('linelist/%s' % linelist, li)
+
+        # Restart the minimization procedure from the last best point
+        parameters, converged = _minizationRunner(parameters, options)
+        if options['outlier']:
+            newName, parameters = _outlierRunner(options['outlier'], linelist, parameters, options)
+            linelist = newName
+    return linelist, parameters, converged
+
+
+def _autofixvtRunner(parameters, options):
+    """
+    Check and fix the microturbulence if it is close to the boundaries of the
+    allowed range, i.e. 0.05 < vt < 9.95, and with a big slope of abundance vs.
+    RW.
+
+    Input
+    -----
+    parameters : list
+      The initial parameters for the minimization routine
+    options : dict
+      The options dictionary
+
+    Output
+    ------
+    parameters : list
+      The initial parameters for the minimization routine now with fixed vt
+    converged : bool
+      True if the minimization routine converged, False otherwise
+    """
+    _, _, RWs, _, _ = fun_moog(parameters, options['model'], weight=options['weights'], version=options['MOOGv'])
+    vt = parameters[-1]
+    if ((vt < 0.05) and (abs(RWs) > 0.050)) or ((vt > 9.95) and (abs(RWs) > 0.050)):
+        options['fix_vt'] = True
+        print('Running minimization with vt fixed...\n')
+        parameters, converged = _minizationRunner(parameters, options)
+        return parameters, converged
+    return parameters, True
+
+
+def _refineRunner(parameters, options):
+    """
+    Refine the parameters using stricter convergence criteria(66 percent stricter)
+
+    Input
+    -----
+    parameters : list
+      The initial parameters for the minimization routine
+    options : dict
+      The options dictionary
+
+    Output
+    ------
+    parameters : list
+      Final parameters obtained with the new convergence criteria
+    options : dict
+      The updated options dictionary with new convergence criteria
+    """
+
+    print('\nRefining the parameters with stricter convergence criteria...\n')
+    options['EPcrit'] = round(options['EPcrit']/3, 4)
+    options['RWcrit'] = round(options['RWcrit']/3, 4)
+    options['ABdiffcrit'] = round(options['ABdiffcrit']/3, 4)
+    p1, c = _minizationRunner(parameters, options)
+    if c:
+        print('Adjusting the final parameters...')
+        parameters = p1  # overwrite with new best results
+    return parameters, options
+
+
+def _loggCorrections(parameters):
+    """
+    Function that corrects the logg values using the light curve and
+    asteroseismic data. For additional documentation check Mortier et alu. 2014
+    This correction is valid for stars in the Teff interval:
+    5000 < Teff < 6500 K
+
+    Input
+    -----
+    parameters : list
+      The initial parameters for the minimization routine
+    Output
+    ------
+    parameters : list
+      The parameters with the corrected logg
+    """
+    parameters = list(parameters)
+
+    # Lightcurve corrected logg
+    loggLC = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
+    error_loggLC = round(np.sqrt((4.57e-4*parameters[1])**2 + (parameters[3])**2), 2)
+    # Asteroseismic corrected logg
+    loggastero = round(parameters[2] - 3.89E-4*parameters[0] + 2.10, 2)
+    error_loggastero = round(np.sqrt((3.89e-4*parameters[1])**2 + (parameters[3])**2), 2)
+
+    parameters.append(loggastero)
+    parameters.append(error_loggastero)
+    parameters.append(loggLC)
+    parameters.append(error_loggLC)
+    return parameters
+
+
+def printToScreen(parameters, converged):
+    """
+    Function which prints the current parameters of the minimization routine
+
+    Input
+    -----
+    parameters : list
+      The current parameters of the minimization routine
+    converged : bool
+      True if the minimization routine converged, False otherwise
+
+    Output
+    ------
+    Print to screen Teff, logg, [Fe/H], vt and whether it converged
+    """
+    if __name__ == '__main__':
+        if converged:
+            print('\nCongratulation, you have won! Your final parameters are:')
+        else:
+            print('\nSorry, you did not win. However, your final parameters are:')
+        try:
+            print(u' Teff:{:>8d}\u00B1{:d}\n logg:{:>8.2f}\u00B1{:1.2f}\n [Fe/H]:{:>+6.2f}\u00B1{:1.2f}\n vt:{:>10.2f}\u00B1{:1.2f}\n\n\n\n'.format(*parameters))
+        except UnicodeEncodeError:
+            print(' Teff:{:>8d}({:d})\n logg:{:>8.2f}({:1.2f})\n [Fe/H]:{:>+6.2f}({:1.2f})\n vt:{:>10.2f}({:1.2f})\n\n\n\n'.format(*parameters))
+    elif __name__ == 'ewDriver':
+        if converged:
+            print('\nCongratulation, you have won! Your final parameters are:')
+        else:
+            print('\nSorry, you did not win. However, your final parameters are:')
+        print(u' Teff:{:>8d}+/-{:d}\n logg:{:>8.2f}+/-{:1.2f}\n [Fe/H]:{:>+6.2f}+/-{:1.2f}\n vt:{:>10.2f}+/-{:1.2f}\n\n\n\n'.format(*parameters))
+
+
+def sanityCheck(logger):
+    """Check if all folders exists.
+
+    Input
+    -----
+    logger : obj
+      The logger object for the log file
+
+    Output
+    ------
+    logger : obj
+      The updated logger object if some tests did not pass
+    """
+    if not os.path.isdir('linelist'):
+        logger.error('Error: The directory linelist does not exist!')
+        os.mkdir('linelist')
+        logger.info('linelist directory was created\n')
+        raise IOError('linelist directory did not exist! Put the linelists inside that directory, please.')
+
+    # Create results directory
+    if not os.path.isdir('results'):
+        os.mkdir('results')
+        logger.info('results directory was created')
+
+
+def _logging():
+    """Create the logger object for the log file
+
+    Output
+    ------
+    logger : obj
+      The logger object for the log file
+    """
+    # try:  # Cleaning from previous runs
+    #     os.remove('captain.log')
+    # except OSError:
+    #     pass
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler('captain.log')
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
+
+
 def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
     """The function that glues everything together for the EW method
 
@@ -451,174 +767,61 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
     results.csv : file
       Easy readable table with results from many linelists
     """
-    try:  # Cleaning from previous runs
-        os.remove('captain.log')
-    except OSError:
-        pass
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler('captain.log')
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
-    # Check if there is a directory called linelist, if not create it and ask the user to put files there
-    if not os.path.isdir('linelist'):
-        logger.error('Error: The directory linelist does not exist!')
-        os.mkdir('linelist')
-        logger.info('linelist directory was created')
-        raise IOError('linelist directory did not exist! Put the linelists inside that directory, please.')
-
-    # Create results directory
-    if not os.path.isdir('results'):
-        os.mkdir('results')
-        logger.info('results directory was created')
+    logger = _logging()
+    try:
+        sanityCheck(logger)
+    except IOError, e:
+        raise IOError(e)
 
     # Creating the output file
     _output(overwrite=overwrite, header=True)
 
-    with open(starLines, 'r') as lines:
-        for line in lines:
-            if not line[0].isalnum():
-                logger.debug('Skipping header: %s' % line.strip())
-                continue
-            logger.info('Line list: %s' % line.strip())
-            line = line.strip()
-            line = line.split(' ')
-            if len(line) not in [1, 2, 5, 6]:
-                logger.error('Could not process information for this line list: %s' % line)
-                continue
-            # Check if the linelist is inside the directory if not log it and pass to next linelist
-            if not os.path.isfile('linelist/%s' % line[0]):
-                logger.error('Error: linelist/%s not found.' % line[0])
-                parameters = None
-                continue
-            else:
-                _update_par(line_list='linelist/%s' % line[0])
+    for (initial, options, line) in genStar(starLines):
+        logger.info('Start with line list: %s' % line[0])
+        logger.info('Initial parameters: {:d}, {:.2f}, {:.2f}, {:.2f}'.format(*initial))
+        options = _prepare(line[0], initial, options)
+        if options is None:
+            continue  # The line list does not exists
 
-            initial, options = _setup(line)
-            logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
-            if options['fix_teff']:
-                logger.info('Effective temperature fixed at: %i' % initial[0])
-            elif options['fix_logg']:
-                logger.info('Surface gravity fixed at: %s' % initial[1])
-            elif options['fix_feh']:
-                logger.info('Metallicity fixed at: %s' % initial[2])
-            elif options['fix_vt']:
-                logger.info('Micro turbulence fixed according to an emperical relation')
+        logger.info('Starting the initial minimization routine...')
+        status = _minizationRunner(initial, options)
+        if status is None:
+            logger.error('The minimization routine did not finish succesfully.')
+            continue  # Problem with the minimization routine
+        else:
+            parameters, converged = status
+            logger.info('The minimization routine finished succesfully.')
 
-            # Setting the models to use
-            if options['model'] not in ['kurucz95', 'apogee_kurucz', 'marcs']:
-                logger.error('Your request for type: %s is not available' % options['model'])
-                continue
+        if options['outlier']:
+            logger.info('Removing outliers.')
+            newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
+            line[0] = newName
 
-            # Get the initial grid models
-            logger.info('Initial interpolation of model...')
-            _ = interpolator(params=initial, atmtype=options['model'])
-            logger.info('Interpolation successful.')
+        if options['teffrange']:
+            logger.info('Correcting the line list, if necessary, for low Teff.')
+            linelist, parameters, converged = _teffrangeRunner(line[0], parameters, options)
+            line[0] = linelist
 
-            # Adjusting the options for the minimization routine
-            if __name__ == '__main__':
-                options['GUI'] = False  # Running batch mode
-            else:
-                options['GUI'] = True  # Running GUI mode
+        if options['autofixvt']:
+            logger.info('Fixing vt if necessary.')
+            parameters, converged = _autofixvtRunner(parameters, options)
 
-            logger.info('Starting the minimization procedure...')
-            function = Minimize(initial, fun_moog, **options)
-            try:
-                parameters, converged = function.minimize()
-            except ValueError:
-                print('No FeII lines were measured.')
-                print('Skipping to next linelist..\n')
-                logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
-                continue
+        if options['refine'] and converged:
+            logger.info('Refining the parameters.')
+            parameters = _refineRunner(parameters, options)
 
-            if options['outlier']:
-                newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
-                line[0] = newName
+        logger.info('Final parameters: {:d}, {:.2f}, {:.2f}, {:.2f}\n'.format(*parameters))
+        _renaming(line[0], converged)
+        parameters = error(line[0], converged, parameters,
+                           atmtype=options['model'], version=options['MOOGv'],
+                           weights=options['weights'])
 
-            if options['teffrange']:
-                d = np.loadtxt('rawLinelist/coolNormalDiff.lines')
-                ll = np.loadtxt('linelist/%s' % line[0], skiprows=1, usecols=(0,))
-                normalLL = np.in1d(ll, d)
-                if np.any(normalLL) and (parameters[0] > 7000):
-                    logger.warning('Effective temperature probably to high for this line list')
-                elif np.any(normalLL) and (parameters[0] < 5200):
-                    logger.info('Removing lines from the line list to compensate for the low Teff')
-                    print('Removing lines to compensate for low Teff\n')
-                    for li in ll[normalLL]:
-                        removeOutlier('linelist/%s' % line[0], li)
+        parameters = _loggCorrections(parameters)
 
-                    # Restart the minimization procedure from the last best point
-                    function = Minimize(parameters, fun_moog, **options)
-                    try:
-                        parameters, converged = function.minimize()
-                    except ValueError:
-                        print('No FeII lines were measured.')
-                        print('Skipping to next linelist..\n')
-                        logger.error('No FeII lines found for %s. Skipping to next linelist' % line[0])
-                    if options['outlier']:
-                        newName, parameters = _outlierRunner(options['outlier'], line[0], parameters, options)
-                        line[0] = newName
+        _output(linelist=line[0], parameters=parameters, converged=converged, options=options)
 
-            if options['autofixvt'] and (not converged):
-                logger.info('vt is auto fixed')
-                _, _, RWs, _, _ = fun_moog(parameters, options['model'], weight=options['weights'], version=options['MOOGv'])
-                vt = parameters[-1]
-                if ((vt < 0.05) and (abs(RWs) > 0.050)) or ((vt > 9.95) and (abs(RWs) > 0.050)):
-                    options['fix_vt'] = True
-                    function = Minimize(parameters, fun_moog, **options)
-                    parameters, converged = function.minimize()
-
-            # Refine the parameters
-            if converged and options['refine']:
-                logger.info('Refining the parameters')
-                print('\nRefining the parameters')
-                print('This might take some time...')
-                options['EPcrit'] = round(options['EPcrit']/3, 4)
-                options['RWcrit'] = round(options['RWcrit']/3, 4)
-                options['ABdiffcrit'] = round(options['ABdiffcrit']/3, 4)
-                function = Minimize(parameters, fun_moog, **options)
-                p1, c = function.minimize()
-                if c:
-                    print('Adjusting the final parameters')
-                    parameters = p1  # overwrite with new best results
-            logger.info('Finished minimization procedure')
-
-            _renaming(line[0], converged)
-            parameters = error(line[0], converged, parameters, atmtype=options['model'], version=options['MOOGv'], weights=options['weights'])
-            parameters = list(parameters)
-            """Correct logg according to Mortier et al. 2014 using light curve and asteroseismic data
-            Valid for 5000 < teff < 6500"""
-            loggLC = round(parameters[2] - 4.57E-4*parameters[0] + 2.59, 2)
-            error_loggLC = round(np.sqrt((4.57e-4*parameters[1])**2 + (parameters[3])**2), 2)
-            loggastero = round(parameters[2] - 3.89E-4*parameters[0] + 2.10, 2)
-            error_loggastero = round(np.sqrt((3.89e-4*parameters[1])**2 + (parameters[3])**2), 2)
-            parameters.append(loggastero)
-            parameters.append(error_loggastero)
-            parameters.append(loggLC)
-            parameters.append(error_loggLC)
-
-            tmp = [line[0]] + parameters + [converged, options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['outlier']]+[options['weights'], options['model'], options['refine'], options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
-            _output(parameters=tmp)
-            logger.info('Saved results to: results.csv')
-
-            if __name__ == '__main__':
-                if converged:
-                    print('\nCongratulation, you have won! Your final parameters are:')
-                else:
-                    print('\nSorry, you did not win. However, your final parameters are:')
-                try:
-                    print(u' Teff:{:>8d}\u00B1{:d}\n logg:{:>8.2f}\u00B1{:1.2f}\n [Fe/H]:{:>+6.2f}\u00B1{:1.2f}\n vt:{:>10.2f}\u00B1{:1.2f}\n\n\n\n'.format(*parameters))
-                except UnicodeEncodeError:
-                    print(' Teff:{:>8d}({:d})\n logg:{:>8.2f}({:1.2f})\n [Fe/H]:{:>+6.2f}({:1.2f})\n vt:{:>10.2f}({:1.2f})\n\n\n\n'.format(*parameters))
-            elif __name__ == 'ewDriver':
-                if converged:
-                    print('\nCongratulation, you have won! Your final parameters are:')
-                else:
-                    print('\nSorry, you did not win. However, your final parameters are:')
-                print(u' Teff:{:>8d}+/-{:d}\n logg:{:>8.2f}+/-{:1.2f}\n [Fe/H]:{:>+6.2f}+/-{:1.2f}\n vt:{:>10.2f}+/-{:1.2f}\n\n\n\n'.format(*parameters))
+        printToScreen(parameters, converged)
     return parameters
 
 

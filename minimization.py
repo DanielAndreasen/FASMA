@@ -72,7 +72,7 @@ class Minimize:
         self.slopeEP = 0.00 if self.fix_teff else self.slopeEP
         self.slopeRW = 0.00 if self.fix_vt else self.slopeRW
         self.Abdiff = 0.00 if self.fix_logg else self.Abdiff
-        self.x0[2] = fe_input+7.47 if not self.fix_feh else self.x0[2]
+        fe_input = self.x0[2]+7.47 if self.fix_feh else fe_input
 
         cond1 = abs(self.slopeRW) <= self.RWcrit
         cond2 = abs(self.Abdiff) <= self.ABdiffcrit
@@ -498,7 +498,11 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         err = np.zeros(len(y)) + y_obserr
         status = 0
         #Print parameters at each function call
-        print('   Teff:{:8.1f}   logg: {:1.2f}   [Fe/H]: {:1.2f}   vt: {:1.2f}   vmac: {:1.2f}   vsini: {:1.2f}'.format(*p))
+        with open('summary.out', 'r') as f:
+            f.readline()
+            model_info = f.readline()
+        model_info = re.sub('                              ', ' ', model_info)
+        print(model_info)
         return([status, (y-ymodel)/err])
 
 
