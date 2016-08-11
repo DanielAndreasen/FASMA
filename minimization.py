@@ -334,14 +334,6 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
     from scipy.interpolate import InterpolatedUnivariateSpline
     from synthetic import save_synth_spec
 
-    model = kwargs['model']
-    y_obserr = 1.0/(2.0*kwargs['snr']) #Gaussian noise
-    fix_teff = 1 if kwargs['fix_teff'] else 0
-    fix_logg = 1 if kwargs['fix_logg'] else 0
-    fix_feh = 1 if kwargs['fix_feh'] else 0
-    fix_vt = 1 if kwargs['fix_vt'] else 0
-    fix_vmac = 1 if kwargs['fix_vmac'] else 0
-    fix_vsini = 1 if kwargs['fix_vsini'] else 0
 
     def bounds(i, p, model):
         '''Smart way to calculate the bounds of each of parameters'''
@@ -474,7 +466,6 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         (y-ymodel)/err : ndarray
           Model deviation from observation
         '''
-        import re
 
         # Definition of the Model spectrum to be iterated
         options = kwargs['options']
@@ -486,10 +477,10 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         p = bounds(9, p, model)
         p = bounds(11, p, model)
 
-        #if fix_vt == 1:
-        #    p[3] = _getMic(p[0], p[1], p[2])
-        #if fix_vmac == 1:
-        #    p[4] = _getMac(p[0], p[1])
+        if fix_vt == 1 and options['flag_vt']:
+            p[3] = _getMic(p[0], p[1], p[2])
+        if fix_vmac == 1 and options['flag_vmac']:
+            p[4] = _getMac(p[0], p[1])
 
         x_s, y_s = func(p, atmtype=model, driver='synth', ranges=ranges, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
@@ -498,13 +489,18 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         err = np.zeros(len(y)) + y_obserr
         status = 0
         #Print parameters at each function call
-        with open('summary.out', 'r') as f:
-            f.readline()
-            model_info = f.readline()
-        model_info = re.sub('                              ', ' ', model_info)
-        print(model_info)
+        print('   Teff:{:8.1f}   logg: {:1.2f}   [Fe/H]: {:1.2f}   vt: {:1.2f}   vmac: {:1.2f}   vsini: {:1.2f}'.format(*p))
         return([status, (y-ymodel)/err])
 
+
+    model = kwargs['model']
+    y_obserr = 1.0/(kwargs['snr']) #Gaussian noise
+    fix_teff = 1 if kwargs['fix_teff'] else 0
+    fix_logg = 1 if kwargs['fix_logg'] else 0
+    fix_feh = 1 if kwargs['fix_feh'] else 0
+    fix_vt = 1 if kwargs['fix_vt'] else 0
+    fix_vmac = 1 if kwargs['fix_vmac'] else 0
+    fix_vsini = 1 if kwargs['fix_vsini'] else 0
 
     # Set PARINFO structure for all 6 free parameters for mpfit
     # Teff, logg, feh, vt, vmac, vsini
@@ -563,6 +559,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
 
     parameters = parameters + [round(chi2,2)]
     return parameters, x_obs, flux_final
+
 
 
 def mcmc_synth(x0, observed, limits):
