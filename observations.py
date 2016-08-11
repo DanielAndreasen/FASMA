@@ -51,8 +51,8 @@ def local_norm(obs_fname, r, snr, method='linear', plot=False):
     # f_max = flux_obs[index_max]
     # w_max = wave_obs[index_max]
     f_max = np.concatenate((f_max1, f_max2, f_max3))
-    f_max = f_max - noise
-    std = np.std(f_max, ddof=1)
+    f_max = f_max - (f_max*noise)
+    #std = np.std(f_max, ddof=1)
     w_max = np.concatenate((w_max1, w_max2, w_max3))
 
     if method == 'scalar':
