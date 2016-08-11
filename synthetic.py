@@ -338,8 +338,8 @@ def read_linelist(fname, intname='intervals.lst'):
     atomic : atomic data
     '''
 
-    if not os.path.isfile('rawLinelist/%s' % intname):
-        raise IOError('The interval list is not in the rawLinelist directory!')
+    if not os.path.isfile(intname):
+        raise IOError('The interval list is not in the correct place!')
 
     lines = pd.read_csv('rawLinelist/%s' % fname, skiprows=1, comment='#', delimiter='\t', usecols=range(6),
     names=['wl', 'elem', 'excit', 'loggf', 'vdwaals', 'Do'],
