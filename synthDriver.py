@@ -10,6 +10,7 @@ from utils import fun_moog_synth as func
 from observations import read_obs_intervals, plot
 from minimization import minimize_synth
 from synthetic import read_linelist, save_synth_spec
+import numpy as np
 
 
 def _getSpt(spt):
@@ -70,6 +71,8 @@ def _options(options=None):
                 'fix_vt': False,
                 'fix_vmac': False,
                 'fix_vsini': False,
+                'flag_vt': False,
+                'flag_vmac': False,
                 'plot': False,  # This is irrelevant with the batch.par value
                 'plot_res': False,
                 'damping': 1,
@@ -261,7 +264,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         # Exclude some continuum points
                         y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
                         x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
-                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
+                        params, x_final, y_final = minimize_synth(initial, x_obs_lpts, y_obs_lpts, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
                         options['fix_vsini'], options['model'], options['resolution'], options['snr']]
@@ -341,7 +344,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         # Exclude some continuum points
                         y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
                         x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
-                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
+                        params, x_final, y_final = minimize_synth(initial, x_obs_lpts, y_obs_lpts, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         if options['save']:
                             save_synth_spec(x_final, y_final, y_obs=y_obs, initial=initial, final=(params[0],params[2],params[4],params[6],params[8],params[10]), fname='final.spec', **options)
