@@ -128,8 +128,8 @@ def _output(overwrite=None, header=None, parameters=None):
     """
     if header:
         hdr = ['linelist', 'observations', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
-               'vt', 'vterr', 'chi2', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt',
-               'fixvmac', 'fixvsini', 'model', 'resolution', 'snr']
+               'vt', 'vterr', 'vmac', 'ervmac', 'vsini', 'ervsini', 'chi2', 'time', 'fixteff', 'fixlogg',
+               'fixfeh', 'fixvt', 'fixvmac', 'fixvsini', 'flag_vt', 'flag_vmac', 'model', 'resolution', 'snr']
         if overwrite:
             with open('results.csv', 'w') as output:
                 output.write('\t'.join(hdr)+'\n')
@@ -267,7 +267,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         params, x_final, y_final = minimize_synth(initial, x_obs_lpts, y_obs_lpts, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
-                        options['fix_vsini'], options['model'], options['resolution'], options['snr']]
+                        options['fix_vsini'], options['flag_vt'], options['flag_vmac'], options['model'], options['resolution'], options['snr']]
                         _output(parameters=tmp)
                         logger.info('Saved results to: results.csv')
                         if options['save']:
@@ -350,7 +350,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                             save_synth_spec(x_final, y_final, y_obs=y_obs, initial=initial, final=(params[0],params[2],params[4],params[6],params[8],params[10]), fname='final.spec', **options)
                             logger.info('Save final synthetic spectrum')
                         tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
-                        options['fix_vsini'], options['model'], options['resolution'], options['snr']]
+                        options['fix_vsini'], options['flag_vt'], options['flag_vmac'], options['model'], options['resolution'], options['snr']]
                         _output(parameters=tmp)
                         logger.info('Saved results to: results.csv')
 

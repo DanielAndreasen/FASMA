@@ -557,7 +557,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         chi2init = np.sum(chiinit)/dof
         print('%s This is your reduced chi2 value: initial: %s final: %s') % (i, round(chi2init,2), round(chi2final,2))
 
-    parameters = parameters + [round(chi2,2)]
+    parameters = parameters + [round(chi2,2)] + [int(end_time)]
     return parameters, x_obs, flux_final
 
 
