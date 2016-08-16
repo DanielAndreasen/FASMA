@@ -568,10 +568,7 @@ def fun_moog_synth(x, atmtype, par='batch.par', ranges=None, results='summary.ou
         # Define central wavelength
         lambda0 = (x_synth[0] + x_synth[-1]) / 2.0
         vmacro = vmac/(299792458.*1e-3)*lambda0
-
-        delta_wave = np.diff(x_synth).min()
-        range_wave = x_synth.ptp()
-        n_wave = int(range_wave/delta_wave)+1
+        n_wave = len(x_synth)
         dwave = x_synth[1]-x_synth[0]
         n_kernel = int(5*vmacro/dwave)
         if n_kernel % 2 == 0:
