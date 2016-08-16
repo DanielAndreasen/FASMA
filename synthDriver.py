@@ -7,9 +7,10 @@ import logging
 import os
 import yaml
 from utils import fun_moog_synth as func
-from observations import read_obs_intervals, plot
+from observations import read_obs_intervals, plot, snr
 from minimization import minimize_synth
 from synthetic import read_linelist, save_synth_spec
+import numpy as np
 
 
 def _getSpt(spt):
@@ -42,9 +43,15 @@ def _getMic(teff, logg, feh):
     """Calculate micro turbulence."""
     if logg >= 3.95:  # Dwarfs Tsantaki 2013
         mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
+        # Take care of negative values
+        if mic < 0:
+            return 0.3
         return round(mic, 2)
     else:  # Giants Adibekyan 2015
         mic = 2.72 - (0.457 * logg) + (0.072 * feh)
+        # Take care of negative values
+        if mic < 0:
+            return 0.3
         return round(mic, 2)
 
 
@@ -54,6 +61,9 @@ def _getMac(teff, logg):
     # 4.0 < logg < 4.6
     mac = 3.21 + (2.33 * (teff - 5777.) * (10**(-3)))
     + (2.00 * ((teff - 5777.)**2) * (10**(-6))) - (2.00 * (logg - 4.44))
+    # For negative values, keep a minimum of 0.5 km/s
+    if mac < 0:
+        mac = 0.50
     return round(mac, 2)
 
 
@@ -70,15 +80,18 @@ def _options(options=None):
                 'fix_vt': False,
                 'fix_vmac': False,
                 'fix_vsini': False,
+                'flag_vt': False,
+                'flag_vmac': False,
                 'plot': False,  # This is irrelevant with the batch.par value
                 'plot_res': False,
                 'damping': 1,
                 'step_wave': 0.01,
                 'step_flux': 10.0,
                 'minimize': False,
+                'refine': False,
                 'observations': False,
                 'inter_file': 'intervals.lst',
-                'snr': 100.0,
+                'snr': None,
                 'resolution': None,
                 'limb': 0.6
                 }
@@ -97,9 +110,13 @@ def _options(options=None):
         defaults['model'] = defaults['model'].lower()
         defaults['step_wave'] = float(defaults['step_wave'])
         defaults['step_flux'] = float(defaults['step_flux'])
-        defaults['snr'] = float(defaults['snr'])
         defaults['limb'] = float(defaults['limb'])
         defaults['MOOGv'] = int(defaults['MOOGv'])
+        if defaults['observations'] and (defaults['snr'] is None):
+            if os.path.isfile('spectra/%s' % defaults['observations']):
+                defaults['snr'] = snr('spectra/%s' % defaults['observations'], region='hr15n')
+            elif os.path.isfile(options['observations']):
+                defaults['snr'] = snr(defaults['observations'], region='hr15n')
         return defaults
 
 
@@ -116,7 +133,7 @@ def wave_step(dl_obs, step_wave=0.01):
 
 
 def _output(overwrite=None, header=None, parameters=None):
-    """Create the output file 'results.csv'
+    """Create the output file 'synthresults.dat'
 
     Input
     -----
@@ -125,17 +142,17 @@ def _output(overwrite=None, header=None, parameters=None):
     """
     if header:
         hdr = ['linelist', 'observations', 'teff', 'tefferr', 'logg', 'loggerr', 'feh', 'feherr',
-               'vt', 'vterr', 'chi2', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt',
-               'fixvmac', 'fixvsini', 'model', 'resolution', 'snr']
+               'vt', 'vterr', 'vmac', 'ervmac', 'vsini', 'ervsini', 'chi2', 'time', 'fixteff', 'fixlogg',
+               'fixfeh', 'fixvt', 'fixvmac', 'fixvsini', 'flag_vt', 'flag_vmac', 'model', 'resolution', 'snr', 'status']
         if overwrite:
-            with open('results.csv', 'w') as output:
+            with open('synthresults.dat', 'w') as output:
                 output.write('\t'.join(hdr)+'\n')
         else:
-            if not os.path.isfile('results.csv'):
-                with open('results.csv', 'w') as output:
+            if not os.path.isfile('synthresults.dat'):
+                with open('synthresults.dat', 'w') as output:
                     output.write('\t'.join(hdr)+'\n')
     else:
-        with open('results.csv', 'a') as output:
+        with open('synthresults.dat', 'a') as output:
             output.write('\t'.join(map(str, parameters))+'\n')
 
 
@@ -150,7 +167,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
     -----
     to be decided
     <linelist>.(NC).out     -   NC=not converget.
-    results.csv             -   Easy readable table with results from many linelists
+    synthresults.dat             -   Easy readable table with results from many linelists
     """
 
     try:  # Cleaning from previous runs
@@ -258,12 +275,15 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
                         options['step_wave'] = wave_step(dl_obs)
-                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
+                        # Exclude some continuum points
+                        y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
+                        x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
+                        params, x_final, y_final = minimize_synth(initial, x_obs_lpts, y_obs_lpts, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
-                        options['fix_vsini'], options['model'], options['resolution'], options['snr']]
+                        options['fix_vsini'], options['flag_vt'], options['flag_vmac'], options['model'], options['resolution'], options['snr']]
                         _output(parameters=tmp)
-                        logger.info('Saved results to: results.csv')
+                        logger.info('Saved results to: synthresults.dat')
                         if options['save']:
                             save_synth_spec(x_final, y_final, y_obs=y_obs, initial=initial, final=(params[0],params[2],params[4],params[6],params[8],params[10]), fname='final.spec', **options)
                             logger.info('Save final synthetic spectrum')
@@ -304,7 +324,6 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 initial[0] = int(initial[0])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 options = _options(line[-1])
-
                 # Create initial synthetic model
                 logger.info('Getting initial model grid')
                 x_initial, y_initial = func(initial, atmtype=options['model'],
@@ -335,15 +354,18 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
                         options['step_wave'] = wave_step(dl_obs)
-                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, ranges=ranges, **options)
+                        # Exclude some continuum points
+                        y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
+                        x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
+                        params, x_final, y_final = minimize_synth(initial, x_obs_lpts, y_obs_lpts, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         if options['save']:
                             save_synth_spec(x_final, y_final, y_obs=y_obs, initial=initial, final=(params[0],params[2],params[4],params[6],params[8],params[10]), fname='final.spec', **options)
                             logger.info('Save final synthetic spectrum')
                         tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
-                        options['fix_vsini'], options['model'], options['resolution'], options['snr']]
+                        options['fix_vsini'], options['flag_vt'], options['flag_vmac'], options['model'], options['resolution'], options['snr']]
                         _output(parameters=tmp)
-                        logger.info('Saved results to: results.csv')
+                        logger.info('Saved results to: synthresults.dat')
 
                 else:
                     x_obs, y_obs = (None, None)

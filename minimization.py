@@ -334,14 +334,6 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
     from scipy.interpolate import InterpolatedUnivariateSpline
     from synthetic import save_synth_spec
 
-    model = kwargs['model']
-    y_obserr = 1.0/(2.0*kwargs['snr']) #Gaussian noise
-    fix_teff = 1 if kwargs['fix_teff'] else 0
-    fix_logg = 1 if kwargs['fix_logg'] else 0
-    fix_feh = 1 if kwargs['fix_feh'] else 0
-    fix_vt = 1 if kwargs['fix_vt'] else 0
-    fix_vmac = 1 if kwargs['fix_vmac'] else 0
-    fix_vsini = 1 if kwargs['fix_vsini'] else 0
 
     def bounds(i, p, model):
         '''Smart way to calculate the bounds of each of parameters'''
@@ -374,9 +366,15 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         """Calculate micro turbulence."""
         if logg >= 3.95:  # Dwarfs Tsantaki 2013
             mic = 6.932 * teff * (10**(-4)) - 0.348 * logg - 1.437
+            # Take care of negative values
+            if mic < 0:
+                return 0.3
             return round(mic, 2)
         else:  # Giants Adibekyan 2015
             mic = 2.72 - (0.457 * logg) + (0.072 * feh)
+            # Take care of negative values
+            if mic < 0:
+                return 0.3
             return round(mic, 2)
 
 
@@ -386,10 +384,13 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         # 4.0 < logg < 4.6
         mac = 3.21 + (2.33 * (teff - 5777.) * (10**(-3)))
         + (2.00 * ((teff - 5777.)**2) * (10**(-6))) - (2.00 * (logg - 4.44))
+        # For negative values, keep a minimum of 0.5 km/s
+        if mac < 0:
+            mac = 0.50
         return round(mac, 2)
 
 
-    def convergence_info(m, parinfo, dof):
+    def convergence_info(res, parinfo, dof):
         """
         Information on convergence. All values greater than zero can
         represent success (however status == 5 may indicate failure to
@@ -403,39 +404,39 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         .perror by the measured chi-squared value.
         """
 
-        if m.status == -16:
-            print('status = %s : A parameter or function value has become infinite or an undefined number.' % m.status)
-        if -15 <= m.status <= -1:
-            print('status = %s : MYFUNCT or iterfunct functions return to terminate the fitting process. ' % m.status)
-        if m.status == 0:
-            print('status = %s : Improper input parameters.' % m.status)
-        if m.status == 1:
-            print('status = %s : Both actual and predicted relative reductions in the sum of squares are at most ftol.' % m.status)
-        if m.status == 2:
-            print('status = %s : Relative error between two consecutive iterates is at most xtol.' % m.status)
-        if m.status == 3:
-            print('status = %s : Conditions for status = 1 and status = 2 both hold.' % m.status)
-        if m.status == 4:
-            print('status = %s : The cosine of the angle between fvec and any column of the jacobian is at most gtol in absolute value.' % status)
-        if m.status == 5:
-            print('status = %s : The maximum number of iterations has been reached.' % m.status)
-        if m.status == 6:
-            print('status = %s : ftol is too small.' % m.status)
-        if m.status == 7:
-            print('status = %s : xtol is too small.' % m.status)
-        if m.status == 8:
-            print('status = %s : gtol is too small.' % m.status)
+        if res.status == -16:
+            print('status = %s : A parameter or function value has become infinite or an undefined number.' % res.status)
+        if -15 <= res.status <= -1:
+            print('status = %s : MYFUNCT or iterfunct functions return to terminate the fitting process. ' % res.status)
+        if res.status == 0:
+            print('status = %s : Improper input parameters.' % res.status)
+        if res.status == 1:
+            print('status = %s : Both actual and predicted relative reductions in the sum of squares are at most ftol.' % res.status)
+        if res.status == 2:
+            print('status = %s : Relative error between two consecutive iterates is at most xtol.' % res.status)
+        if res.status == 3:
+            print('status = %s : Conditions for status = 1 and status = 2 both hold.' % res.status)
+        if res.status == 4:
+            print('status = %s : The cosine of the angle between fvec and any column of the jacobian is at most gtol in absolute value.' % res.status)
+        if res.status == 5:
+            print('status = %s : The maximum number of iterations has been reached.' % res.status)
+        if res.status == 6:
+            print('status = %s : ftol is too small.' % res.status)
+        if res.status == 7:
+            print('status = %s : xtol is too small.' % res.status)
+        if res.status == 8:
+            print('status = %s : gtol is too small.' % res.status)
 
-        print('Iterations: %s' % m.niter)
+        print('Iterations: %s' % res.niter)
         print('Fitted parameters with uncertainties:')
         # scaled uncertainties
-        pcerror = m.perror * np.sqrt(m.fnorm / dof)
-        teff = round(float(m.params[0]),0)
-        logg = round(float(m.params[1]),3)
-        feh = round(float(m.params[2]),3)
-        vt = round(float(m.params[3]),2)
-        vmac = round(float(m.params[4]),2)
-        vsini = round(float(m.params[5]),1)
+        pcerror = res.perror * np.sqrt(res.fnorm / dof)
+        teff = round(float(res.params[0]),0)
+        logg = round(float(res.params[1]),3)
+        feh = round(float(res.params[2]),3)
+        vt = round(float(res.params[3]),2)
+        vmac = round(float(res.params[4]),2)
+        vsini = round(float(res.params[5]),1)
 
         erteff = round(float(pcerror[0]),0)
         erlogg = round(float(pcerror[1]),3)
@@ -443,10 +444,10 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         ervt = round(float(pcerror[3]),2)
         ervmac = round(float(pcerror[4]),2)
         ervsini = round(float(pcerror[5]),1)
-        parameters = [teff, erteff, logg, erlogg, feh, erfeh, vt, ervt, vmac, ervmac, vsini, ervsini]
-        for i, x in enumerate(m.params):
-                    print( "\t%s: %s +- %s (scaled error +- %s)" % (parinfo[i]['parname'], round(x, 3), round(m.perror[i], 3), round(pcerror[i], 3)))
-        print('Value of the summed squared residuals: %s' % m.fnorm)
+        parameters = [teff, erteff, logg, erlogg, feh, erfeh, vt, ervt, vmac, ervmac, vsini, ervsini, res.status]
+        for i, x in enumerate(res.params):
+                    print( "\t%s: %s +- %s (scaled error +- %s)" % (parinfo[i]['parname'], round(x, 3), round(res.perror[i], 3), round(pcerror[i], 3)))
+        print('Value of the summed squared residuals: %s' % res.fnorm)
         return parameters
 
 
@@ -474,7 +475,6 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         (y-ymodel)/err : ndarray
           Model deviation from observation
         '''
-        import re
 
         # Definition of the Model spectrum to be iterated
         options = kwargs['options']
@@ -486,11 +486,10 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         p = bounds(9, p, model)
         p = bounds(11, p, model)
 
-        if fix_vt == 1:
+        if options['fix_vt'] and options['flag_vt']:
             p[3] = _getMic(p[0], p[1], p[2])
-        if fix_vmac == 1:
+        if options['fix_vmac'] and options['flag_vmac']:
             p[4] = _getMac(p[0], p[1])
-
         x_s, y_s = func(p, atmtype=model, driver='synth', ranges=ranges, **options)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         ymodel = sl(x_obs)
@@ -498,13 +497,18 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         err = np.zeros(len(y)) + y_obserr
         status = 0
         #Print parameters at each function call
-        with open('summary.out', 'r') as f:
-            f.readline()
-            model_info = f.readline()
-        model_info = re.sub('                              ', ' ', model_info)
-        print(model_info)
+        print('   Teff:{:8.1f}   logg: {:1.2f}   [Fe/H]: {:1.2f}   vt: {:1.2f}   vmac: {:1.2f}   vsini: {:1.2f}'.format(*p))
         return([status, (y-ymodel)/err])
 
+
+    model = kwargs['model']
+    y_obserr = 1.0/(kwargs['snr']) #Gaussian noise
+    fix_teff = 1 if kwargs['fix_teff'] else 0
+    fix_logg = 1 if kwargs['fix_logg'] else 0
+    fix_feh = 1 if kwargs['fix_feh'] else 0
+    fix_vt = 1 if kwargs['fix_vt'] else 0
+    fix_vmac = 1 if kwargs['fix_vmac'] else 0
+    fix_vsini = 1 if kwargs['fix_vsini'] else 0
 
     # Set PARINFO structure for all 6 free parameters for mpfit
     # Teff, logg, feh, vt, vmac, vsini
@@ -530,39 +534,53 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
     m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-5, xtol=1e-5, gtol=1e-4, functkw=fa)
     #Print results
     dof = len(y_obs)-len(m.params)
-    parameters = convergence_info(m, parinfo, dof)
-    end_time = time.time()-start_time
-    print('Calculations finished in %s sec' % int(end_time))
-    #Final synthetic spectrum
-    x_s, y_s = func(m.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
-    sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
-    flux_final = sl(x_obs)
+    if kwargs['refine'] and (kwargs['flag_vt'] is False) and (kwargs['flag_vmac'] is False):
+        print('Refining the parameters...')
+        kwargs['flag_vt'] = True
+        kwargs['flag_vmac'] = True
+        f = mpfit(myfunct, xall=m.params, parinfo=parinfo, ftol=1e-5, xtol=1e-5, gtol=1e-4, functkw=fa)
+        parameters = convergence_info(f, parinfo, dof)
+        end_time = time.time()-start_time
+        print('Minimization finished in %s sec' % int(end_time))
+        #Final synthetic spectrum
+        x_s, y_s = func(m.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
+        sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
+        flux_final = sl(x_obs)
+    else:
+        parameters = convergence_info(m, parinfo, dof)
+        end_time = time.time()-start_time
+        print('Minimization finished in %s sec' % int(end_time))
+        #Final synthetic spectrum
+        x_s, y_s = func(f.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
+        sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
+        flux_final = sl(x_obs)
 
-    x_init, y_init = func(p0, atmtype=model, driver='synth', ranges=ranges, **kwargs)
-    sl = InterpolatedUnivariateSpline(x_init, y_init, k=1)
-    flux_initial = sl(x_obs)
+    #x_init, y_init = func(p0, atmtype=model, driver='synth', ranges=ranges, **kwargs)
+    #sl = InterpolatedUnivariateSpline(x_init, y_init, k=1)
+    #flux_initial = sl(x_obs)
 
     err = np.zeros(len(y_obs)) + y_obserr
     chi = ((y_obs - flux_final)**2/(err**2))
     chi2 = np.sum(chi)/dof
     print('This is your reduced chi2 value: '), round(chi2,2)
-    for i, r in enumerate(ranges):
-        wave = x_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
-        fm = flux_final[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
-        fminit = flux_initial[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
-        fobs = y_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+    #for i, r in enumerate(ranges):
+    #    wave = x_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+    #    fm = flux_final[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+    #    fminit = flux_initial[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+    #    fobs = y_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
 
-        err = np.zeros(len(fobs)) + y_obserr
-        chi = ((fobs - fm)**2/(err**2))
-        dof = len(fobs)-len(m.params)
-        chi2final = np.sum(chi)/dof
+    #    err = np.zeros(len(fobs)) + y_obserr
+    #    chi = ((fobs - fm)**2/(err**2))
+    #    dof = len(fobs)-len(m.params)
+    #    chi2final = np.sum(chi)/dof
 
-        chiinit = ((fobs - fminit)**2/(err**2))
-        chi2init = np.sum(chiinit)/dof
-        print('%s This is your reduced chi2 value: initial: %s final: %s') % (i, round(chi2init,2), round(chi2final,2))
+    #    chiinit = ((fobs - fminit)**2/(err**2))
+    #    chi2init = np.sum(chiinit)/dof
+    #    print('%s This is your reduced chi2 value: initial: %s final: %s') % (i, round(chi2init,2), round(chi2final,2))
 
-    parameters = parameters + [round(chi2,2)]
+    parameters = parameters + [round(chi2,2)] + [int(end_time)]
     return parameters, x_obs, flux_final
+
 
 
 def mcmc_synth(x0, observed, limits):

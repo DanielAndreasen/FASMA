@@ -33,27 +33,24 @@ def local_norm(obs_fname, r, snr, method='linear', plot=False):
     #Read observations
     wave_obs, flux_obs = read_observations(obs_fname, start_norm, end_norm)
 
-    # Divide in 3 and find the maximum points
-    y = np.array_split(flux_obs, 3)
-    x = np.array_split(wave_obs, 3)
+    # Divide in 2 and find the maximum points
+    y = np.array_split(flux_obs, 2)
+    x = np.array_split(wave_obs, 2)
     index_max1 = np.sort(np.argsort(y[0])[-5:])  # this can be done better
     index_max2 = np.sort(np.argsort(y[1])[-5:])  # this can be done better
-    index_max3 = np.sort(np.argsort(y[2])[-5:])  # this can be done better
     # index_max = np.sort(np.argsort(flux_obs)[-10:]) # this can be done better
     f_max1 = y[0][index_max1]
     f_max2 = y[1][index_max2]
-    f_max3 = y[2][index_max3]
 
     w_max1 = x[0][index_max1]
     w_max2 = x[1][index_max2]
-    w_max3 = x[2][index_max3]
 
     # f_max = flux_obs[index_max]
     # w_max = wave_obs[index_max]
-    f_max = np.concatenate((f_max1, f_max2, f_max3))
-    f_max = f_max - noise
-    std = np.std(f_max, ddof=1)
-    w_max = np.concatenate((w_max1, w_max2, w_max3))
+    f_max = np.concatenate((f_max1, f_max2))
+    f_max = f_max - (f_max*noise)
+    #std = np.std(f_max, ddof=1)
+    w_max = np.concatenate((w_max1, w_max2))
 
     if method == 'scalar':
         # Divide with the median of maximum values.
@@ -194,6 +191,35 @@ def plot(x_obs, y_obs, x, y, res=False):
         plt.legend()
         plt.show()
     return
+
+
+def snr(fname, region='hr15n', plot=False):
+    """Calculate SNR using intervals depending on giraffe mode.
+    Input
+    ----
+    fname : spectrum
+    region : area where continuum is calculated
+    plot : plot snr fit
+    Output
+    -----
+    snr : snr value averaged from the continuum intervals
+    """
+
+    from PyAstronomy import pyasl
+
+    wave_cut, flux_cut = read_observations(fname, 6681, 6690)
+    num_points = int(len(flux_cut)/2)
+    snrEsti1   = pyasl.estimateSNR(wave_cut, flux_cut, num_points, deg=1, controlPlot=plot)
+
+    wave_cut, flux_cut = read_observations(fname, 6649, 6652)
+    num_points = int(len(flux_cut)/2)
+    snrEsti2   = pyasl.estimateSNR(wave_cut, flux_cut, num_points, deg=1, controlPlot=plot)
+
+    wave_cut, flux_cut = read_observations(fname, 6614, 6623)
+    num_points = int(len(flux_cut)/2)
+    snrEsti3   = pyasl.estimateSNR(wave_cut, flux_cut, num_points, deg=1, controlPlot=plot)
+    snr = (snrEsti1["SNR-Estimate"] + snrEsti2["SNR-Estimate"] + snrEsti3["SNR-Estimate"]) / 3.0
+    return round(snr,1)
 
 
 # The rest are useless functions for now....

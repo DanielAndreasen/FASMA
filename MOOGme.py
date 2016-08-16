@@ -113,6 +113,10 @@ def synth(args):
         fout += ',vmac'
     if args.Fixrotation:
         fout += ',vsini'
+    if args.flag_vt:
+        fout += ',flag_vt'
+    if args.flag_vmac:
+        fout += ',flag_vmac'
     with open('StarMe_synth.cfg', 'w') as f:
         f.writelines(fout)
     synthdriver(overwrite=args.overwrite)
@@ -245,6 +249,8 @@ def main():
     synth_parser.add_argument('--Fixmicroturbulence', help='Fix vt',     action='store_true', metavar='Fix microturbulence')
     synth_parser.add_argument('--Fixmacroturbulence', help='Fix vmac',   action='store_true', metavar='Fix macroturbulence')
     synth_parser.add_argument('--Fixrotation',        help='Fix vsini',  action='store_true', metavar='Fix rotation')
+    synth_parser.add_argument('--flag_vt',            help='For each iteration', action='store_true', metavar='Change vt in minimization')
+    synth_parser.add_argument('--flag_vmac',          help='For each iteration', action='store_true', metavar='Change vmac in minimization')
     synth_parser.add_argument('--step_wave',          help='(in Angstroms)', default=0.01, type=float, metavar='Wavelength step for synthesis')
     synth_parser.add_argument('--step_flux',          help='(in Angstroms)', default=10.0, type=float, metavar='Flux step for synthesis')
     synth_parser.add_argument('--inter_file',         help='File with the intervals', metavar='Intervals', widget='FileChooser')
