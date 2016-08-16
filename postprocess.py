@@ -6,17 +6,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import argparse
+import seaborn as sns
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
-try:
-    import seaborn as sns
-    sns.set_style('dark')
-    sns.set_context('talk', font_scale=1.2)
-    colorSB = sns.color_palette()
-except ImportError:
-    print 'Please install seaborn: pip install seaborn'
 
 
 def massTorres(teff, erteff, logg, erlogg, feh, erfeh):
@@ -86,13 +80,47 @@ def _parser():
     parser.add_argument('-ly', help='Logarithmic y axis', default=False, action='store_true')
     parser.add_argument('-s', help='Place Solar values in the plot', default=False, action='store_true')
     parser.add_argument('-l', help='Fit a linear regression', default=False, action='store_true')
+    parser.add_argument('-p', '--plotting', help='The settings for plotting', choices=['screen', 'paper', 'poster'], default='screen')
     args = parser.parse_args()
     return args
+
+
+def _plotSettings(mode='screen'):
+    """Set the settings for plots
+
+    Input
+    -----
+    mode : str
+      The mode to use. Choices are
+      - screen: For normal plotting on the computer
+      - paper: For plotting ready for publication
+      - poster: For posters
+
+    Output
+    ------
+    colorSB : list
+      The colours from seaborn
+    """
+    if mode == 'screen':
+        sns.set_style('darkgrid')
+        sns.set_context('talk', font_scale=1.2)
+        colorSB = sns.color_palette()
+    elif mode == 'paper':
+        sns.set_style('ticks')
+        sns.set_context(mode, font_scale=1.7)
+        colorSB = sns.color_palette()
+    elif mode == 'poster':
+        sns.set_style('ticks')
+        sns.set_context(mode, font_scale=1.2)
+        colorSB = sns.color_palette()
+    return colorSB
 
 
 if __name__ == '__main__':
 
     args = _parser()
+
+    colorSB = _plotSettings(args.plotting)
 
     df = pd.read_csv(args.input, delimiter=r'\s+', comment='#')
     df = df[(df.convergence) | (~df.convergence)]  # Remove blank lines and comments
@@ -139,12 +167,12 @@ if __name__ == '__main__':
         u = z[~np.isnan(z)]
         size = (z-u.min())/(u.max()-u.min())*100
         size[np.argmin(size)] = 10  # Be sure to show the "smallest" point
-        plt.scatter(df1[args.x], df1[args.y], c=color, s=size, cmap=cm.seismic, label='Converged')
+        plt.scatter(df1[args.x], df1[args.y], c=color, s=size, cmap=cm.YlOrRd, label='Converged')
     else:
         plt.scatter(df1[args.x], df1[args.y], c=colorSB[0], s=40, label='Converged')
     if not args.convergence:
         if args.z:
-            plt.scatter(df2[args.x], df2[args.y], c=df2[args.z].values, cmap=cm.seismic, s=55, marker='x', label='Not converged')
+            plt.scatter(df2[args.x], df2[args.y], c=df2[args.z].values, cmap=cm.YlOrRd, s=55, marker='x', label='Not converged')
         else:
             plt.scatter(df2[args.x], df2[args.y], c=color[2], s=9, marker='d', label='Not converged')
         plt.legend(loc='best', frameon=False)
@@ -190,7 +218,7 @@ if __name__ == '__main__':
                'radius': 1,
                'radiuserr': 0.01,
                'age': 4.567}
-        plt.plot(sun[args.x], sun[args.y], color=colorSB[4], marker='*', ms=20, alpha=0.8)
+        plt.plot(sun[args.x], sun[args.y], color=colorSB[1], marker='*', ms=20, alpha=0.8)
     if args.ix:
         plt.xlim(plt.xlim()[::-1])
     if args.iy:
@@ -201,6 +229,5 @@ if __name__ == '__main__':
     if args.ly:
         plt.yscale('log')
 
-    plt.grid(True)
     plt.tight_layout()
     plt.show()
