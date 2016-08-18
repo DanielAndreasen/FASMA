@@ -128,3 +128,23 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     while model.shape[1] < len(_fmt):
         model = np.column_stack((model, np.zeros_like(model[:, 0])))
     np.savetxt(fout, model, header=header, footer=footer, comments='', delimiter=' ', fmt=_fmt)
+
+
+if __name__ == '__main__':
+    import argparse
+    args = argparse.ArgumentParser(description='Get a model atmosphere.')
+    args.add_argument('teff', type=int, help='Effective temperature')
+    args.add_argument('logg', type=float, help='Surface gravity')
+    args.add_argument('feh', type=float, help='Metallicity, [Fe/H]')
+    args.add_argument('vt', type=float, help='Microturbulence')
+    args.add_argument('-o', '--out', help='Output atmosphere', default='out.atm')
+    args.add_argument('-a', '--atmosphere', help='Model atmosphere', choices=['kurucz95', 'apogee_kurucz', 'marcs'], default='kurucz95')
+
+    args = args.parse_args()
+
+    params = [args.teff, args.logg, args.feh, args.vt]
+
+    atmosphere, p = interpolator(params, save=False, atmtype=args.atmosphere, result=True)
+    save_model(atmosphere, params, type=args.atmosphere, fout=args.out)
+
+    print 'Atmosphere model sucessfully saved in: %s' % args.out
