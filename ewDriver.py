@@ -541,7 +541,7 @@ def _minizationRunner(initial, options):
         return None
 
 
-def _teffrangeRunner(linelist, parameters, options):
+def _teffrangeRunner(linelist, parameters, converged, options):
     """Adjust the line list if the temperature is too low for the normal
     line list be Sousa+ 2008, to represent that of Tsantaki+ 2013.
 
@@ -551,6 +551,8 @@ def _teffrangeRunner(linelist, parameters, options):
       The line list
     parameters : list
       The initial parameters for the minimization routine
+    converged : bool
+      Whether the minimization converged before. Useful is no lines are removed
     options : dict
       The options dictionary
 
@@ -576,7 +578,9 @@ def _teffrangeRunner(linelist, parameters, options):
         if options['outlier']:
             newName, parameters = _outlierRunner(options['outlier'], linelist, parameters, options)
             linelist = newName
-    return linelist, parameters, converged
+        return linelist, parameters, converged
+    else:
+        return linelist, parameters, converged
 
 
 def _autofixvtRunner(parameters, options):
@@ -736,10 +740,10 @@ def _logging():
     logger : obj
       The logger object for the log file
     """
-    # try:  # Cleaning from previous runs
-    #     os.remove('captain.log')
-    # except OSError:
-    #     pass
+    try:  # Cleaning from previous runs
+        os.remove('captain.log')
+    except OSError:
+        pass
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler('captain.log')
@@ -800,7 +804,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
 
         if options['teffrange']:
             logger.info('Correcting the line list, if necessary, for low Teff.')
-            linelist, parameters, converged = _teffrangeRunner(line[0], parameters, options)
+            linelist, parameters, converged = _teffrangeRunner(line[0], parameters, converged, options)
             line[0] = linelist
 
         if options['autofixvt']:
@@ -809,7 +813,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
 
         if options['refine'] and converged:
             logger.info('Refining the parameters.')
-            parameters = _refineRunner(parameters, options)
+            parameters, options = _refineRunner(parameters, options)
 
         logger.info('Final parameters: {:d}, {:.2f}, {:.2f}, {:.2f}\n'.format(*parameters))
         _renaming(line[0], converged)
