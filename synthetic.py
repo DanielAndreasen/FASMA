@@ -37,6 +37,7 @@ def save_synth_spec(x, y, y_obs=None, initial=None, final=None, fname='initial.s
     header['Mod_atmo'] = options['model']
     header['Damping']  = options['damping']
     header['Interval'] = options['inter_file']
+    header['Resol']    = options['resolution']
 
     if final:
         header['Teff_f']  = final[0]
@@ -46,7 +47,6 @@ def save_synth_spec(x, y, y_obs=None, initial=None, final=None, fname='initial.s
         header['vmac_f']  = final[4]
         header['vsini_f'] = final[5]
         header['Obs']     = options['observations']
-        header['Resol']   = options['resolution']
         header['SNR']     = options['snr']
 
     if options['observations'] and (final is None):
@@ -338,7 +338,7 @@ def read_linelist(fname, intname='intervals.lst'):
     atomic : atomic data
     '''
 
-    if not os.path.isfile(intname):
+    if not os.path.isfile('rawLinelist/%s' % intname):
         raise IOError('The interval list is not in the correct place!')
 
     lines = pd.read_csv('rawLinelist/%s' % fname, skiprows=1, comment='#', delimiter='\t', usecols=range(6),
@@ -346,7 +346,7 @@ def read_linelist(fname, intname='intervals.lst'):
     converters={'Do': lambda x : x.replace("nan"," "), 'vdwaals': lambda x : float(x)})
     lines.sort_values(by='wl', inplace=True)
 
-    intervals = pd.read_csv(intname, comment='#', names=['start', 'end'], delimiter='\t')
+    intervals = pd.read_csv('rawLinelist/%s' % intname, comment='#', names=['start', 'end'], delimiter='\t')
     ranges = intervals.values
     atomic = []
     N = []

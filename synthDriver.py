@@ -114,9 +114,13 @@ def _options(options=None):
         defaults['MOOGv'] = int(defaults['MOOGv'])
         if defaults['observations'] and (defaults['snr'] is None):
             if os.path.isfile('spectra/%s' % defaults['observations']):
-                defaults['snr'] = snr('spectra/%s' % defaults['observations'], region='hr15n')
+                defaults['snr'] = snr('spectra/%s' % defaults['observations'])
             elif os.path.isfile(options['observations']):
-                defaults['snr'] = snr(defaults['observations'], region='hr15n')
+                defaults['snr'] = snr(defaults['observations'])
+        if defaults['inter_file']:
+            defaults['inter_file'] = str(defaults['inter_file'])
+        else:
+            defaults['inter_file'] = 'intervals.lst'
         return defaults
 
 
@@ -208,18 +212,17 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 logger.error('Could not process this information: %s' % line)
                 continue
 
-            # Check if the linelist is inside the directory, if not log it and pass to next linelist
+            # Check if the linelist is inside the directory, if not, log it
             if not os.path.isfile('rawLinelist/%s' % line[0]):
                 logger.error('Error: rawLinelist/%s not found.' % line[0])
                 raise IOError('Linelist file does not exist in the folder!')
 
-            options = _options()
-            ranges, atomic_data = read_linelist(line[0], intname=options['inter_file'])
             logger.info('Line list: %s' % line[0])
             # Create synthetic spectrum with solar values and the default options
             if len(line) == 1:
                 initial = [5777, 4.44, 0.00, 1.00, 3.21, 1.90]
                 options = _options()
+                ranges, atomic_data = read_linelist(line[0], intname=options['inter_file'])
                 x_obs, y_obs = (None, None)
                 # Create initial synthetic model
                 logger.info('Getting initial model grid')
@@ -235,6 +238,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
             # Create synthetic spectrum with solar values and the options defined by the user
             elif len(line) == 2:
                 options = _options(line[1])
+                ranges, atomic_data = read_linelist(line[0], intname=options['inter_file'])
                 if options['spt']:
                     logger.info('Spectral type given: %s' % line[1])
                     Teff, logg = _getSpt(options['spt'])
@@ -259,12 +263,10 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     # Check if observations exit, if not pass another line
                     if os.path.isfile('spectra/%s' % options['observations']):
                         x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
-                        dl_obs = x_obs[1] - x_obs[0]
                         print('This is your observed spectrum: %s' % options['observations'])
                         print('Observed spectrum contains %s points' % len(x_obs))
                     elif os.path.isfile(options['observations']):
                         x_obs, y_obs = read_obs_intervals(options['observations'], ranges, snr=options['snr'])
-                        dl_obs = x_obs[1] - x_obs[0]
                         print('This is your observed spectrum: %s' % options['observations'])
                         print('Observed spectrum contains %s points' % len(x_obs))
                     else:
@@ -274,6 +276,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     if options['minimize']:
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
+                        dl_obs = x_obs[1] - x_obs[0]
                         options['step_wave'] = wave_step(dl_obs)
                         # Exclude some continuum points
                         y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
@@ -304,6 +307,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 initial = map(float, line[1::])
                 initial[0] = int(initial[0])
                 options = _options()
+                ranges, atomic_data = read_linelist(line[0], intname=options['inter_file'])
                 x_obs, y_obs = (None, None)  # No observed spectrum, no plots
 
                 # Create initial synthetic model
@@ -324,6 +328,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 initial[0] = int(initial[0])
                 logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*initial))
                 options = _options(line[-1])
+                ranges, atomic_data = read_linelist(line[0], intname=options['inter_file'])
                 # Create initial synthetic model
                 logger.info('Getting initial model grid')
                 x_initial, y_initial = func(initial, atmtype=options['model'],
@@ -340,17 +345,16 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     # Check if observations exit, if not pass another line
                     if os.path.isfile('spectra/%s' % options['observations']):
                         x_obs, y_obs = read_obs_intervals('spectra/%s' % options['observations'], ranges, snr=options['snr'])
-                        dl_obs = x_obs[1] - x_obs[0]
                         print('Observed spectrum contains %s points' % len(x_obs))
                     elif  os.path.isfile(options['observations']):
                         x_obs, y_obs = read_obs_intervals(options['observations'], ranges, snr=options['snr'])
-                        dl_obs = x_obs[1] - x_obs[0]
                         print('Observed spectrum contains %s points' % len(x_obs))
                     else:
                         logger.error('Error: %s not found.' % options['observations'])
                         continue
                     # If observations exists, then why not, find best fit?
                     if options['minimize']:
+                        dl_obs = x_obs[1] - x_obs[0]
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
                         options['step_wave'] = wave_step(dl_obs)

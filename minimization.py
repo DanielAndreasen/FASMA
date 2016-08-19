@@ -534,7 +534,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
     m = mpfit(myfunct, xall=p0, parinfo=parinfo, ftol=1e-5, xtol=1e-5, gtol=1e-4, functkw=fa)
     #Print results
     dof = len(y_obs)-len(m.params)
-    if kwargs['refine'] and (kwargs['flag_vt'] is False) and (kwargs['flag_vmac'] is False):
+    if kwargs['refine']:
         print('Refining the parameters...')
         kwargs['flag_vt'] = True
         kwargs['flag_vmac'] = True
@@ -543,7 +543,7 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         end_time = time.time()-start_time
         print('Minimization finished in %s sec' % int(end_time))
         #Final synthetic spectrum
-        x_s, y_s = func(m.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
+        x_s, y_s = func(f.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_final = sl(x_obs)
     else:
@@ -551,32 +551,32 @@ def minimize_synth(p0, x_obs, y_obs, ranges, **kwargs):
         end_time = time.time()-start_time
         print('Minimization finished in %s sec' % int(end_time))
         #Final synthetic spectrum
-        x_s, y_s = func(f.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
+        x_s, y_s = func(m.params, atmtype=model, driver='synth', ranges=ranges, **kwargs)
         sl = InterpolatedUnivariateSpline(x_s, y_s, k=1)
         flux_final = sl(x_obs)
 
-    #x_init, y_init = func(p0, atmtype=model, driver='synth', ranges=ranges, **kwargs)
-    #sl = InterpolatedUnivariateSpline(x_init, y_init, k=1)
-    #flux_initial = sl(x_obs)
+    x_init, y_init = func(p0, atmtype=model, driver='synth', ranges=ranges, **kwargs)
+    sl = InterpolatedUnivariateSpline(x_init, y_init, k=1)
+    flux_initial = sl(x_obs)
 
     err = np.zeros(len(y_obs)) + y_obserr
     chi = ((y_obs - flux_final)**2/(err**2))
     chi2 = np.sum(chi)/dof
     print('This is your reduced chi2 value: '), round(chi2,2)
-    #for i, r in enumerate(ranges):
-    #    wave = x_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
-    #    fm = flux_final[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
-    #    fminit = flux_initial[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
-    #    fobs = y_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+    for i, r in enumerate(ranges):
+        wave = x_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+        fm = flux_final[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+        fminit = flux_initial[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
+        fobs = y_obs[np.where((x_obs >= float(r[0])) & (x_obs <= float(r[1])))]
 
-    #    err = np.zeros(len(fobs)) + y_obserr
-    #    chi = ((fobs - fm)**2/(err**2))
-    #    dof = len(fobs)-len(m.params)
-    #    chi2final = np.sum(chi)/dof
+        err = np.zeros(len(fobs)) + y_obserr
+        chi = ((fobs - fm)**2/(err**2))
+        dof = len(fobs)-len(m.params)
+        chi2final = np.sum(chi)/dof
 
-    #    chiinit = ((fobs - fminit)**2/(err**2))
-    #    chi2init = np.sum(chiinit)/dof
-    #    print('%s This is your reduced chi2 value: initial: %s final: %s') % (i, round(chi2init,2), round(chi2final,2))
+        chiinit = ((fobs - fminit)**2/(err**2))
+        chi2init = np.sum(chiinit)/dof
+        print('%s This is your reduced chi2 value: initial: %s final: %s') % (i, round(chi2init,2), round(chi2final,2))
 
     parameters = parameters + [round(chi2,2)] + [int(end_time)]
     return parameters, x_obs, flux_final
