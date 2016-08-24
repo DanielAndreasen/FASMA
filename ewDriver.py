@@ -605,7 +605,7 @@ def _autofixvtRunner(parameters, options):
     """
     _, _, RWs, _, _ = fun_moog(parameters, options['model'], weight=options['weights'], version=options['MOOGv'])
     vt = parameters[-1]
-    if ((vt < 0.05) and (abs(RWs) > 0.050)) or ((vt > 9.95) and (abs(RWs) > 0.050)):
+    if ((vt < 0.05) and (abs(RWs) > 0.050)) or (vt > 5.0):
         options['fix_vt'] = True
         print('Running minimization with vt fixed...\n')
         parameters, converged = _minizationRunner(parameters, options)
@@ -815,7 +815,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
             logger.info('Refining the parameters.')
             parameters, options = _refineRunner(parameters, options)
 
-        logger.info('Final parameters: {:d}, {:.2f}, {:.2f}, {:.2f}\n'.format(*parameters))
+        logger.info('Final parameters: {:.0f}, {:.2f}, {:.2f}, {:.2f}\n'.format(*parameters))
         _renaming(line[0], converged)
         parameters = error(line[0], converged, parameters,
                            atmtype=options['model'], version=options['MOOGv'],
