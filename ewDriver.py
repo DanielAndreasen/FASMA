@@ -696,15 +696,15 @@ def printToScreen(parameters, converged):
         else:
             print('\nSorry, you did not win. However, your final parameters are:')
         try:
-            print(u' Teff:{:>8d}\u00B1{:d}\n logg:{:>8.2f}\u00B1{:1.2f}\n [Fe/H]:{:>+6.2f}\u00B1{:1.2f}\n vt:{:>10.2f}\u00B1{:1.2f}\n\n\n\n'.format(*parameters))
+            print(u' Teff:{:>8d}\u00B1{:.0f}\n logg:{:>8.2f}\u00B1{:1.2f}\n [Fe/H]:{:>+6.2f}\u00B1{:1.2f}\n vt:{:>10.2f}\u00B1{:1.2f}\n\n\n\n'.format(*parameters))
         except UnicodeEncodeError:
-            print(' Teff:{:>8d}({:d})\n logg:{:>8.2f}({:1.2f})\n [Fe/H]:{:>+6.2f}({:1.2f})\n vt:{:>10.2f}({:1.2f})\n\n\n\n'.format(*parameters))
+            print(' Teff:{:>8d}({:.0f})\n logg:{:>8.2f}({:1.2f})\n [Fe/H]:{:>+6.2f}({:1.2f})\n vt:{:>10.2f}({:1.2f})\n\n\n\n'.format(*parameters))
     elif __name__ == 'ewDriver':
         if converged:
             print('\nCongratulation, you have won! Your final parameters are:')
         else:
             print('\nSorry, you did not win. However, your final parameters are:')
-        print(u' Teff:{:>8d}+/-{:d}\n logg:{:>8.2f}+/-{:1.2f}\n [Fe/H]:{:>+6.2f}+/-{:1.2f}\n vt:{:>10.2f}+/-{:1.2f}\n\n\n\n'.format(*parameters))
+        print(u' Teff:{:>8d}+/-{:.0f}\n logg:{:>8.2f}+/-{:1.2f}\n [Fe/H]:{:>+6.2f}+/-{:1.2f}\n vt:{:>10.2f}+/-{:1.2f}\n\n\n\n'.format(*parameters))
 
 
 def sanityCheck(logger):
@@ -783,7 +783,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
 
     for (initial, options, line) in genStar(starLines):
         logger.info('Start with line list: %s' % line[0])
-        logger.info('Initial parameters: {:d}, {:.2f}, {:.2f}, {:.2f}'.format(*initial))
+        logger.info('Initial parameters: {:.0f}, {:.2f}, {:.2f}, {:.2f}'.format(*initial))
         options = _prepare(line[0], initial, options)
         if options is None:
             continue  # The line list does not exists
