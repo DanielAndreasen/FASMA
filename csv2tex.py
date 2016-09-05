@@ -30,13 +30,14 @@ def _parser():
     parser = argparse.ArgumentParser(description='Convert the result file to a TeX table')
     parser.add_argument('-i', help='Input file', default='results.csv')
     parser.add_argument('-o', help='Output TeX table', default=None)
+    parser.add_argument('-d', help='Delimiter for input csv file', default=r'\s+')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
 
     args = _parser()
-    df = pd.read_csv(args.i, delimiter=r'\s+')
+    df = pd.read_csv(args.i, delimiter=args.d)
     if args.o is None:
         output = args.i.rpartition('.')[0] + '.tex'
     else:
