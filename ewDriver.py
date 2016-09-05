@@ -786,6 +786,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
         logger.info('Initial parameters: {:.0f}, {:.2f}, {:.2f}, {:.2f}'.format(*initial))
         options = _prepare(line[0], initial, options)
         if options is None:
+            logger.error('The line list does not exists!\n')
             continue  # The line list does not exists
 
         logger.info('Starting the initial minimization routine...')
