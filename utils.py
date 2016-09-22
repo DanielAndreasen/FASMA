@@ -204,7 +204,7 @@ class GetModels:
     def getmodels(self):
         '''Get the atmosphere models surrounding the requested atmospheric
         parameters. This function should be called before using the interpolation
-        code within MOOGme.
+        code within FASMA.
 
         output
         ------
