@@ -1,26 +1,8 @@
-MOOGme
+FASMA
 ======
 
 A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html),
 the stellar spectra code.
-
-[ARES](http://www.astro.up.pt/~sousasag/ares/) is integrated.
-
-**WARNING**: This code is still under development and not fully tested. For bugs please report to the authors. 
-Updates will be available soon!
-
-
-TODO
-----
-
-   - [x] Interpolate the atmospheric models.
-   - [x] Minimization for MOOG to determine parameters.
-   - [x] Change atmospheric models (Kurucz, MARCS available).
-   - [x] Freeze parameters.
-   - [x] Nice graphics.
-   - [ ] Synthesis
-   - [ ] Package like a real python package (pypi).
-
 
 
 AUTHORS
