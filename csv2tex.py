@@ -37,7 +37,7 @@ def _parser():
 if __name__ == '__main__':
 
     args = _parser()
-    df = pd.read_csv(args.i, delimiter=args.d)
+    df = pd.read_csv(args.i, delimiter=args.d, comment='#')
     if args.o is None:
         output = args.i.rpartition('.')[0] + '.tex'
     else:
