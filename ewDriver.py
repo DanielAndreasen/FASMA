@@ -768,7 +768,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
     ------
     <linelist>.(NC).out : file
       The output line list; NC=not converged.
-    results.csv : file
+    EWresults.dat : file
       Easy readable table with results from many linelists
     """
 
