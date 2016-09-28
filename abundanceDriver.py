@@ -23,7 +23,7 @@ def save(dic, overwrite):
 
     def _get_header(elements):
         """Get the header and append new elements to it"""
-        with open('abundances.csv', 'r') as f:
+        with open('abundresults.dat', 'r') as f:
             header = f.readline()
         header = header.strip('\n').split(',')
         for element in elements:
@@ -31,10 +31,10 @@ def save(dic, overwrite):
                 header.append(element)
         return ','.join(header)
 
-    if not os.path.isfile('abundances.csv'):
+    if not os.path.isfile('abundresults.dat'):
         # The file does not exists, so create it and return from here
         header = 'linelist,temperature,logg,[Fe/H],vt,' + ','.join(elements)
-        with open('abundances.csv', 'w') as fout:
+        with open('abundresults.dat', 'w') as fout:
             fout.writelines(header + '\n')
             line = '%s,%i,%.2f,%.2f,%.2f' % (linelist, teff, logg, feh, vt)
             for element in elements:
@@ -45,22 +45,22 @@ def save(dic, overwrite):
         header = _get_header(elements)
 
     if overwrite:
-        with open('abundances.csv', 'w') as fout:
+        with open('abundresults.dat', 'w') as fout:
             fout.writelines(header + '\n')
     else:
         try:
-            df = pd.read_csv('abundances.csv', na_values='...')
+            df = pd.read_csv('abundresults.dat', na_values='...')
             header = header.split(',')
             for key in header:
                 if key not in df.columns:
                     df[key] = np.nan
-            df.to_csv(path_or_buf='abundances.csv', header=header, index=False, na_rep='...')
+            df.to_csv(path_or_buf='abundresults.dat', header=header, index=False, na_rep='...')
         except IOError:
             # It does not exists yet, so create the file from scratch
-            with open('abundances.csv', 'w') as fout:
+            with open('abundresults.dat', 'w') as fout:
                 fout.writelines(header + '\n')
 
-    df = pd.read_csv('abundances.csv', na_values='...')
+    df = pd.read_csv('abundresults.dat', na_values='...')
     rows = df.shape[0]
     for element in header[5:]:
         if element in elements:
@@ -76,7 +76,7 @@ def save(dic, overwrite):
     if rows:
         df.drop(df.index[range(rows-1)], inplace=True)
 
-    df.to_csv(path_or_buf='abundances.csv', header=False, index=False, mode='a', na_rep='...')
+    df.to_csv(path_or_buf='abundresults.dat', header=False, index=False, mode='a', na_rep='...')
 
 
 def _options(options=None):
@@ -106,7 +106,7 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
 
     Output:
     <linelist>.out          -   Output file
-    results.csv             -   Easy readable table with results from many linelists
+    abundresults.dat             -   Easy readable table with results from many linelists
     """
     try:  # Cleaning from previous runs
         os.remove('captain.log')
@@ -204,7 +204,7 @@ if __name__ == '__main__':
     pd.set_option('display.max_rows', 500)
     pd.set_option('display.max_columns', 500)
     pd.set_option('display.width', 1000)
-    df = pd.read_csv('abundances.csv')
+    df = pd.read_csv('abundresults.dat')
 
     s = df.to_string(justify='right', formatters={'temperature': lambda x: '%d' % x,
                                                   'logg': lambda x: '%.2f' % x,
