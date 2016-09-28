@@ -211,7 +211,7 @@ def _output(linelist=None, parameters=None, converged=None, options=None,
     options : dict
       The options dictionary
     overwrite : bool
-      Overwrite the results.csv file
+      Overwrite the EWresults.dat file
     header : bool
       Only use True if this is for the file to be created
 
@@ -762,7 +762,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
     starLines : str
       Configuration file (default: StarMe_ew.cfg)
     overwrite : bool
-      Overwrite the results.csv file (default: False)
+      Overwrite the EWresults.dat file (default: False)
 
     Output
     ------
