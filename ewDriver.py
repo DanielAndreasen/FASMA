@@ -198,7 +198,7 @@ def _options(options=None):
 
 def _output(linelist=None, parameters=None, converged=None, options=None,
             overwrite=None, header=None):
-    """Create the output file 'results.csv'
+    """Create the output file 'EWresults.dat'
 
     Input
     -----
@@ -217,7 +217,7 @@ def _output(linelist=None, parameters=None, converged=None, options=None,
 
     Output
     ------
-    results.csv : file
+    EWresults.dat : file
       If overwrite is True, then make a new file, otherwise append the results
       to this file
     """
@@ -227,11 +227,11 @@ def _output(linelist=None, parameters=None, converged=None, options=None,
                'convergence', 'fixteff', 'fixlogg', 'fixfeh', 'fixvt', 'outlier',
                'weights', 'model', 'refine', 'EPcrit', 'RWcrit', 'ABdiffcrit']
         if overwrite:
-            with open('results.csv', 'w') as output:
+            with open('EWresults.dat', 'w') as output:
                 output.write('\t'.join(hdr)+'\n')
         else:
-            if not os.path.isfile('results.csv'):
-                with open('results.csv', 'w') as output:
+            if not os.path.isfile('EWresults.dat'):
+                with open('EWresults.dat', 'w') as output:
                     output.write('\t'.join(hdr)+'\n')
     else:
         tmp = [linelist] + parameters + [converged, options['fix_teff'],
@@ -239,7 +239,7 @@ def _output(linelist=None, parameters=None, converged=None, options=None,
                                          options['fix_vt'], options['outlier']] +\
             [options['weights'], options['model'], options['refine'],
              options['EPcrit'], options['RWcrit'], options['ABdiffcrit']]
-        with open('results.csv', 'a') as output:
+        with open('EWresults.dat', 'a') as output:
             output.write('\t'.join(map(str, tmp))+'\n')
 
 
