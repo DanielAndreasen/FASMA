@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-  <link rel="stylesheet" href="//bootswatch.com/superhero/bootstrap.css"/>
+  <!-- <link rel="stylesheet" href="//bootswatch.com/superhero/bootstrap.css"/> -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/js/bootstrap-select.min.js"></script>
@@ -38,12 +38,11 @@
       Ipsum. Porque é que o usamos?
     </p>
 
-    <div class="row">
+    <!-- <div class="row">
       <div class="col-xs-4">
-        <!-- <form action="/var/www/cgi-bin/ewConf.py" method="get"> -->
         <form action="/cgi-bin/ewConf.py" method="get">
           <label class="control-label">Select spectrum</label>
-          <input type="file" class="file btn" required name="spectrum">
+          <input type="file" class="file btn btn-warning" required name="spectrum">
           <select class="form-control" multiple>
             <option>Optical (parameters)</option>
             <option>NIR (parameters)</option>
@@ -56,6 +55,50 @@
           <button type="submit" class="btn btn-warning">Submit</button>
         </form>
       </div>
-    </div>
+    </div> -->
+
+
+
+    <form class="form-horizontal" action="/cgi-bin/ewConf.py" method="get">
+      <div class="form-group">
+        <label class="control-label col-sm-2">Spectrum:</label>
+        <div class="col-sm-4">
+          <input type="file" class="file btn" placeholder="Enter fits spectrum" required name="spectrum">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="sel1" class="control-label col-sm-2">Select list:</label>
+        <div class="col-sm-4">
+          <select class="form-control" id="sel1" multiple>
+            <option>Optical (parameters)</option>
+            <option>Optical (abundances)</option>
+            <option>NIR (parameters)</option>
+            <option>NIR (abundances)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <div class="checkbox">
+            <label><input type="checkbox" name="force">Force ARES to run</label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-default">Submit</button>
+        </div>
+      </div>
+
+      <!-- <div class="form-group">
+        <div class="col-sm-3">
+          <input type="text" class="form-control" name="w0" value="3000" placeholder="Minimum wavelength">
+        </div>
+      </div> -->
+
+
+    </form>
+
+
   </div>
 </body>
