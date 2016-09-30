@@ -194,7 +194,7 @@ def ares(args):
         print('Congratulations! The final line list are here: %s' % linelist_out)
 
 
-@Gooey(program_name='MOOG Made Easy - deriving stellar parameters',
+@Gooey(program_name='FASMA - spectral analysis',
        default_size=(900, 1000),
        image_dir='./img')
 def main():
