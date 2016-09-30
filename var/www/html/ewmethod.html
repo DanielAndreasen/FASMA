@@ -1,0 +1,50 @@
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//bootswatch.com/superhero/bootstrap.css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/js/bootstrap-select.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/js/i18n/defaults-*.min.js"></script>
+
+    <title>FASMA</title>
+    <script src="jquery.js"></script>
+    <script>
+      $(function(){
+          ("#includedNavbar").load("navbar.html");
+      });
+    </script>
+</head>
+
+<body>
+  <div id="includedContent"></div>
+
+
+  <div class="container-fluid">
+    <h1 class="text-primary text-center"><a href="/var/www/html/index.html">FASMA</a></h1>
+    <h2 class="text-secondary text-center">Fast Analysis of Spectra Made Automatically</h2>
+
+    <h3>EW method driver</h3>
+    <p>Obtain atmospheric parameters from using the EW method.</p>
+
+    <div class="row">
+      <div class="col-xs-4">
+        <!-- <form action="/var/www/cgi-bin/ewConf.py" method="get"> -->
+        <form action="/var/www/cgi-bin/ewMethodConf.py" method="get">
+          <label class="control-label">Select spectrum</label>
+          <input type="file" class="file" required name="spectrum">
+            <select class="form-control" multiple>
+            <option>Optical (parameters)</option>
+            <option>NIR (parameters)</option>
+            <option>Optical (abundances)</option>
+          </select>
+          <input type="text" placeholder="EW cut (mAA)" default="5" name="ewCut">
+          <input type="text" placeholder="RV mask (km/s)" default="0" name="Rvmask">
+          <input type="text" placeholder="rejt parameter" default="auto" name="rejt">
+          <label><input type="checkbox" name="force">Remove troublesome lines automatically</label>
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>

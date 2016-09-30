@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link rel="stylesheet" href="//bootswatch.com/superhero/bootstrap.css"/>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/js/bootstrap-select.min.js"></script>
+  <script>
+   $(function(){
+       $("#includNavbar").load("navbar.html");
+   });
+   </script>
+
+  <title>FASMA</title>
+</head>
+
+<body>
+  <div id="includNavbar"></div>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-xs-6">
+        <h2 class="text-primary text-center">FASMA</h2>
+        <h3 class="text-secondary text-center">Fast Analysis of Spectra Made Automatically</h3>
+      </div>
+      <div class="col-xs-4">
+        <figure class="figure">
+          <img src="http://bit.ly/1tijhLL" class="figure-img img-fluid img-rounded" alt="A solar spectrum" height="100px" width="100px">
+          <figcaption class="figure-caption">A solar spectrum. Credit: chinook.kpc.alaska.edu</figcaption>
+        </figure>
+      </div>
+    </div>
+
+  <p>
+    O que é o Lorem Ipsum? O Lorem Ipsum é um texto modelo da indústria tipográfica
+    e de impressão. O Lorem Ipsum tem vindo a ser o texto padrão usado por estas
+    indústrias desde o ano de 1500, quando uma misturou os caracteres de um texto
+    para criar um espécime de livro. Este texto não só sobreviveu 5 séculos, mas
+    também o salto para a tipografia electrónica, mantendo-se essencialmente
+    inalterada. Foi popularizada nos anos 60 com a disponibilização das folhas de
+    Letraset, que continham passagens com Lorem Ipsum, e mais recentemente com os
+    programas de publicação como o Aldus PageMaker que incluem versões do Lorem
+    Ipsum. Porque é que o usamos?
+  </p>
+
+  <h3>Drivers</h3>
+  <p>
+    There are four different drivers: <em>EW</em>, <em>EW method</em>,
+    <em>synthesis method</em>, and <em>abundances</em> described below.
+  </p>
+
+  <ul>
+    <li><a href="/ew.html">EW</a> for measuring EWs from a spectrum. Uses
+      <a href="https://github.com/sousasag/ARES">ARES</a> in the background.</li>
+    <li><a href="/ewmethod.html">EW method</a> for getting atmospheric
+      parameters from the measured EWs.</li>
+    <li><a href="/synthesis.html">Synthesis method</a> for getting atmospheric
+      parameters directly from the spectrum.</li>
+    <li><a href="/abundance.html">Abundance</a> for obtaining abundance of
+      different elements. Atmospheric parameters are needed for this step.</li>
+  </ul>
+
+  </div>
+</body>
