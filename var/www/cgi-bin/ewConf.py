@@ -24,10 +24,7 @@ print "<head>"
 print "<title>Checkbox - Third CGI Program</title>"
 print "</head>"
 print "<body>"
-print "<p>Hello world</p>"
-print "<p>%s</p>" % form
-print "<p>%s</p>" % form['Rvmask']
-print "<p>%s</p>" % form['ewCut']
-print "<p>%s</p>" % form['force']
+for formi in form:
+    print "<p>%s</p>" % (form[formi])
 print "</body>"
 print "</html>"
