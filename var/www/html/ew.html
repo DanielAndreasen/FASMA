@@ -3,13 +3,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-  <!-- <link rel="stylesheet" href="//bootswatch.com/superhero/bootstrap.css"/> -->
+  <link rel="stylesheet" href="//bootswatch.com/superhero/bootstrap.css"/>
   <style>
     body { padding-top: 42px; }
   </style>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/js/bootstrap-select.min.js"></script> -->
   <script>
    $(function(){
        $("#includNavbar").load("navbar.html");
@@ -49,7 +48,7 @@
           <div class="form-group">
             <label class="control-label col-sm-2">Spectrum:</label>
             <div class="col-sm-3">
-              <input type="file" name="spectrum" placeholder="Enter fits spectrum" required>
+              <input type="file" name="spectrum" class="btn btn-default" placeholder="Enter fits spectrum" required>
             </div>
           </div><!-- form-group -->
 
@@ -149,10 +148,10 @@
             <input type="text" name="snr">
           </span>
           <span class="input-group-addon">
-            <input type="text" name="rejt">
+            <label class="radio-inline"><input type="radio" name="optradio" value="rejt">rejt</label>
           </span>
           <span class="input-group-addon">
-            <label class="radio-inline"><input type="radio" name="optradio" value="rejt">rejt</label>
+            <input type="text" name="rejt">
           </span>
         </div><!-- ubpuit group -->
       </div><!-- col-lg-6 -->
