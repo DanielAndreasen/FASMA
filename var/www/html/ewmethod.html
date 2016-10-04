@@ -4,12 +4,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
   <link rel="stylesheet" href="//bootswatch.com/superhero/bootstrap.css"/>
+  <link rel="stylesheet" href="../styles/lavels.css"/>
   <style>
     body { padding-top: 42px; }
   </style>
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.11.2/js/bootstrap-select.min.js"></script>
   <script>
    $(function(){
        $("#includNavbar").load("navbar.html");
@@ -19,35 +20,167 @@
   <title>FASMA</title>
 </head>
 
+
 <body>
   <div id="includNavbar"></div>
-
 
   <div class="container-fluid">
     <h1 class="text-primary text-center"><a href="/var/www/html/index.html">FASMA</a></h1>
     <h2 class="text-secondary text-center">Fast Analysis of Spectra Made Automatically</h2>
 
     <h3>EW method driver</h3>
-    <p>Obtain atmospheric parameters from using the EW method.</p>
+    <p>Obtain atmospheric parameters using the EW method.</p>
 
-    <div class="row">
-      <div class="col-xs-4">
-        <!-- <form action="/var/www/cgi-bin/ewConf.py" method="get"> -->
-        <form action="/var/www/cgi-bin/ewMethodConf.py" method="get">
-          <label class="control-label">Select spectrum</label>
-          <input type="file" class="file" required name="spectrum">
-            <select class="form-control" multiple>
-            <option>Optical (parameters)</option>
-            <option>NIR (parameters)</option>
-            <option>Optical (abundances)</option>
-          </select>
-          <input type="text" placeholder="EW cut (mAA)" default="5" name="ewCut">
-          <input type="text" placeholder="RV mask (km/s)" default="0" name="Rvmask">
-          <input type="text" placeholder="rejt parameter" default="auto" name="rejt">
-          <label><input type="checkbox" name="force">Remove troublesome lines automatically</label>
-          <button type="submit">Submit</button>
-        </form>
+    <form class="form-horizontal" action="/cgi-bin/ewmethodConf.py" method="get">
+      <div class="row-fluid">
+        <div class="col-lg-4">
+          <div class="form-group">
+            <label class="control-label col-sm-2">Linelist:</label>
+            <div class="col-sm-3">
+              <input type="file" name="spectrum" class="btn btn-default" placeholder="Enter fits spectrum" required>
+            </div>
+          </div><!-- form-group -->
+
+          <div class="input-group" style="padding-left:88px">
+            <span class="input-group-addon" style="width:80px">
+              <label>T<sub>eff</sub></label>
+            </span>
+            <input type="text" class="form-control" style="width:250px" name="Teff" value="5777" required>
+          </div><!-- input-group -->
+
+          <div class="input-group" style="padding-left:88px">
+            <span class="input-group-addon" style="width:80px">
+              <label>logg</label>
+            </span>
+              <input type="text" class="form-control" style="width:250px" name="logg" value="4.44" required>
+          </div><!-- input-group -->
+
+          <div class="input-group" style="padding-left:88px">
+            <span class="input-group-addon" style="width:80px">
+              <label>[Fe/H]</label>
+            </span>
+            <input type="text" class="form-control" style="width:250px" name="feh" value="0.00">
+          </div><!-- input-group -->
+
+          <div class="input-group" style="padding-left:88px">
+            <span class="input-group-addon" style="width:80px">
+              <label>&xi;<sub>tur</sub></label>
+            </span>
+            <input type="text" class="form-control" style="width:250px" name="vt" value="1.00">
+          </div><!-- input-group -->
+        </div>
+
+        <div class="col-lg-2">
+          <div class="input-group">
+            <span class="input-group-addon" style="width:120px">
+              <label>Model atm.</label>
+            </span>
+            <select class="form-control" name="atmosphere" style="width:110px">
+              <option>Kurucz</option>
+              <option>Marcs</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <span class="input-group-addon" style="width:120px">
+              <label>Outlier</label>
+            </span>
+            <select class="form-control" name="outlier">
+              <option>All once</option>
+              <option>All iteratively</option>
+              <option>One iteratively</option>
+              <option>None</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <span class="input-group-addon" style="width:120px">
+              <label>Sigma</label>
+            </span>
+            <input type="text" class="form-control" name="sigma" value="3">
+          </div><!-- input-group -->
+
+          <div class="input-group">
+            <span class="input-group-addon" style="width:120px">
+              <label>Iterations</label>
+            </span>
+            <input type="text" class="form-control" name="iterations" value="160">
+          </div><!-- input-group -->
+
+          <div class="input-group">
+            <span class="input-group-addon" style="width:120px">
+              <label>EP slope</label>
+            </span>
+            <input type="text" class="form-control" name="EPslope" value="0.001">
+          </div><!-- input-group -->
+
+          <div class="input-group">
+            <span class="input-group-addon" style="width:120px">
+              <label>ERW slope</label>
+            </span>
+            <input type="text" class="form-control" name="RWslope" value="0.003">
+          </div><!-- input-group -->
+
+          <div class="input-group">
+            <span class="input-group-addon" style="width:120px">
+              <label>|FeI-FeII|</label>
+            </span>
+            <input type="text" class="form-control" name="feDiff" value="0.00">
+          </div><!-- input-group -->
+        </div>
+
+
+        <div class="col-lg-1">
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">Fix T<sub>eff</sub></label>
+            <input type="checkbox" class="checkbox" name="fixTeff">
+          </div>
+
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">Fix logg</label>
+            <input type="checkbox" class="checkbox" name="fixlogg">
+          </div>
+
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">Fix [Fe/H]</label>
+            <input type="checkbox" class="checkbox" name="fixfeh">
+          </div>
+
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">Fix &xi;<sub>tur</sub></label>
+            <input type="checkbox" class="checkbox" name="fixvt">
+          </div>
+        </div>
+
+        <div class="col-lg-1">
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">T<sub>eff</sub> range</label>
+            <input type="checkbox" class="checkbox" name="teffrange" checked>
+          </div>
+
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">Auto fix &xi;<sub>tur</sub></label>
+            <input type="checkbox" class="checkbox" name="autofixvt" checked>
+          </div>
+
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">Refine</label>
+            <input type="checkbox" class="checkbox" name="refine" checked>
+          </div>
+
+          <div class="input-group">
+            <label for="checkbox" class="checkbox">Initial guess</label>
+            <input type="checkbox" class="checkbox" name="Initial">
+          </div>
+        </div>
+
       </div>
-    </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-default">Submit</button>
+        </div>
+      </div>
+    </form>
+
   </div>
 </body>
