@@ -70,28 +70,28 @@
             <span class="input-group-addon" style="width:120px">
               <label>&lambda;<sub>0</sub></label>
             </span>
-            <input type="text" class="form-control" name="w0" value="3500">
+            <input type="text" class="form-control" name="w0" value="3500" required>
           </div><!-- input-group -->
 
           <div class="input-group">
             <span class="input-group-addon" style="width:120px">
               <label>&lambda;<sub>f</sub></label>
             </span>
-            <input type="text" class="form-control" name="wf" value="10000">
+            <input type="text" class="form-control" name="wf" value="25000" required>
           </div><!-- input-group -->
 
           <div class="input-group">
             <span class="input-group-addon" style="width:120px">
               <label>RV (km/s)</label>
             </span>
-            <input type="text" class="form-control" name="rv" value="0">
+            <input type="text" class="form-control" name="rv" value="0" required>
           </div><!-- input-group -->
 
           <div class="input-group">
             <span class="input-group-addon" style="width:120px">
               <label>Smooth noise</label>
             </span>
-            <input type="text" class="form-control" name="smooth" value="4">
+            <input type="text" class="form-control" name="smooth" value="4" required>
           </div><!-- input-group -->
         </div><!-- col-group -->
 
@@ -100,28 +100,28 @@
             <span class="input-group-addon" style="width:120px">
               <label>EW min</label>
             </span>
-            <input type="text" class="form-control" name="miniline" value="5">
+            <input type="text" class="form-control" name="miniline" value="5" required>
           </div><!-- input-group -->
 
           <div class="input-group">
             <span class="input-group-addon" style="width:120px">
               <label>EW max</label>
             </span>
-            <input type="text" class="form-control" name="EWcut" value="150">
+            <input type="text" class="form-control" name="EWcut" value="150" required>
           </div><!-- input-group -->
 
           <div class="input-group">
             <span class="input-group-addon" style="width:120px">
               <label>lineresol</label>
             </span>
-            <input type="text" class="form-control" name="lineresol" value="0.07">
+            <input type="text" class="form-control" name="lineresol" value="0.07" required>
           </div><!-- input-group -->
 
           <div class="input-group">
             <span class="input-group-addon" style="width:120px">
               <label>Space</label>
             </span>
-            <input type="text" class="form-control" name="space" value="2.0">
+            <input type="text" class="form-control" name="space" value="2.0" required>
           </div><!-- input-group -->
         </div><!-- col-group -->
       </div><!-- row -->
@@ -139,16 +139,16 @@
       <div class="col-lg-6">
         <div class="input-group">
           <span class="input-group-addon">
-            <label class="radio-inline active"><input type="radio" name="optradio" value="autoRejt" checked>Auto rejt</label>
+            <label class="radio-inline active"><input type="radio" name="continuum" value="autoRejt" checked>Auto rejt</label>
           </span>
           <span class="input-group-addon">
-            <label class="radio-inline"><input type="radio" name="optradio" value="snr">SNR</label>
+            <label class="radio-inline"><input type="radio" name="continuum" value="snr">SNR</label>
           </span>
           <span class="input-group-addon">
             <input type="text" name="snr">
           </span>
           <span class="input-group-addon">
-            <label class="radio-inline"><input type="radio" name="optradio" value="rejt">rejt</label>
+            <label class="radio-inline"><input type="radio" name="continuum" value="rejt">rejt</label>
           </span>
           <span class="input-group-addon">
             <input type="text" name="rejt">
