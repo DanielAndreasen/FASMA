@@ -30,7 +30,7 @@ def round_up0(i):
     return np.float(rounded)
 
 
-def get_snr(fname='logARES.txt'):
+def get_snr(fname='/tmp/logARES.txt'):
     """Get the SNR from ARES
 
     Input
@@ -152,10 +152,6 @@ def update_ares(line_list, spectrum, out, options):
     else:
         out = '%s.ares' % spectrum.rpartition('.')[0]
 
-    # if options['fullpath']:
-    #     fout = 'specfits=\'%s\'\n' % spectrum
-    # else:
-    #     fout = 'specfits=\'spectra/%s\'\n' % spectrum
     fout = 'specfits=\'%s/%s\'\n' % (cwd, spectrum)
     fout += 'readlinedat=\'%s/rawLinelist/%s\'\n' % (cwd, line_list)
     fout += 'fileout=\'/tmp/%s\'\n' % out
@@ -176,7 +172,7 @@ def update_ares(line_list, spectrum, out, options):
 def findBadLine():
     """Read logARES.txt and return the last measured line (the bad one)"""
     linePresent = False
-    with open('logARES.txt', 'r') as lines:
+    with open('/tmp/logARES.txt', 'r') as lines:
         for line in lines:
             if line.startswith('line result'):
                 line = line.split(':')
@@ -205,17 +201,21 @@ def aresRunner(linelist, spectrum, out, options):
     cwd = os.path.dirname(os.path.realpath('__file__'))
     update_ares(linelist, spectrum, out, options)
     if options['force']:
+        if not os.path.isdir('/tmp/rawLinelist'):
+            os.mkdir('/tmp/rawLinelist')
+            copyfile('rawLinelist/'+linelist, '/tmp/rawLinelist/%s' % linelist)
         index = 1
         while True:
             _run_ares()
+            # if os.path.isfile('/tmp/'+out):
             if os.path.isfile('linelist/'+out):
                 break
             else:
                 atomicLine = findBadLine()
                 if atomicLine:
-                    copyfile('rawLinelist/'+linelist, 'rawLinelist/tmp%i' % index)
+                    copyfile('rawLinelist/'+linelist, '/tmp/rawLinelist/tmp%i' % index)
                     tmplinelist = 'tmp%i' % index
-                    cleanLineList('rawLinelist/'+tmplinelist, atomicLine)
+                    cleanLineList('/tmp/rawLinelist/'+tmplinelist, atomicLine)
                     update_ares(tmplinelist, spectrum, out, options)
                     index += 1
                 else:
