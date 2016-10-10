@@ -152,7 +152,7 @@ def update_ares(line_list, spectrum, out, options):
     else:
         out = '%s.ares' % spectrum.rpartition('.')[0]
 
-    fout = 'specfits=\'%s/%s\'\n' % (cwd, spectrum)
+    fout = 'specfits=\'/tmp/spectrum.fits\'\n'
     fout += 'readlinedat=\'%s/rawLinelist/%s\'\n' % (cwd, line_list)
     fout += 'fileout=\'/tmp/%s\'\n' % out
     fout += 'lambdai=%s\n' % options['lambdai']

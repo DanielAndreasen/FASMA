@@ -58,8 +58,7 @@ if __name__ == '__main__':
     form = cgi.FieldStorage()
 
     # Save the spectrum to a standard location
-    spec = form['spectrum']
-    with open('/tmp/%s.fits' % spec, 'w') as f:
+    with open('/tmp/spectrum.fits', 'w') as f:
         f.write(form['spectrum'].value)
 
     # Run ARES for one or several line lists
