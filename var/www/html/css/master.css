@@ -1,0 +1,28 @@
+body {
+  padding-top: 42px;
+  }
+
+/* Dropdown on when hover */
+.dropdown-menu li:hover .sub-menu {
+  visibility: visible;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+/* The rotatin loader */
+.loader {
+  border: 16px solid #2b3e50; /* Light grey */
+  border-top: 16px solid #df691a; /* Blue */
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
+  /*margin-left: 250px;*/
+  /*margin-top: 250px;*/
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
