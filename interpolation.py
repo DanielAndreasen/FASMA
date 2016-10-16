@@ -76,7 +76,7 @@ def interpolator(params, save=True, atmtype='kurucz95', result=None):
         models.append(tatm)
 
     layers = range(min([model.shape[0] for model in models]))
-    columns = range(min([model.shape[1] for model in models]) - 3)
+    columns = range(6)
     newatm = np.zeros((len(layers), len(columns)))
     for layer in layers:
         for column in columns:
