@@ -56,14 +56,24 @@ def _getMic(teff, logg, feh):
 
 
 def _getMac(teff, logg):
-    """Calculate macro turbulence (Doyle et al. 2014)."""
+    """Calculate macro turbulence."""
+    # For Dwarfs: Doyle et al. 2014
     # 5200 < teff < 6400
     # 4.0 < logg < 4.6
-    mac = 3.21 + (2.33 * (teff - 5777.) * (10**(-3)))
-    + (2.00 * ((teff - 5777.)**2) * (10**(-6))) - (2.00 * (logg - 4.44))
-    # For negative values, keep a minimum of 0.5 km/s
+    if logg > 3.95:
+        mac = 3.21 + (2.33 * (teff - 5777.) * (10**(-3)))
+        + (2.00 * ((teff - 5777.)**2) * (10**(-6))) - (2.00 * (logg - 4.44))
+    # For subgiants and giants: Hekker & Melendez 2007
+    elif 2.0 <= logg <= 3.95:
+        mac = -8.426 + (0.00241*teff)
+    elif 1.0 <= logg < 2.0:
+        mac = -3.953 + (0.00195*teff)
+    elif logg < 1.0:
+        mac = -0.214 + (0.00158*teff)
+
+    # For negative values, keep a minimum of 0.3 km/s
     if mac < 0:
-        mac = 0.50
+        mac = 0.30
     return round(mac, 2)
 
 
@@ -122,18 +132,6 @@ def _options(options=None):
         else:
             defaults['inter_file'] = 'intervals.lst'
         return defaults
-
-
-def wave_step(dl_obs, step_wave=0.01):
-    '''Find the step of synthesis in wavelength depending the observations'''
-
-    if dl_obs < step_wave:
-        step_wave = dl_obs
-    elif dl_obs > step_wave:
-        step_wave = dl_obs
-    else:
-        step_wave
-    return round(step_wave,3)
 
 
 def _output(overwrite=None, header=None, parameters=None):
@@ -276,12 +274,7 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                     if options['minimize']:
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
-                        dl_obs = x_obs[1] - x_obs[0]
-                        options['step_wave'] = wave_step(dl_obs)
-                        # Exclude some continuum points
-                        y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
-                        x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
-                        params, x_final, y_final = minimize_synth(initial, x_obs_lpts, y_obs_lpts, ranges=ranges, **options)
+                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, x_initial, y_initial, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         tmp = [line[0]] + [options['observations']] + params + initial + [options['fix_teff'], options['fix_logg'], options['fix_feh'], options['fix_vt'], options['fix_vmac'],
                         options['fix_vsini'], options['flag_vt'], options['flag_vmac'], options['model'], options['resolution'], options['snr']]
@@ -339,7 +332,6 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                 logger.info('Interpolation successful.')
                 logger.info('Setting solar values {0}, {1}, {2}, {3}'.format(*initial))
                 print('Synthetic spectrum contains %s points' % len(x_initial))
-
                 if options['observations']:
                     print('This is your observed spectrum: %s' % options['observations'])
                     # Check if observations exit, if not pass another line
@@ -354,14 +346,9 @@ def synthdriver(starLines='StarMe_synth.cfg', overwrite=False):
                         continue
                     # If observations exists, then why not, find best fit?
                     if options['minimize']:
-                        dl_obs = x_obs[1] - x_obs[0]
                         print('Starting minimization...')
                         logger.info('Starting the minimization procedure...')
-                        options['step_wave'] = wave_step(dl_obs)
-                        # Exclude some continuum points
-                        y_obs_lpts = y_obs[np.where(y_obs < 1.0)]
-                        x_obs_lpts = x_obs[np.where(y_obs < 1.0)]
-                        params, x_final, y_final = minimize_synth(initial, x_obs_lpts, y_obs_lpts, ranges=ranges, **options)
+                        params, x_final, y_final = minimize_synth(initial, x_obs, y_obs, x_initial, y_initial, ranges=ranges, **options)
                         logger.info('Minimization done.')
                         if options['save']:
                             save_synth_spec(x_final, y_final, y_obs=y_obs, initial=initial, final=(params[0],params[2],params[4],params[6],params[8],params[10]), fname='final.spec', **options)
