@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import argparse
 import seaborn as sns
+colorSB = sns.color_palette()
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -95,32 +96,23 @@ def _plotSettings(mode='screen'):
       - screen: For normal plotting on the computer
       - paper: For plotting ready for publication
       - poster: For posters
-
-    Output
-    ------
-    colorSB : list
-      The colours from seaborn
     """
     if mode == 'screen':
         sns.set_style('darkgrid')
         sns.set_context('talk', font_scale=1.2)
-        colorSB = sns.color_palette()
     elif mode == 'paper':
         sns.set_style('ticks')
         sns.set_context(mode, font_scale=1.7)
-        colorSB = sns.color_palette()
     elif mode == 'poster':
         sns.set_style('ticks')
         sns.set_context(mode, font_scale=1.2)
-        colorSB = sns.color_palette()
-    return colorSB
 
 
 if __name__ == '__main__':
 
     args = _parser()
 
-    colorSB = _plotSettings(args.plotting)
+    _plotSettings(args.plotting)
 
     df = pd.read_csv(args.input, delimiter=r'\s+', comment='#')
     df = df[(df.convergence) | (~df.convergence)]  # Remove blank lines and comments
@@ -149,8 +141,8 @@ if __name__ == '__main__':
         dar = Dartmouth_Isochrone()
         age = np.zeros(df.shape[0])
         for i, (mass, feh) in enumerate(df[['mass', 'feh']].values):
-            age[i] = np.mean(dar.agerange(mass, feh))
-        age = (10**age)/1e9
+            tmp = dar.agerange(mass, feh)
+            age[i] = (10**(tmp[0]-9) + 10**(tmp[1]-9))/2
         df['age'] = pd.Series(age)
 
     df1 = df[df.convergence]
@@ -167,12 +159,12 @@ if __name__ == '__main__':
         u = z[~np.isnan(z)]
         size = (z-u.min())/(u.max()-u.min())*100
         size[np.argmin(size)] = 10  # Be sure to show the "smallest" point
-        plt.scatter(df1[args.x], df1[args.y], c=color, s=size, cmap=cm.YlOrRd, label='Converged')
+        plt.scatter(df1[args.x], df1[args.y], c=color, s=size, cmap=cm.viridis, label='Converged')
     else:
         plt.scatter(df1[args.x], df1[args.y], c=colorSB[0], s=40, label='Converged')
     if not args.convergence:
         if args.z:
-            plt.scatter(df2[args.x], df2[args.y], c=df2[args.z].values, cmap=cm.YlOrRd, s=55, marker='x', label='Not converged')
+            plt.scatter(df2[args.x], df2[args.y], c=df2[args.z].values, cmap=cm.viridis, s=55, marker='x', label='Not converged')
         else:
             plt.scatter(df2[args.x], df2[args.y], c=color[2], s=9, marker='d', label='Not converged')
         plt.legend(loc='best', frameon=False)
