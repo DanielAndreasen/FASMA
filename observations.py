@@ -110,7 +110,7 @@ def read_observations(fname, start_synth, end_synth):
             w0, dw, n = start_wave, step, len(flux)
             w = start_wave + step * n
             wave = np.linspace(w0, w, n, endpoint=False)
-        # These types are produced by FASMA (fits format).
+        # T hese types are produced by MOOGme (fits format).
         elif fname[-5:] == '.spec':
             hdulist = fits.open(fname)
             x = hdulist[1].data
@@ -150,7 +150,7 @@ def read_obs_intervals(obs_fname, r, snr=100, method='scalar'):
 
     x_obs = np.column_stack(spec)[0]
     y_obs = np.column_stack(spec)[1]
-    
+
     if any(i == 0 for i in y_obs):
         print('Warning: Flux contains 0 values.')
     return x_obs, y_obs
@@ -275,6 +275,29 @@ def snr(fname, plot=False):
         pass
 
     wave_cut, flux_cut = read_observations(fname, 5541.5, 5542.5)
+    num_points = int(len(flux_cut)/2)
+    if num_points != 0:
+        snrEsti1 = pyasl.estimateSNR(wave_cut, flux_cut, num_points, deg=1, controlPlot=plot)
+        snr.append(snrEsti1["SNR-Estimate"])
+    else:
+        pass
+
+    wave_cut, flux_cut = read_observations(fname, 8643.8, 8645.8)
+    num_points = int(len(flux_cut)/2)
+    if num_points != 0:
+        snrEsti1 = pyasl.estimateSNR(wave_cut, flux_cut, num_points, deg=1, controlPlot=plot)
+        snr.append(snrEsti1["SNR-Estimate"])
+    else:
+        pass
+
+    wave_cut, flux_cut = read_observations(fname, 8760.0, 8762.2)
+    num_points = int(len(flux_cut)/2)
+    if num_points != 0:
+        snrEsti1 = pyasl.estimateSNR(wave_cut, flux_cut, num_points, deg=1, controlPlot=plot)
+        snr.append(snrEsti1["SNR-Estimate"])
+    else:
+        pass
+    wave_cut, flux_cut = read_observations(fname, 8870.0, 8872.0)
     num_points = int(len(flux_cut)/2)
     if num_points != 0:
         snrEsti1 = pyasl.estimateSNR(wave_cut, flux_cut, num_points, deg=1, controlPlot=plot)
