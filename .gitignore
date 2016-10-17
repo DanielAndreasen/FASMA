@@ -18,6 +18,7 @@ fort.*
 mine.opt
 
 *.csv
+*.dat
 !spt.csv
 
 *.cfg
