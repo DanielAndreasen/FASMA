@@ -287,6 +287,7 @@ def _read_raw_moog(fname='summary.out'):
 
     data = []
     for line in lines:
+        line = line.replace('-',' ')
         line = line.replace('\n','').split(' ')
         line = filter(None, line)
         data.append(line)
