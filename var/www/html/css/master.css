@@ -1,8 +1,10 @@
 body {
   padding-top: 42px;
-  }
+}
+
 
 /* Dropdown on when hover */
+
 .dropdown-menu li:hover .sub-menu {
   visibility: visible;
 }
@@ -11,7 +13,9 @@ body {
   display: block;
 }
 
+
 /* The rotatin loader */
+
 .loader {
   border: 16px solid #2b3e50; /* Light grey */
   border-top: 16px solid #df691a; /* Blue */
@@ -22,7 +26,12 @@ body {
   /*margin-left: 250px;*/
   /*margin-top: 250px;*/
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
