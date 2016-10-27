@@ -583,7 +583,7 @@ def _teffrangeRunner(linelist, parameters, converged, options):
         return linelist, parameters, converged
 
 
-def _autofixvtRunner(parameters, options):
+def _autofixvtRunner(parameters, options, converged):
     """
     Check and fix the microturbulence if it is close to the boundaries of the
     allowed range, i.e. 0.05 < vt < 9.95, and with a big slope of abundance vs.
@@ -595,6 +595,8 @@ def _autofixvtRunner(parameters, options):
       The initial parameters for the minimization routine
     options : dict
       The options dictionary
+    converged : bool
+      Whether the minimization converged before. Useful is no lines are removed
 
     Output
     ------
@@ -609,8 +611,7 @@ def _autofixvtRunner(parameters, options):
         options['fix_vt'] = True
         print('Running minimization with vt fixed...\n')
         parameters, converged = _minizationRunner(parameters, options)
-        return parameters, converged
-    return parameters, True
+    return parameters, converged
 
 
 def _refineRunner(parameters, options):
@@ -810,7 +811,7 @@ def ewdriver(starLines='StarMe_ew.cfg', overwrite=None):
 
         if options['autofixvt']:
             logger.info('Fixing vt if necessary.')
-            parameters, converged = _autofixvtRunner(parameters, options)
+            parameters, converged = _autofixvtRunner(parameters, options, converged)
 
         if options['refine'] and converged:
             logger.info('Refining the parameters.')
