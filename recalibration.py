@@ -80,7 +80,7 @@ def recalSingleLine(line, params=None, version=2014, maxiter=40, driver='abfind'
     header = 'Wavelength     ele    EP     loggf        EW'
     np.savetxt('temporary.moog', line[:, np.newaxis].T, fmt=fmt, header=header)
     loggf_old = line[3]
-    a, b = loggf_old-1, loggf_old+1  # extreme values of loggf
+    a, b = loggf_old-5, loggf_old+5  # extreme values of loggf
     c = (a+b)/2
     for _ in range(maxiter):
         if c == 0:  # Don't evaluate at loggf = 0
