@@ -98,6 +98,29 @@ def _options(options=None):
         return defaults
 
 
+def weighted_avg_and_std(values):
+    """Get the weighted average and standard deviation.
+
+    Input
+    -----
+    values : ndarray
+      The list of values from which to calculate the weighted
+      average and standard deviation
+
+    Output
+    ------
+    average : float
+      The weighted average
+    std : float
+      The weighted standard deviation
+    """
+    values = np.array(values)
+    weights = (np.abs(values-np.median(values))/(np.std(values)+1E-13)+0.25)**(-1)
+    average = round(np.average(values, weights=weights), 3)
+    std = np.sqrt(np.average((values-average)**2, weights=weights))
+    return average, std
+
+
 def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
     """The function that glues everything together
 
@@ -180,15 +203,20 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
             logger.info('Interpolation successful.')
             _run_moog()
 
-            m = Readmoog()
-            elements, abundances = m.elements()
+            table = Readmoog(version=options['MOOGv']).all_table()
+            elements = table.atom.unique()
             abundance_dict = {'linelist': line[0],
                               'Temperature': initial[0],
                               'Gravity': initial[1],
                               '[Fe/H]': initial[2],
                               'microturbulence': initial[3]}
 
-            for element, abundance in zip(elements, abundances):
+            for element in elements:
+                sub_table = table[table.atom == element]
+                if len(sub_table) > 1:
+                    abundance, _ = weighted_avg_and_std(sub_table.abund.values)
+                else:
+                    abundance = sub_table.abund.values[0]
                 abundance_dict[element] = abundance
 
             save(abundance_dict, overwrite=overwrite)
