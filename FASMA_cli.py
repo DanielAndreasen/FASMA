@@ -3,7 +3,6 @@
 
 from __future__ import print_function
 from ewDriver import ewdriver
-from synthDriver import synthdriver
 from abundanceDriver import abundancedriver
 from aresDriver import aresdriver
 import argparse
@@ -55,13 +54,6 @@ def ew(args):
     with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
     ewdriver(overwrite=args.overwrite)
-
-
-def synth(args):
-    """Driver for the synthesis method"""
-    print(args)
-    raise NotImplementedError('Patience you must have my young Padawan')
-    synthdriver()
 
 
 def abund(args):
@@ -174,11 +166,6 @@ def main():
     ew_parser.add_argument('--autofixvt',          help='Auto fix vt if it goes too low or too high', action='store_true', default=False)
     ew_parser.add_argument('--sigma',              help='Number of sigma, for sigma clipping outliers (default: 3)', type=float, default=3)
     ew_parser.set_defaults(driver=ew)
-
-    # For the synhtesis method
-    synth_parser = subparsers.add_parser('synth', parents=[parent_parser], help='Synthesis method')
-    synth_parser.add_argument('--test', help='this is test')
-    synth_parser.set_defaults(driver=synth)
 
     # For calculating the abundances
     abund_parser = subparsers.add_parser('abund', parents=[parent_parser], help='Abundances')
