@@ -773,6 +773,37 @@ class Readmoog:
                 element.append(str(line[4])+str(line[5]))
         return element, abundances
 
+    def all_table(self):
+        '''Get the entire table from fname
+
+        Output
+        ------
+        table : pd.DataFrame
+          A DataFrame with the entire table, including the wavelength,
+          ID (for newer versions of MOOG), EP, loggf, EWin, logRWin,
+          abundance, and delavg
+        '''
+        import pandas as pd
+        table = []
+        readLine = False
+        for line in self.lines:
+            if line.startswith('wavelength'):
+                readLine = True
+                continue
+            if readLine and line.startswith('average abundance'):
+                readLine = False
+            if readLine:
+                table.append(line)
+            else:
+                continue
+
+        if self.version > 2014:
+            cols = 'wavelength,ID,EP,logGF,EWin,logRWin,abund,delavg'.split(',')
+        else:
+            cols = 'wavelength,EP,logGF,EWin,logRWin,abund,delavg'.split(',')
+        table = pd.DataFrame([t.strip().split() for t in table], columns=cols, dtype=float)
+        return table
+
 
 def _slopeSigma(x, y, weights):
     '''Sigma on a slope after fitting a straight line
