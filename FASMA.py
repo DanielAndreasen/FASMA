@@ -61,6 +61,7 @@ def synth(args):
     """Driver for the synthesis method"""
     fout = ''
     linelist = args.linelist.rpartition('/')[-1]
+    inter_file = args.inter_file.rpartition('/')[-1]
     if args.spectralType:
         if not args.temperature and not args.surfacegravity:
             fout += '%s spt:%s,' % (linelist, args.spectralType)
@@ -68,31 +69,35 @@ def synth(args):
             print('Temperature and/or surface gravity set. Will not use spectral type.')
     else:
         if not args.temperature:
-            print('Warning: Temperature was set to 5777K')
+            print('Warning: Temperature was set to 5777 K')
             args.temperature = 5777
         if not args.surfacegravity:
-            print('Warning: Surface gravity was set to 4.44')
+            print('Warning: Surface gravity was set to 4.44 dex')
             args.surfacegravity = 4.44
         if not args.FeH:
             args.FeH = 0.0
         if not args.microturbulence:
-            print('Warning: Microturbulence was set to 1.00')
+            print('Warning: Microturbulence was set to 1.00 km/s')
             args.microturbulence = 1.00
         if not args.macroturbulence:
-            print('Warning: Macroturbulence was set to 3.21')
+            print('Warning: Macroturbulence was set to 3.21 km/s')
             args.macroturbulence = 3.21
         if not args.rotation:
-            print('Warning: Rotation was set to 1.90')
+            print('Warning: Rotation was set to 1.90 km/s')
             args.microturbulence = 1.90
         fout += '%s %s %s %s %s %s %s ' % (linelist, args.temperature, args.surfacegravity, args.FeH, args.microturbulence, args.macroturbulence, args.rotation)
 
-    fout += 'model:%s,MOOGv:%s,step_wave:%s,step_flux:%s,inter_file:%s,limb:%s,damping:%s' % (args.model, args.MOOGv, args.step_wave, args.step_flux, args.inter_file, args.limb, args.damping)
+    fout += 'model:%s,MOOGv:%s,step_wave:%s,step_flux:%s,inter_file:%s,limb:%s,damping:%s' % (args.model, args.MOOGv, args.step_wave, args.step_flux, inter_file, args.limb, args.damping)
     if args.observations:
         fout += ',observations:%s' % args.observations
     if args.resolution:
         fout += ',resolution:%s' % args.resolution
     if args.snr:
         fout += ',snr:%s' % args.snr
+    if args.refine:
+        fout += ',refine'
+    if args.errors:
+        fout += ',errors'
     if args.plot:
         fout += ',plot'
     if args.plot_res:
@@ -238,7 +243,7 @@ def main():
 
     # For the synhtesis method
     synth_parser = subparsers.add_parser('synth', parents=[parent_parser], help='Synthesis method')
-    synth_parser.add_argument('linelist',                help='Input linelist file', widget='FileChooser')
+    synth_parser.add_argument('linelist',             help='Input linelist file', widget='FileChooser')
     synth_parser.add_argument('--macroturbulence',    help='(in km/s)',  default=3.21, type=float, metavar='Macroturbulence')
     synth_parser.add_argument('--rotation',           help='(in km/s)',  default=1.90, type=float, metavar='Rotational velocity')
     synth_parser.add_argument('--spectralType',       help='(optional)', default=False, metavar='Spectral type')
@@ -260,8 +265,10 @@ def main():
     synth_parser.add_argument('--resolution',         help='Instrumental resolution', default=None, metavar='Resolution')
     synth_parser.add_argument('--snr',                help='Signal-to-noise ratio',   default=None, metavar='SNR')
     synth_parser.add_argument('--save',               help='Save spectrum', action='store_true', metavar='Save output')
-    synth_parser.add_argument('--plot',               help='Plot option',   action='store_true', metavar='Plot spectrum')
-    synth_parser.add_argument('--plot_res',           help='Plot option',   action='store_true', metavar='Plot residuals')
+    synth_parser.add_argument('--refine',             help='Refine results', action='store_true', metavar='Refine results')
+    synth_parser.add_argument('--errors',             help='Calculate errors', action='store_true', metavar='Errors')
+    synth_parser.add_argument('--plot',               help='Plot spectrum', action='store_true', metavar='Plot spectrum')
+    synth_parser.add_argument('--plot_res',           help='Plot residuals', action='store_true', metavar='Plot residuals')
     synth_parser.add_argument('--overwrite',          help='Overwrite results.csv', action='store_true', default=False)
     synth_parser.set_defaults(driver=synth)
 
