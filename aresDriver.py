@@ -306,7 +306,9 @@ def aresdriver(starLines='StarMe_ares.cfg'):
                 options['output'] = out
                 aresRunner(line_list, spectrum, out, options)
 
+    snr = get_snr()
     os.remove('logARES.txt')
+    return snr
 
 
 if __name__ == '__main__':
@@ -315,4 +317,4 @@ if __name__ == '__main__':
         cfgfile = sys.argv[1]
     else:
         cfgfile = 'StarMe_ares.cfg'
-    aresdriver(starLines=cfgfile)
+    _ = aresdriver(starLines=cfgfile)
