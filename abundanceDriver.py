@@ -221,6 +221,8 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
 
             save(abundance_dict, overwrite=overwrite)
 
+    return abundance_dict
+
 
 if __name__ == '__main__':
     import sys
