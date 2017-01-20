@@ -26,6 +26,7 @@ mine.opt
 !StarMe_abund.cfg
 !StarMe_ew.cfg
 !StarMe_synth.cfg
+!StarMe_all.cfg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
