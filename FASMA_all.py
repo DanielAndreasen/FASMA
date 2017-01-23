@@ -101,12 +101,11 @@ class FullSpectralAnalysis:
             if defaults['ews.plots_flag']:
                 defaults['ews.plots_flag'] = '1'
 
-            if not defaults['ews.rejt']:
-                defaults['ews.rejt'] = '3;5764,5766,6047,6053,6068,6076'
-            try:
-                defaults['ews.rejt'] = float(defaults['ews.rejt'])
-            except ValueError:
-                defaults['ews.rejt'] = str(defaults['ews.rejt'])
+            if defaults['ews.rejt']:
+                try:
+                    defaults['ews.rejt'] = float(defaults['ews.rejt'])
+                except ValueError:
+                    defaults['ews.rejt'] = str(defaults['ews.rejt'])
 
         return defaults
 
