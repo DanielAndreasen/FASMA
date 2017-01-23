@@ -396,6 +396,7 @@ def hasOutlier(MOOGv=2014, n=3):
       A dictionary with {n*deviation: wavelength}
     """
     idx = 1 if MOOGv > 2013 else 0
+    n = float(n)
     s = Readmoog(version=MOOGv)
     d = s.fe_statistics()
     fe1 = d[-2]  # All the FeI lines
