@@ -124,12 +124,15 @@ def weighted_avg_and_std(values):
 def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
     """The function that glues everything together
 
-    Input:
-    starLines   -   Configuration file (default: StarMe.cfg)
+    Input
+    -----
+    starLines : str
+      Path to configuration file (default: StarMe_abund.cfg)
 
-    Output:
-    <linelist>.out          -   Output file
-    abundresults.dat             -   Easy readable table with results from many linelists
+    Output
+    ------
+    abundresults.dat : file
+      Easy readable table with results from many linelists
     """
     try:  # Cleaning from previous runs
         os.remove('captain.log')
