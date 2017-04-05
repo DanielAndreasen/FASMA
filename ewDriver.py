@@ -506,7 +506,7 @@ def _prepare(linelist, initial, options):
     interpolator(params=initial, atmtype=options['model'])
 
     # Adjusting the options for the minimization routine
-    if __name__ == '__main__':
+    if __name__ in ('__main__', 'ewDriver'):
         options['GUI'] = False  # Running batch mode
     else:
         options['GUI'] = True  # Running GUI mode
