@@ -4,6 +4,7 @@ FASMA
 A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html),
 the stellar spectra code.
 
+You can work directly with FASMA [online](http://www.iastro.pt/fasma/).
 
 AUTHORS
 -------
