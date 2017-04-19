@@ -105,6 +105,7 @@ def _parser():
     parser.add_argument('-v', '--moogversion', help='MOOG version', default=2014)
     parser.add_argument('-d', '--damping', help='Damping to be used in MOOG', default=1, choices=map(str, [1, 2]))
     parser.add_argument('-dr', '--driver', help='Which driver to use', default='abfind', choices=['abfind', 'ewfind'])
+    parser.add_argument('-p', '--parameters', help='Atmospheric parameters, Teff, logg, [Fe/H], vt', nargs='+', default=None)
     args = parser.parse_args()
     return args
 
@@ -118,7 +119,12 @@ if __name__ == '__main__':
     fout2 = 'linelist/%s' % args.output.replace('.ares', '.moog')
     lines = pd.read_csv(fname, skiprows=2, delimiter=r'\s+', names=['WL', 'num', 'EP', 'loggf', 'ele', 'EW'])
 
-    params = [5777, 4.44, 0.00, 1.00]
+    if args.parameters is None:
+        params = [5777, 4.44, 0.00, 1.00]
+    else:
+        params = map(float, args.parameters)
+        params[0] = int(params[0])
+
     interpolator(params=params, atmtype=args.model, save=True)
 
     cols = ['WL', 'num', 'EP', 'loggf', 'EW']
