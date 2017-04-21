@@ -66,7 +66,7 @@ def update_loggf(model, linelist, region='EWoptical'):
 
     if model not in ['kurucz95', 'marcs']:
         raise IOError('Model not found: %s' % model)
-    if region not in ['optical', 'NIR']:
+    if region not in ['EWoptical', 'ABoptical', 'EWNIR']:
         raise IOError('Region not found: %s' % region)
 
     df = pd.read_csv(linelist, skiprows=1, delimiter=r'\s+',
