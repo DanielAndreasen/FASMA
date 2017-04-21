@@ -3,13 +3,13 @@
 
 # My imports
 from __future__ import division
-import logging
 import os
+import logging
 import numpy as np
-from utils import _update_par
-from interpolation import interpolator
-from utils import _run_moog, Readmoog
 import pandas as pd
+from loggf_update import update_loggf
+from interpolation import interpolator
+from utils import _update_par, _run_moog, Readmoog
 
 
 def save(dic, overwrite):
@@ -196,10 +196,11 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
                 continue
 
             # Setting the models to use
-            if options['model'] not in ['kurucz95', 'apogee_kurucz']:
+            if options['model'] not in ['kurucz95', 'marcs', 'apogee_kurucz']:
                 logger.error('Your request for type: %s is not available' % options['model'])
                 continue
 
+            update_loggf(options['model'], linelist, region='ABoptical')
             # Get the initial grid models
             logger.info('Interpolation of model...')
             interpolator(params=initial, atmtype=options['model'])

@@ -3,16 +3,15 @@
 
 # My imports
 from __future__ import division, print_function
-import logging
 import os
-from shutil import copyfile
 import yaml
+import logging
 import numpy as np
-from utils import _update_par
-from interpolation import interpolator
-from utils import fun_moog, Readmoog
-from utils import error
+from shutil import copyfile
 from minimization import Minimize
+from loggf_update import update_loggf
+from interpolation import interpolator
+from utils import fun_moog, Readmoog, _update_par, error
 
 
 def _getSpt(spt):
@@ -510,6 +509,17 @@ def _prepare(linelist, initial, options):
         options['GUI'] = False  # Running batch mode
     else:
         options['GUI'] = True  # Running GUI mode
+
+    # Update loggf values
+    with open(linelist, 'r') as lines:
+        line = lines.readlines()[-1]
+    line = filter(None, line.split())
+    w = float(line[0])
+    if w < 7000:
+        region = 'EWoptical'
+    else:
+        region = 'EWNIR'
+    update_loggf(options['model'], linelist, region=region)
 
     return options
 

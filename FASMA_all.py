@@ -129,7 +129,7 @@ class FullSpectralAnalysis:
 
             opt2 = ','.join(opt2)
             opt = opt1 + opt2
-            fout.write('Sousa2007_opt.lst {0} extra:Neves2009_elements.lst,{1}'.format(self.spectrum, opt))
+            fout.write('Sousa2007_opt_kurucz.lst {0} extra:Neves2009_opt_kurucz.lst,{1}'.format(self.spectrum, opt))
         self.snr = aresdriver('StarMe_all1.cfg')
 
     def ewmethod(self):
