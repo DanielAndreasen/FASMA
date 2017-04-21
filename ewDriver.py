@@ -511,7 +511,7 @@ def _prepare(linelist, initial, options):
         options['GUI'] = True  # Running GUI mode
 
     # Update loggf values
-    with open(linelist, 'r') as lines:
+    with open('linelist/%s' % linelist, 'r') as lines:
         line = lines.readlines()[-1]
     line = filter(None, line.split())
     w = float(line[0])
@@ -519,7 +519,7 @@ def _prepare(linelist, initial, options):
         region = 'EWoptical'
     else:
         region = 'EWNIR'
-    update_loggf(options['model'], linelist, region=region)
+    update_loggf(options['model'], 'linelist/%s' % linelist, region=region)
 
     return options
 
