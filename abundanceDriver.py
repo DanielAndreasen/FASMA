@@ -200,7 +200,7 @@ def abundancedriver(starLines='StarMe_abund.cfg', overwrite=None):
                 logger.error('Your request for type: %s is not available' % options['model'])
                 continue
 
-            update_loggf(options['model'], 'linelist/%s' % linelist, region='ABoptical')
+            update_loggf(options['model'], 'linelist/%s' % line[0], region='ABoptical')
             # Get the initial grid models
             logger.info('Interpolation of model...')
             interpolator(params=initial, atmtype=options['model'])
