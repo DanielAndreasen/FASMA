@@ -479,7 +479,7 @@ class EWmethod:
         self.options['RWcrit'] = round(self.options['RWcrit']/3, 4)
         self.options['ABdiffcrit'] = round(self.options['ABdiffcrit']/3, 4)
         p = tuple(self.parameters)
-        _ = minizationRunner(parameters, options)
+        _ = self.minizationRunner()
         if self.converged:
             print('Adjusted the final parameters...')
         else:
