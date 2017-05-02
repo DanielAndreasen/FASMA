@@ -141,10 +141,10 @@ def main():
 
     # Common to all
     parent_parser = GooeyParser(add_help=False)
-    parent_parser.add_argument('--temperature',     help='(in K)',    default=5777,  type=int,   metavar='Temperature')
-    parent_parser.add_argument('--surfacegravity',  help='(in dex)',  default=4.44,  type=float, metavar='logg')
-    parent_parser.add_argument('--FeH',             help='(in dex)',  default='0.00',type=float, metavar='[Fe/H]')
-    parent_parser.add_argument('--microturbulence', help='(in km/s)', default=1.0,   type=float, metavar='Microturbulence')
+    parent_parser.add_argument('--temperature',     help='(in K)',    default=5777,   type=int,   metavar='Temperature')
+    parent_parser.add_argument('--surfacegravity',  help='(in dex)',  default=4.44,   type=float, metavar='logg')
+    parent_parser.add_argument('--FeH',             help='(in dex)',  default='0.00', type=float, metavar='[Fe/H]')
+    parent_parser.add_argument('--microturbulence', help='(in km/s)', default=1.0,    type=float, metavar='Microturbulence')
     parent_parser.add_argument('--MOOGv',           default='2014', choices=['2013', '2014', '2016'], type=str, metavar='MOOG version')
     parent_parser.add_argument('--model',           help='Grid of models', default='kurucz95', choices=['kurucz95', 'apogee_kurucz', 'kurucz08', 'marcs', 'PHOENIX'], metavar='Model atmosphere')
 

@@ -15,6 +15,7 @@ pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
+
 class AbundanceDriver:
 
     def __init__(self, cfgfile='StarMe_abund.cfg', overwrite=None):
@@ -206,10 +207,10 @@ class AbundanceDriver:
                 table = Readmoog(version=self.options['MOOGv']).all_table()
                 elements = table.atom.unique()
                 self.abundance_dict = {'linelist': line[0],
-                                  'Temperature': self.initial[0],
-                                  'Gravity': self.initial[1],
-                                  '[Fe/H]': self.initial[2],
-                                  'microturbulence': self.initial[3]}
+                                       'Temperature': self.initial[0],
+                                       'Gravity': self.initial[1],
+                                       '[Fe/H]': self.initial[2],
+                                       'microturbulence': self.initial[3]}
 
                 for element in elements:
                     sub_table = table[table.atom == element]

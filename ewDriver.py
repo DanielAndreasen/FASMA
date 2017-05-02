@@ -127,10 +127,10 @@ class EWmethod:
         and for giants (logg<3.95) we use the relation by Adibekyan+ 2015."""
         if self.logg >= 3.95:  # Dwarfs Tsantaki 2013
             self.vt = 6.932 * self.teff * (10**(-4)) - 0.348 * self.logg - 1.437
-            self.vt =  round(self.vt, 2)
+            self.vt = round(self.vt, 2)
         else:  # Giants Adibekyan 2015
             self.vt = 2.72 - (0.457 * self.logg) + (0.072 * self.feh)
-            self.vt =  round(self.vt, 2)
+            self.vt = round(self.vt, 2)
 
     def _tmcalc(self):
         """Initial guess on atmospheric parameters. Estimate based on TMCalc."""

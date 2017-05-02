@@ -138,10 +138,10 @@ def main():
 
     # Common to all
     parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument('--temperature',     help='Input initial temperature',      default=5777,  type=int)
-    parent_parser.add_argument('--surfacegravity',  help='Input initial gravity',          default=4.44,  type=float)
-    parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00',type=float)
-    parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,   type=float)
+    parent_parser.add_argument('--temperature',     help='Input initial temperature',      default=5777,   type=int)
+    parent_parser.add_argument('--surfacegravity',  help='Input initial gravity',          default=4.44,   type=float)
+    parent_parser.add_argument('--FeH',             help='Input initial metallicity',      default='0.00', type=float)
+    parent_parser.add_argument('--microturbulence', help='Input initial microturbulence',  default=1.0,    type=float)
     parent_parser.add_argument('--MOOGv',           help='Version of MOOG', default='2014', choices=['2013', '2014'], type=str)
     parent_parser.add_argument('--model',           help='Model atmosphere',    default='kurucz95', choices=['kurucz95', 'apogee_kurucz', 'kurucz08', 'marcs', 'PHOENIX'])
 
