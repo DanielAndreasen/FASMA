@@ -565,5 +565,5 @@ if __name__ == '__main__':
         cfgfile = sys.argv[1]
     else:
         cfgfile = 'StarMe_ew.cfg'
-    driver = EWmethod(cfgfile='StarMe_ew.cfg', overwrite=None)
+    driver = EWmethod(cfgfile=cfgfile, overwrite=None)
     parameters = driver.ewdriver()
