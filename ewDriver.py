@@ -429,7 +429,7 @@ class EWmethod:
         fname : file
           Remove the line from the line list and save it in the same name
         """
-        wavelength = str(round(wavelength, 2))
+        wavelength = str(wavelength)[:-1]
         with open(fname, 'r') as lines:
             fout = ''
             for line in lines:
