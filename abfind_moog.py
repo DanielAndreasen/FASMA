@@ -10,10 +10,6 @@ from interpolation import interpolator
 import statsmodels.formula.api as sm
 import os
 import argparse
-import seaborn as sns
-sns.set_style('dark')
-sns.set_context('notebook', font_scale=1.5)
-c = sns.color_palette()
 
 
 def _update_batch(linelist=False):
@@ -37,7 +33,6 @@ def _update_batch(linelist=False):
 
 def plot_data(data, outlier=False, version=2014):
     idx = 1 if version > 2013 else 0
-    c = sns.color_palette()
     wave = data[:, 0]
     EP = data[:, 1+idx]
     logRW = data[:, 4+idx]
@@ -61,38 +56,41 @@ def plot_data(data, outlier=False, version=2014):
     plt.subplot(211)
     plt.plot(EP, abund, '.w', label='Temperature')
     plt.plot(EP, abund, '.k')
-    plt.hlines(m, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
-    plt.hlines(m - s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
-    plt.hlines(m + s, min(EP), max(EP), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m, min(EP), max(EP), colors='C0', linestyles='--', linewidth=3)
+    plt.hlines(m - s, min(EP), max(EP), colors='C0', linestyles='--', linewidth=3)
+    plt.hlines(m + s, min(EP), max(EP), colors='C0', linestyles='--', linewidth=3)
     if z1[0] < -0.001:
-        plt.plot(EP, p1(EP), color=c[2], lw=3)
+        plt.plot(EP, p1(EP), color='C3', lw=3)
         print('EW slope: %.3f. Lower Teff' % z1[0])
     elif z1[0] > 0.001:
-        plt.plot(EP, p1(EP), color=c[2], lw=3)
+        plt.plot(EP, p1(EP), color='C3', lw=3)
         print('EW slope: %.3f. Higher Teff' % z1[0])
     else:
-        plt.plot(EP, p1(EP), color=c[1])
+        plt.plot(EP, p1(EP), color='C2')
     plt.legend(loc=2, frameon=False)
     plt.xlabel(r'Excitation potential: $\chi$ [eV]')
     plt.ylabel('Abundance')
+    y1, y2 = plt.ylim()
+    plt.ylim(0.9*y1, 1.1*y2)
 
     plt.subplot(212)
     plt.plot(logRW, abund, '.w', label='Micro turbulence')
     plt.plot(logRW, abund, '.k')
-    plt.hlines(m, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
-    plt.hlines(m - s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
-    plt.hlines(m + s, min(logRW), max(logRW), colors=c[0], linestyles='--', linewidth=3)
+    plt.hlines(m, min(logRW), max(logRW), colors='C0', linestyles='--', linewidth=3)
+    plt.hlines(m - s, min(logRW), max(logRW), colors='C0', linestyles='--', linewidth=3)
+    plt.hlines(m + s, min(logRW), max(logRW), colors='C0', linestyles='--', linewidth=3)
     if z2[0] < -0.003:
-        plt.plot(logRW, p2(logRW), color=c[2], lw=3)
+        plt.plot(logRW, p2(logRW), color='C3', lw=3)
         print('RW slope: %.3f. Lower vt' % z2[0])
     elif z2[0] > 0.003:
-        plt.plot(logRW, p2(logRW), color=c[2], lw=3)
+        plt.plot(logRW, p2(logRW), color='C3', lw=3)
         print('RW slope: %.3f. Higher vt' % z2[0])
     else:
-        plt.plot(logRW, p2(logRW), color=c[1])
+        plt.plot(logRW, p2(logRW), color='C2')
     plt.legend(loc=2, frameon=False)
     plt.xlabel(r'Reduced EW: $\log RW$')
     plt.ylabel('Abundance')
+    plt.ylim(0.9*y1, 1.1*y2)
     if outlier:
         indc = abs(data['sig']) > s  # deviation larger than 3 sigma
         if True in indc:
