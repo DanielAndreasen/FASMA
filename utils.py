@@ -599,10 +599,11 @@ class Readmoog:
 
         if self.version > 2013:
             cols = 'wavelength,ID,EP,logGF,EWin,logRWin,abund,delavg'.split(',')
+            table = pd.DataFrame([t.strip().split() for t in table], columns=cols, dtype=float)
+            table['atom'] = [self.atomNameFromMOOG(str(atomic)) for atomic in table.ID]
         else:
             cols = 'wavelength,EP,logGF,EWin,logRWin,abund,delavg'.split(',')
-        table = pd.DataFrame([t.strip().split() for t in table], columns=cols, dtype=float)
-        table['atom'] = [self.atomNameFromMOOG(str(atomic)) for atomic in table.ID]
+            table = pd.DataFrame([t.strip().split() for t in table], columns=cols, dtype=float)
         return table
 
     def atomNameFromMOOG(self, atomic):
