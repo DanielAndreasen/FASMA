@@ -291,7 +291,7 @@ class EWmethod:
                 print('\nSorry, you did not win. However, your final parameters are:')
             print(u' Teff:{:>8d}+/-{:.0f}\n logg:{:>8.2f}+/-{:1.2f}\n [Fe/H]:{:>+6.2f}+/-{:1.2f}\n vt:{:>10.2f}+/-{:1.2f}\n\n\n\n'.format(*self.parameters))
 
-    def minizationRunner(self):
+    def minizationRunner(self, p=None):
         """A function to run the minimization routine
 
         Output
@@ -300,7 +300,10 @@ class EWmethod:
           True if the minimization run succesfully
         """
         # Run the minimization routine first time
-        function = Minimize(self.initial, fun_moog, **self.options)
+        if p is not None:
+            function = Minimize(p, fun_moog, **self.options)
+        else:
+            function = Minimize(self.initial, fun_moog, **self.options)
         try:
             self.parameters, self.converged = function.minimize()
             return True
@@ -479,7 +482,7 @@ class EWmethod:
         self.options['RWcrit'] = round(self.options['RWcrit']/3, 4)
         self.options['ABdiffcrit'] = round(self.options['ABdiffcrit']/3, 4)
         p = tuple(self.parameters)
-        _ = self.minizationRunner()
+        _ = self.minizationRunner(p=self.parameters)
         if self.converged:
             print('Adjusted the final parameters...')
         else:
