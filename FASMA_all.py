@@ -7,8 +7,8 @@ import os
 import pandas as pd
 import numpy as np
 from aresDriver import aresdriver
-from ewDriver import ewdriver
-from abundanceDriver import abundancedriver
+from ewDriver import EWmethod
+from abundanceDriver import AbundanceDriver
 from time import time
 
 '''Get from the spectrum to parameters and abundances'''
@@ -156,7 +156,8 @@ class FullSpectralAnalysis:
             p = ' '.join(map(str, self.initial))
             linelist = self.spectrum.replace('.fits', '.moog')
             fout.write('{0} {1} {2}'.format(linelist, p, opt))
-        self.params = ewdriver('StarMe_all2.cfg')[:-4]
+        self.params = EWmethod(cfgfile='StarMe_all2.cfg').ewdriver()[:-4]
+        # self.params = ewdriver('StarMe_all2.cfg')[:-4]
 
     def abundances(self):
         abundanceOptions = {}
@@ -182,7 +183,7 @@ class FullSpectralAnalysis:
             s = self.spectrum.rpartition('.')
             linelist = s[0] + '_sec.moog'
             fout.write('{0} {1} {2}'.format(linelist, p, opt))
-        self.abundance = abundancedriver('StarMe_all3.cfg')
+        self.abundance = AbundanceDriver(cfgfile='StarMe_all3.cfg').abundancedriver()
 
     def saveResults(self, dict):
         '''Would like to have:
