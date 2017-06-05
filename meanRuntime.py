@@ -6,10 +6,13 @@ from __future__ import division
 import numpy as np
 from datetime import datetime as d
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_style('dark')
-sns.set_context('talk')
-
+plt.rcParams['xtick.direction'] = 'in'
+plt.rcParams['ytick.direction'] = 'in'
+plt.rcParams['axes.spines.right'] = False
+plt.rcParams['axes.spines.top'] = False
+plt.rcParams['axes.linewidth'] = 2
+plt.rcParams['xtick.major.width'] = 2
+plt.rcParams['ytick.major.width'] = 2
 
 def getTimeStamp(line):
     """Get the time stamp from the logfile"""
@@ -30,9 +33,9 @@ if __name__ == '__main__':
     endTimes = []
     with open('captain.log', 'r') as lines:
         for line in lines:
-            if 'Starting the minimization procedure' in line:
+            if 'Starting the initial minimization routine' in line:
                 startTimes.append(line.strip())
-            elif 'Finished minimization procedure' in line:
+            elif 'Final parameters' in line:
                 endTimes.append(line.strip())
 
     while len(startTimes) > len(endTimes):
