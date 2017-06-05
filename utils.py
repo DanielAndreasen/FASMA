@@ -727,8 +727,12 @@ def error(linelist, converged, params, atmtype, version=2014, weights='null'):
     siga2 = _slopeSigma(Fe1[:, 1+idx], Fe1[:, 5+idx], weights=weights)
 
     # Error om microturbulence
-    fun_moog((teff, logg, feh, vt+0.1), atmtype, results='error_summary.out', version=version)
-    sumvt = Readmoog(params=(teff, logg, feh, vt+0.1), fname='error_summary.out', version=version).fe_statistics()
+    try:
+        fun_moog((teff, logg, feh, vt+0.1), atmtype, results='error_summary.out', version=version)
+        sumvt = Readmoog(params=(teff, logg, feh, vt+0.1), fname='error_summary.out', version=version).fe_statistics()
+    except ValueError:
+        fun_moog((teff, logg, feh, vt-0.1), atmtype, results='error_summary.out', version=version)
+        sumvt = Readmoog(params=(teff, logg, feh, vt-0.1), fname='error_summary.out', version=version).fe_statistics()
     slopeEP, slopeRW = sumvt[4], sumvt[5]
     if slopeRW == 0:
         errormicro = abs(siga1/0.001) * 0.10
@@ -741,8 +745,12 @@ def error(linelist, converged, params, atmtype, version=2014, weights='null'):
     # Error on Teff
     slopes = errormicro/0.10 * slopeEP
     errorslopeEP = np.hypot(slopes, siga2)
-    fun_moog((teff+100, logg, feh, vt), atmtype, results='error_summary.out', version=version)
-    sumteff = Readmoog(params=(teff+100, logg, feh, vt), fname='error_summary.out', version=version).fe_statistics()
+    try:
+        fun_moog((teff+100, logg, feh, vt), atmtype, results='error_summary.out', version=version)
+        sumteff = Readmoog(params=(teff+100, logg, feh, vt), fname='error_summary.out', version=version).fe_statistics()
+    except ValueError:
+        fun_moog((teff-100, logg, feh, vt), atmtype, results='error_summary.out', version=version)
+        sumteff = Readmoog(params=(teff-100, logg, feh, vt), fname='error_summary.out', version=version).fe_statistics()
 
     errorteff = abs(errorslopeEP/sumteff[4]) * 100
     # Contribution to [Fe/H]
@@ -750,8 +758,12 @@ def error(linelist, converged, params, atmtype, version=2014, weights='null'):
     # Error on logg
     fe2error = abs(errorteff/100 * (sumteff[2]-feh))
     sigmafe2total = np.hypot(sigmafe2, fe2error)
-    fun_moog((teff, logg-0.20, feh, vt), atmtype, results='error_summary.out', version=version)
-    sumlogg = Readmoog(params=(teff, logg-0.20, feh, vt), fname='error_summary.out', version=version).fe_statistics()
+    try:
+        fun_moog((teff, logg-0.20, feh, vt), atmtype, results='error_summary.out', version=version)
+        sumlogg = Readmoog(params=(teff, logg-0.20, feh, vt), fname='error_summary.out', version=version).fe_statistics()
+    except ValueError:
+        fun_moog((teff, logg+0.20, feh, vt), atmtype, results='error_summary.out', version=version)
+        sumlogg = Readmoog(params=(teff, logg+0.20, feh, vt), fname='error_summary.out', version=version).fe_statistics()
     errorlogg = abs(sigmafe2total/(sumlogg[2]-feh)*0.20)
 
     # Error on [Fe/H]
