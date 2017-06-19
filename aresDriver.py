@@ -210,7 +210,6 @@ def aresRunner(linelist, spectrum, out, options):
         index = 1
         while True:
             _run_ares()
-            print('linelist/'+out)
             if os.path.isfile('linelist/'+out):
                 break
             else:
