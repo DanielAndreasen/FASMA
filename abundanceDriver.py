@@ -133,6 +133,12 @@ class AbundanceDriver:
     def weighted_avg_and_std(self, values):
         """Get the weighted average and standard deviation.
 
+        Input
+        -----
+        values : ndarray
+          The list of values from which to calculate the weighted
+          average and standard deviation
+
         Output
         ------
         average : float
@@ -141,9 +147,10 @@ class AbundanceDriver:
           The weighted standard deviation
         """
         values = np.array(values)
-        weights = (np.abs(values-np.median(values))/(np.std(values)+1E-13)+0.25)**(-1)
-        average = round(np.average(values, weights=weights), 3)
-        std = np.sqrt(np.average((values-average)**2, weights=weights))
+        weights =  (np.abs(values-np.median(values))/(np.std(values)+1E-13)+0.25)
+        weights_rounded = (np.round(weights/0.5+1E-13)*0.5)**(-1)
+        average = round(np.average(values, weights=weights_rounded), 3)
+        std = np.sqrt(np.average((values-average)**2, weights=weights_rounded))
         return average, std
 
     def abundancedriver(self):
