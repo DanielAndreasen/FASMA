@@ -384,7 +384,7 @@ def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
     teff, logg, feh, _ = x
     _, x = interpolator(x, atmtype=atmtype, result=True)
 
-    # Run MOOG and get the slopes and abundaces
+    # Run MOOG and get the slopes and abundances
     _run_moog(par=par)
     m = Readmoog(params=x, fname=results, version=version)
     _, _, _, _, _, _, data, _ = m.fe_statistics()
