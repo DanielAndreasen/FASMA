@@ -356,7 +356,7 @@ def _run_moog(par='batch.par'):
 
 
 def fun_moog(x, atmtype, par='batch.par', results='summary.out', weights='null',
-             version=2014, r=None, fout=None, **options):
+             version=2014):
     '''Run MOOG and return slopes for abfind mode.
 
     Inputs
