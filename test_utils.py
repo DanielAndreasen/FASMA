@@ -68,12 +68,12 @@ def test_getModels():
     assert isinstance(m['models'][0], str)
 
     # Find the gaps in the grid
-    m = GetModels(8001, 1.01, -1.01, atmtype).getmodels()
+    m = GetModels(8001, 1.01, -1.01, 'kurucz95').getmodels()
     assert isinstance(m, dict)
 
     # Get to the edge of the grid
     teff = 39000
-    m = GetModels(teff, logg, feh, atmtype)
+    m = GetModels(teff, logg, feh, 'kurucz95')
     m = m.getmodels()
     assert len(m['teff'][1]) == 2
 
