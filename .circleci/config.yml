@@ -42,7 +42,7 @@ jobs:
             conda create -q -n test-environment python=2.7
             source activate test-environment
             cd MOOG; make -f Makefile.rh64silent
-            make
+            cd ..; make
 
       # - save_cache:
       #     paths:
