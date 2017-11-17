@@ -2,6 +2,7 @@ FASMA
 ======
 
 [![CircleCI](https://circleci.com/gh/DanielAndreasen/FASMA/tree/master.svg?style=svg)](https://circleci.com/gh/DanielAndreasen/FASMA/tree/master)
+[![Build Status](https://travis-ci.com/DanielAndreasen/FASMA.svg?token=KHsTCYWVN5z1XytyCGE8&branch=master)](https://travis-ci.com/DanielAndreasen/FASMA)
 
 A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html),
 the stellar spectra code.
