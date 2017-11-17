@@ -8,9 +8,9 @@ install:
 	@mkdir -p spectra
 	@tar zxf models/kurucz95.tar.gz
 	@mv -f kurucz95 models
-	@tar xvf models/marcs.tar.gz
+	@tar zxf models/marcs.tar.gz
 	@mv -f marcs models
-	@tar xvf models/APOGEE_kurucz.tar.gz
+	@tar zxf models/APOGEE_kurucz.tar.gz
 	@mv -f APOGEE_kurucz models/apogee_kurucz
 	@echo "Atmosphere models installed in dir: models"
 	@echo "Installing dependencies..."
