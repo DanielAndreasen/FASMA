@@ -20,13 +20,6 @@ jobs:
     steps:
       - checkout
 
-      # Download and cache dependencies
-      # - restore_cache:
-      #     keys:
-      #     - v1-dependencies-{{ checksum "requirements.txt" }}
-      #     # fallback to using the latest cache if no exact match is found
-      #     - v1-dependencies-
-
       - run:
           name: install dependencies
           command: |
@@ -45,18 +38,14 @@ jobs:
             export PATH="$HOME/FASMA/MOOG:$PATH"
             cd ..; make
             pip install -r test_requirements.txt
-
-      # - save_cache:
-      #     paths:
-      #       - ./venv
-      #     key: v1-dependencies-{{ checksum "requirements.txt" }}
+            pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
 
       # run tests!
-      - run:
-          name: run tests
-          command: |
-            source activate test-environment
-            pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
+      # - run:
+      #     name: run tests
+      #     command: |
+      #       source activate test-environment
+      #       pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
 
       - store_artifacts:
           path: test-reports
