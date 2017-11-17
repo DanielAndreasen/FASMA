@@ -38,14 +38,9 @@ jobs:
             export PATH="$HOME/FASMA/MOOG:$PATH"
             cd ..; make
             pip install -r test_requirements.txt
+            pwd
+            ls
             pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
-
-      # run tests!
-      # - run:
-      #     name: run tests
-      #     command: |
-      #       source activate test-environment
-      #       pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
 
       - store_artifacts:
           path: test-reports
