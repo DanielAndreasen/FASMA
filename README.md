@@ -1,7 +1,7 @@
 FASMA
 ======
 
-[![CircleCI](https://circleci.com/gh/DanielAndreasen/FASMA/tree/master.svg?style=svg)](https://circleci.com/gh/DanielAndreasen/FASMA/tree/master)
+[![CircleCI](https://circleci.com/gh/DanielAndreasen/FASMA.svg?style=svg&circle-token=6eaed0b9c226a982cadfddc4f7c34997d26bf9a4)](https://circleci.com/gh/DanielAndreasen/FASMA)
 [![Build Status](https://travis-ci.com/DanielAndreasen/FASMA.svg?token=KHsTCYWVN5z1XytyCGE8&branch=master)](https://travis-ci.com/DanielAndreasen/FASMA)
 
 A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html),
