@@ -44,6 +44,7 @@ jobs:
             cd MOOG; make -f Makefile.rh64silent
             export PATH="$HOME/FASMA/MOOG:$PATH"
             cd ..; make
+            pip install -r test_requirements.txt
 
       # - save_cache:
       #     paths:
