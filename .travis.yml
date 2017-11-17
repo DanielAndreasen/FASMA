@@ -33,10 +33,9 @@ install:
   - travis_retry pip install -r test_requirements.txt
   - sed -i 's/circleci/travis\/build/' MOOG/Moogsilent.f
   - cd MOOG; make -f Makefile.rh64silent
-  - export PATH="$HOME/FASMA/MOOG:$PATH"
+  - export PATH="/travis/build/FASMA/MOOG:$PATH"
+  - echo $PATH
   - cd ..; make
-
-  - pwd
 
 script:
   - pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
