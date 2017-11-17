@@ -3,7 +3,7 @@ terminal       x11
 model_in       'out.atm'
 summary_out    'summary.out'
 standard_out   'result.out'
-lines_in       'linelist/HD20010.moog'
+lines_in       'linelist/sun_harps_ganymede.moog'
 atmosphere     1
 molecules      1
 trudamp        1
@@ -17,3 +17,4 @@ plot           0
 opacit         0
 freeform       0
 obspectrum     0
+plotpars       True

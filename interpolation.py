@@ -130,7 +130,7 @@ def save_model(model, params, type='kurucz95', fout='out.atm'):
     np.savetxt(fout, model, header=header, footer=footer, comments='', delimiter=' ', fmt=_fmt)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     import argparse
     args = argparse.ArgumentParser(description='Get a model atmosphere.')
     args.add_argument('teff', type=int, help='Effective temperature')
