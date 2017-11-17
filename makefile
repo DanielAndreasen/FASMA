@@ -4,6 +4,7 @@ install:
 	@./check_moog.sh
 	@echo "Installing the model atmospheres..."
 	@mkdir -p models
+	@mkdir -p results
 	@mkdir -p spectra
 	@tar zxf models/kurucz95.tar.gz
 	@mv -f kurucz95 models
