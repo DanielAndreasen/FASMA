@@ -25,10 +25,9 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install gfortran
-            wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+            wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
             bash miniconda.sh -b -p $HOME/miniconda
             export PATH="$HOME/miniconda/bin:$PATH"
-            export PYTONPATH="$HOME/FASMA:$PYTHONPATH"
             hash -r
             conda config --set always_yes yes --set changeps1 no
             conda update -q conda
@@ -39,8 +38,6 @@ jobs:
             export PATH="$HOME/FASMA/MOOG:$PATH"
             cd ..; make
             pip install -r test_requirements.txt
-            pwd
-            ls
             pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
 
       - store_artifacts:
