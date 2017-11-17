@@ -15,7 +15,7 @@ jobs:
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
 
-    working_directory: ~/repo
+    working_directory: ~/FASMA
 
     steps:
       - checkout
@@ -43,7 +43,8 @@ jobs:
             source activate test-environment
             cd MOOG; make -f Makefile.rh64silent
             pwd
-            export PATH="$HOME/repo/FASMA/MOOG:$PATH"
+            export PATH="$HOME/FASMA/MOOG:$PATH"
+            echo $PATH
             cd ..; make
 
       # - save_cache:
