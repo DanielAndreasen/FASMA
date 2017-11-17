@@ -42,6 +42,8 @@ jobs:
             conda create -q -n test-environment python=2.7
             source activate test-environment
             cd MOOG; make -f Makefile.rh64silent
+            pwd
+            export PATH="$HOME/repo/FASMA/MOOG:$PATH"
             cd ..; make
 
       # - save_cache:
