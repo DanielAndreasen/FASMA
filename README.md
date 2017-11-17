@@ -1,6 +1,8 @@
 FASMA
 ======
 
+[![CircleCI](https://circleci.com/gh/DanielAndreasen/FASMA/tree/master.svg?style=svg)](https://circleci.com/gh/DanielAndreasen/FASMA/tree/master)
+
 A python interface around [MOOG](http://www.as.utexas.edu/~chris/moog.html),
 the stellar spectra code.
 
