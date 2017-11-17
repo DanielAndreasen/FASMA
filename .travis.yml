@@ -31,7 +31,7 @@ install:
 
   # Testing requirements
   - travis_retry pip install -r test_requirements.txt
-  - sed -i 's/circleci/travis\/build/' MOOG/Moogsilent.f
+  - sed -i 's/circleci/travis\/build\/DanielAndreasen/' MOOG/Moogsilent.f
   - cd MOOG; make -f Makefile.rh64silent
   - export PATH="/home/travis/build/DanielAndreasen/FASMA/MOOG:$PATH"
   - cd ..; make
