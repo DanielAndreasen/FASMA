@@ -24,7 +24,7 @@ def test_getModels():
     assert m.logg == logg
     assert m.feh == feh
     assert m.atmtype == atmtype
-    for atmtype in ('kurucz95', 'apogee_kurucz', 'marcs', 'kurucz08'):
+    for atmtype in ('kurucz95', 'apogee_kurucz', 'marcs'):
         with pytest.raises(ValueError):
             m = GetModels(50, logg, feh, atmtype)
         with pytest.raises(ValueError):
