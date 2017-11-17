@@ -55,7 +55,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            # . venv/bin/activate
+            source activate test-environment
             pytest --cov=. --cov-report term-missing --cov-config .coveragerc --durations 5
 
       - store_artifacts:
