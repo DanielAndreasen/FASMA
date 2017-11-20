@@ -465,7 +465,7 @@ class EWmethod:
         abundance vs. RW."""
         _, _, RWs, _, _ = fun_moog(self.parameters,
                                    self.options['model'],
-                                   weight=self.options['weights'],
+                                   weights=self.options['weights'],
                                    version=self.options['MOOGv'])
         vt = self.parameters[-1]
         if ((vt < 0.05) and (abs(RWs) > 0.050)) or (vt > 5.0):
