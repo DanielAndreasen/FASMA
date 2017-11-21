@@ -26,7 +26,8 @@ def solar_abundance(atom):
     abundance : float
       The solar abundance of the atom
     '''
-
+    if not isinstance(atom, int):
+        raise ValueError('Atomic number need to be an integer')
     solar = [12.00, 10.93, 1.05, 1.38, 2.70, 8.43, 7.83, 8.69, 4.56, 7.93,
              6.24, 7.60, 6.45, 7.51, 5.41, 7.12, 5.50, 6.40, 5.03, 6.34,
              3.15, 4.95, 3.93, 5.64, 5.43, 7.47, 4.99, 6.22, 4.19, 4.56,
