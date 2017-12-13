@@ -118,7 +118,8 @@ if __name__ == '__main__':  # pragma: no cover
     fname = args.input
     fout1 = 'rawLinelist/%s' % args.output
     fout2 = 'linelist/%s' % args.output.replace('.ares', '.moog')
-    lines = pd.read_csv(fname, skiprows=2, delimiter=r'\s+', names=['WL', 'num', 'EP', 'loggf', 'ele', 'EW'])
+    lines = pd.read_csv(fname, skiprows=2, delimiter=r'\s+',
+                        names=['WL', 'num', 'EP', 'loggf', 'ele', 'EW'])
 
     if args.parameters is None:
         params = [5777, 4.44, 0.00, 1.00]
