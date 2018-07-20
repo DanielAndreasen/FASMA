@@ -48,10 +48,10 @@ class Minimize:
         rest = self.x0 + list((self.slopeEP, self.slopeRW, self.Abdiff))
         if self.iteration == 0:
             if self.GUI:
-                print(' i     Teff       logg     [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
+                print(' i     Teff       logg     [Fe/H]    vt    EPslope    RWslope    |FeII-FeI|')
                 print('-' * 99)
             else:
-                print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeI-FeII|')
+                print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeII-FeI|')
                 print('-' * 70)
         else:
             print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(self.iteration, *rest)
