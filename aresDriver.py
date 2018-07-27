@@ -70,7 +70,10 @@ def make_linelist(line_file, ares, cut):
 
     N2 = len(dout)
     N = len(linelist)
-    snr = get_snr()
+    try:
+        snr = get_snr()
+    except IndexError:
+        snr = 0
     print('\tARES measured %i/%i lines.' % (N2, N))
     print('\tSNR used: %i' % snr)
 
