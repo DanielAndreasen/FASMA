@@ -64,7 +64,7 @@ def make_linelist(line_file, ares, cut):
 
     dout = pd.merge(left=linelist, right=data, left_on='WL', right_on='wave', how='inner')
     dout = dout.loc[:, ['WL', 'num', 'EP', 'loggf', 'EW']]
-    dout = dout[(dout.EW < float(cut)) & (dout.EW >= 5.0)]
+    dout = dout[dout.EW < float(cut)]
     dout.drop_duplicates('WL', keep='first', inplace=True)
     dout = dout.sort_values(['num', 'WL'])
 
@@ -85,20 +85,20 @@ def make_linelist(line_file, ares, cut):
 
 def _options(options=None):
     '''Reads the options inside the config file'''
-    defaults = {'lambdai': '3900.0',
-                'lambdaf': '25000.0',
-                'smoothder': '4',
-                'space': '2.0',
-                'rejt': False,
-                'lineresol': '0.07',
-                'miniline': '2.0',
+    defaults = {'lambdai'   : '3900.0',
+                'lambdaf'   : '25000.0',
+                'smoothder' : '4',
+                'space'     : '2.0',
+                'rejt'      : False,
+                'lineresol' : '0.07',
+                'miniline'  : '2.0',
                 'plots_flag': False,
-                'EWcut': '200.0',
-                'snr': False,
-                'output': False,
-                'rvmask': '"0,0"',
-                'force': False,
-                'extra': None
+                'EWcut'     : '200.0',
+                'snr'       : False,
+                'output'    : False,
+                'rvmask'    : '"0,0"',
+                'force'     : False,
+                'extra'     : None
                 }
     if not options:
         defaults['rejt'] = '3;5764,5766,6047,6053,6068,6076'
@@ -111,14 +111,14 @@ def _options(options=None):
                 defaults[option[0]] = option[1]
             else:
                 defaults[option] = True
-        defaults['lambdai'] = float(defaults['lambdai'])
-        defaults['lambdaf'] = float(defaults['lambdaf'])
+        defaults['lambdai']   = float(defaults['lambdai'])
+        defaults['lambdaf']   = float(defaults['lambdaf'])
         defaults['smoothder'] = int(defaults['smoothder'])
-        defaults['space'] = float(defaults['space'])
+        defaults['space']     = float(defaults['space'])
         defaults['lineresol'] = float(defaults['lineresol'])
-        defaults['miniline'] = float(defaults['miniline'])
-        defaults['rvmask'] = str(defaults['rvmask'])
-        defaults['EWcut'] = float(defaults['EWcut'])
+        defaults['miniline']  = float(defaults['miniline'])
+        defaults['rvmask']    = str(defaults['rvmask'])
+        defaults['EWcut']     = float(defaults['EWcut'])
         if defaults['plots_flag']:
             defaults['plots_flag'] = '1'
 
