@@ -135,7 +135,7 @@ class EWmethod:
     def _tmcalc(self):
         """Initial guess on atmospheric parameters. Estimate based on TMCalc."""
         import sys
-        sys.path.append('/home/paranoia/Software/TMCALC/tmcalc_cython')
+        sys.path.append('TMCALC/tmcalc_cython')
         from tmcalc_module import get_temperature_py as get_teff
         from tmcalc_module import get_feh_py as get_feh
 
