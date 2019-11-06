@@ -14,18 +14,16 @@ import pandas as pd
 
 def _run_ares():
     """Run ARES"""
-    os.system('ARES/ARES > /dev/null')
+    os.system('ARES > /dev/null')
     for tmp in ['tmp', 'tmp2', 'tmp3']:
         if os.path.isfile(tmp):
             os.remove(tmp)
-
 
 def round_up0(i):
     """Round up to 2nd decimal because of stupid python"""
 
     rounded = decimal.Decimal(str(i)).quantize(decimal.Decimal('1.11'), rounding=decimal.ROUND_HALF_UP)
     return np.float(rounded)
-
 
 def get_snr(fname='logARES.txt'):
     """Get the SNR from ARES
@@ -48,7 +46,6 @@ def get_snr(fname='logARES.txt'):
     line = line.strip('\n').split(':')
     snr = int(float(line[1]))
     return snr
-
 
 def make_linelist(line_file, ares, cut):
     """Merging linelist with ares file
@@ -82,11 +79,10 @@ def make_linelist(line_file, ares, cut):
     np.savetxt(fout, dout.values, fmt=('%9.3f', '%10.1f', '%9.2f', '%9.3f', '%28.1f'), header=' %s' % hdr)
     os.remove(ares)
 
-
 def _options(options=None):
     '''Reads the options inside the config file'''
     defaults = {'lambdai'   : '3900.0',
-                'lambdaf'   : '25000.0',
+                'lambdaf'   : '6900.0',
                 'smoothder' : '4',
                 'space'     : '2.0',
                 'rejt'      : False,
@@ -121,7 +117,6 @@ def _options(options=None):
         defaults['EWcut']     = float(defaults['EWcut'])
         if defaults['plots_flag']:
             defaults['plots_flag'] = '1'
-
         if not defaults['rejt']:
             defaults['rejt'] = '3;5764,5766,6047,6053,6068,6076'
         try:
@@ -130,12 +125,11 @@ def _options(options=None):
             defaults['rejt'] = str(defaults['rejt'])
         return defaults
 
-
 def update_ares(line_list, spectrum, out, options):
     """Driver for ARES"""
 
     default_options = options
-    for key, value in default_options.iteritems():
+    for key, value in default_options.items():
         if key not in options.keys():
             options[key] = value
 
@@ -150,9 +144,6 @@ def update_ares(line_list, spectrum, out, options):
     plot = 1 if options['plots_flag'] else 0
     if isinstance(rejt, float):
         rejt = 0.999 if rejt > 0.999 else rejt
-
-    if options['rvmask'] == 'auto':
-        options['rvmask']="'3,6021.8,6024.06,6027.06,6024.06,20'"
 
     if options['output']:
         out = options['output']
@@ -173,11 +164,10 @@ def update_ares(line_list, spectrum, out, options):
     fout += 'lineresol=%s\n' % options['lineresol']
     fout += 'miniline=%s\n' % options['miniline']
     fout += 'plots_flag=%s\n' % plot
-    fout += 'rvmask=%s\n' % options['rvmask']
+    fout += 'rvmask=\'0,%s\'\n' % options['rvmask']
 
     with open('mine.opt', 'w') as f:
         f.writelines(fout)
-
 
 def findBadLine():
     """Read logARES.txt and return the last measured line (the bad one)"""
@@ -193,7 +183,6 @@ def findBadLine():
     else:
         return None
 
-
 def cleanLineList(linelist, badline):
     badline = str(round(badline, 2))
     with open(linelist, 'r') as lines:
@@ -204,7 +193,6 @@ def cleanLineList(linelist, badline):
             fout += line
     with open(linelist, 'w') as f:
         f.writelines(fout)
-
 
 def aresRunner(linelist, spectrum, out, options):
     print('Using linelist: %s' % linelist)
@@ -238,7 +226,6 @@ def aresRunner(linelist, spectrum, out, options):
     except IOError:
         raise IOError('ARES did not run properly. Take a look at "logARES.txt" for more help.')
     print('\n')
-
 
 def aresdriver(starLines='StarMe_ares.cfg'):
     """The function that glues everything together
@@ -314,7 +301,6 @@ def aresdriver(starLines='StarMe_ares.cfg'):
     snr = get_snr()
     os.remove('logARES.txt')
     return snr
-
 
 if __name__ == '__main__':
     import sys

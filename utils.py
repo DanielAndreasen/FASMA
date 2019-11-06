@@ -102,7 +102,7 @@ class GetModels:
         name : str
           The path to the atmosphere model
         '''
-        name = 'models/%s/' % self.atmtype
+        name = '/home/paranoia/Software/models/%s/' % self.atmtype
         if feh_model < 0:
             name += 'm%s/' % str(abs(feh_model)).replace('.', '')
         else:
@@ -312,7 +312,7 @@ def _update_par(atmosphere_model='out.atm', line_list='linelist.moog', **kwargs)
         'summary': 'summary.out'}
 
     # Fill the keyword arguments with the defaults if they don't exist already
-    for key, value in default_kwargs.iteritems():
+    for key, value in default_kwargs.items():
         if key not in kwargs.keys():
             kwargs[key] = value
     # Generate a MOOG-compatible run file
@@ -508,7 +508,7 @@ class Readmoog:
                     self.readdata = True
                     continue
             if self.readdata:
-                content = map(float, filter(None, line.split(' ')))
+                content = list(map(float, filter(None, line.split(' '))))
                 if self.nelements == 1:
                     self.Fe1Lines.append(content)
                 else:

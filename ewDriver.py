@@ -74,7 +74,7 @@ class EWmethod:
             self.initial = [5777, 4.44, 0.00, 1.00]
             self._options()
         elif len(line) == 5:
-            self.initial = map(float, line[1::])
+            self.initial = list(map(float, line[1::]))
             self.initial[0] = int(self.initial[0])
             self._options()
         elif len(line) == 2:
@@ -88,7 +88,7 @@ class EWmethod:
                 self._tmcalc()
                 self.initial = [self.teff, self.logg, self.feh, self.vt]
         elif len(line) == 6:
-            self.initial = map(float, line[1:-1])
+            self.initial = list(map(float, line[1:-1]))
             self.initial[0] = int(self.initial[0])
             self._options(line[-1])
             if self.options['tmcalc']:
@@ -135,7 +135,7 @@ class EWmethod:
     def _tmcalc(self):
         """Initial guess on atmospheric parameters. Estimate based on TMCalc."""
         import sys
-        sys.path.append('TMCALC/tmcalc_cython')
+        sys.path.append('/home/paranoia/Software/TMCALC/tmcalc_cython')
         from tmcalc_module import get_temperature_py as get_teff
         from tmcalc_module import get_feh_py as get_feh
 
@@ -145,8 +145,8 @@ class EWmethod:
         X[:, 4] = data[:, 1]
         np.savetxt('tmp.ares', X, '%.2f')
 
-        teff = get_teff('TMCALC/tmcalc_cython/gteixeira_teff_cal.dat', 'tmp.ares')
-        self.feh = get_feh('TMCALC/tmcalc_cython/gteixeira_feh_cal.dat', 'tmp.ares', teff[0], teff[1], teff[2], teff[3])[0]
+        teff = get_teff('/home/paranoia/Software/TMCALC/tmcalc_cython/gteixeira_teff_cal.dat', 'tmp.ares')
+        self.feh = get_feh('/home/paranoia/Software/TMCALC/tmcalc_cython/gteixeira_feh_cal.dat', 'tmp.ares', teff[0], teff[1], teff[2], teff[3])[0]
         self.teff = teff[0]
         self.logg = 4.44
         self._getMic()
@@ -161,24 +161,24 @@ class EWmethod:
 
     def _options(self, options=None):
         """Reads the options inside the config file."""
-        defaults = {'spt': False,
-                    'weights': 'null',
-                    'model': 'kurucz95',
-                    'fix_teff': False,
-                    'fix_logg': False,
-                    'fix_feh': False,
-                    'fix_vt': False,
-                    'refine': False,
-                    'iterations': 160,
-                    'EPcrit': 0.001,
-                    'RWcrit': 0.003,
+        defaults = {'spt'       : False,
+                    'weights'   : 'null',
+                    'model'     : 'kurucz95',
+                    'fix_teff'  : False,
+                    'fix_logg'  : False,
+                    'fix_feh'   : False,
+                    'fix_vt'    : False,
+                    'refine'    : False,
+                    'iterations': 150,
+                    'EPcrit'    : 0.001,
+                    'RWcrit'    : 0.003,
                     'ABdiffcrit': 0.01,
-                    'MOOGv': 2014,
-                    'outlier': False,
-                    'teffrange': False,
-                    'autofixvt': False,
-                    'tmcalc': False,
-                    'sigma': 3
+                    'MOOGv'     : 2014,
+                    'outlier'   : False,
+                    'teffrange' : False,
+                    'autofixvt' : False,
+                    'tmcalc'    : False,
+                    'sigma'     : 3
                     }
         if not options:
             self.options = defaults
@@ -192,12 +192,12 @@ class EWmethod:
                     if option in ['teff', 'logg', 'feh', 'vt']:
                         option = 'fix_%s' % option
                     defaults[option] = False if defaults[option] else True
-            defaults['model'] = defaults['model'].lower()
-            defaults['iterations'] = int(defaults['iterations'])
-            defaults['EPcrit'] = float(defaults['EPcrit'])
-            defaults['RWcrit'] = float(defaults['RWcrit'])
-            defaults['ABdiffcrit'] = float(defaults['ABdiffcrit'])
-            defaults['MOOGv'] = int(defaults['MOOGv'])
+            defaults['model']        = defaults['model'].lower()
+            defaults['iterations']   = int(defaults['iterations'])
+            defaults['EPcrit']       = float(defaults['EPcrit'])
+            defaults['RWcrit']       = float(defaults['RWcrit'])
+            defaults['ABdiffcrit']   = float(defaults['ABdiffcrit'])
+            defaults['MOOGv']        = int(defaults['MOOGv'])
             if defaults['outlier'] not in [False, '1Iter', '1Once', 'allIter', 'allOnce']:
                 print('Invalid option set for option "outlier"')
                 defaults['outlier'] = False
@@ -237,7 +237,7 @@ class EWmethod:
         # Update loggf values
         with open('linelist/%s' % self.linelist, 'r') as lines:
             line = lines.readlines()[-1]
-        line = filter(None, line.split())
+        line = list(filter(None, line.split()))
         w = float(line[0])
         if w < 7000:
             region = 'EWoptical'
@@ -269,7 +269,7 @@ class EWmethod:
                    self.options['refine'], self.options['EPcrit'],
                    self.options['RWcrit'], self.options['ABdiffcrit']]
             with open('EWresults.dat', 'a') as output:
-                output.write('\t'.join(map(str, tmp))+'\n')
+                output.write('\t'.join(list(map(str, tmp)))+'\n')
 
     def _printToScreen(self):
         """

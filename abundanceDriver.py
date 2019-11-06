@@ -186,13 +186,13 @@ class AbundanceDriver:
 
                 elif len(line) == 5:
                     self.logger.info('Initial parameters given by the user.')
-                    self.initial = map(float, line[1::])
+                    self.initial = list(map(float, line[1::]))
                     self._options()
                     self.logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*self.initial))
 
                 elif len(line) == 6:
                     self.logger.info('Initial parameters given by the user.')
-                    self.initial = map(float, line[1:-1])
+                    self.initial = list(map(float, line[1:-1]))
                     self._options(line[-1])
                     self.logger.info('Initial parameters: {0}, {1}, {2}, {3}'.format(*self.initial))
                 else:
@@ -240,10 +240,10 @@ class AbundanceDriver:
                                                       'vt': lambda x: '%.2f' % x})
         for i, line in enumerate(s.split('\n')):
             if i == 0:
-                print line
+                print(line)
                 continue
             val = len(str(i-1))
-            print ' '*val + line[val::]
+            print(' '*val + line[val::])
 
 
 if __name__ == '__main__':
@@ -252,7 +252,6 @@ if __name__ == '__main__':
         cfgfile = sys.argv[1]
     else:
         cfgfile = 'StarMe_abund.cfg'
-
     driver = AbundanceDriver(cfgfile=cfgfile)
     _ = driver.abundancedriver()
     driver.to_screen()

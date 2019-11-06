@@ -54,7 +54,7 @@ class Minimize:
                 print(' i    Teff    logg    [Fe/H]    vt    EPslope    RWslope    |FeII-FeI|')
                 print('-' * 70)
         else:
-            print '{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(self.iteration, *rest)
+            print('{:4d}{:>6d}{:>8.2f}{:>+9.2f}{:>8.2f}{:>+9.3f}{:>+11.3f}{:>11.2f}'.format(self.iteration, *rest))
 
     def check_bounds(self, i):
         '''
@@ -153,10 +153,10 @@ class Minimize:
             self.print_format()
             best[res] = parameters[-1]
             if self.check_convergence(abundances[0]):
-                print '\nStopped in %i iterations' % self.iteration
+                print('\nStopped in %i iterations' % self.iteration)
                 return self.x0, True
 
-        print '\nStopped in %i iterations' % self.iteration
+        print('\nStopped in %i iterations' % self.iteration)
         if self.check_convergence(abundances[0]):
             return self.x0, True
         else:

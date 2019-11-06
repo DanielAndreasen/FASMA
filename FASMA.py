@@ -2,8 +2,8 @@
 # -*- coding: utf8 -*-
 
 from __future__ import print_function
-from ewDriver import ewdriver
-from abundanceDriver import abundancedriver
+from ewDriver import EWmethod
+from abundanceDriver import AbundanceDriver
 from aresDriver import aresdriver
 from gooey import Gooey, GooeyParser
 
@@ -53,8 +53,9 @@ def ew(args):
         fout += ',tmcalc'
     with open('StarMe_ew.cfg', 'w') as f:
         f.writelines(fout)
-    ewdriver(overwrite=args.overwrite)
-
+    EWmethod(overwrite=args.overwrite)
+    driver = EWmethod(cfgfile='StarMe_ew.cfg', overwrite=None)
+    parameters = driver.ewdriver()
 
 def abund(args):
     """Driver for abundances"""
@@ -79,23 +80,18 @@ def abund(args):
 
     with open('StarMe_abund.cfg', 'w') as f:
         f.writelines(fout)
-
-    abundancedriver(overwrite=args.overwrite)
-
+    driver = AbundanceDriver(cfgfile='StarMe_abund.cfg')
+    _ = driver.abundancedriver()
+    driver.to_screen()
 
 def ares(args):
     """Driver for ARES"""
+
     def rejt_from_snr(snr):
         """Calculate rejt from SNR"""
-        return 1-1/snr
+        return 1.0-(1.0/snr)
 
-    if args.SNR:
-        rejt = rejt_from_snr(args.SNR)
-    else:
-        rejt = args.rejt
-    rejt = 0.999 if rejt > 0.999 else rejt
-    plot = 1 if args.plots else 0
-    rvmask = False if args.RVmask == 0 else args.RVmask
+    #rvmask = False if args.RVmask == 0 else args.RVmask
     out = args.spectrum + '.ares' if not args.output else args.output
 
     # Make the StarMe_ares.cfg file from Gooey
@@ -104,16 +100,20 @@ def ares(args):
     fout += ' lambdai:%s,lambdaf:%s,smoothder:%s' % (args.lambdai, args.lambdaf, args.smoothder)
     fout += ',space:%s,lineresol:%s' % (args.space, args.lineresol)
     fout += ',miniline:%s,EWcut:%s' % (args.miniline, args.EWcut)
-    if args.SNR:
+
+    if args.rejt:
+        rejt = args.rejt
+        rejt = 0.999 if rejt > 0.999 else rejt
         fout += ',rejt:%s' % rejt
-    else:
-        fout += ',rejt:%s' % args.rejt
-    if args.plots:
-        fout += ',plots_flag:1'
+    if args.SNR:
+        rejt = rejt_from_snr(args.SNR)
+        rejt = 0.999 if rejt > 0.999 else rejt
+        fout += ',rejt:%s' % rejt
+
     if args.output:
         fout += ',output:%s' % args.output
-    if rvmask:
-        fout += ',rvmask:%s' % rvmask
+    if args.RVmask:
+        fout += ',rvmask:%s' % args.RVmask
     if args.force:
         fout += ',force'
 
@@ -127,10 +127,10 @@ def ares(args):
         linelist_out = 'linelist/%s.moog' % args.spectrum.rpartition('/')[2].rpartition('.')[0]
         print('Congratulations! The final line list are here: %s' % linelist_out)
 
-
 @Gooey(program_name='FASMA - spectral analysis',
        default_size=(900, 1000),
        image_dir='./img')
+
 def main():
     '''Take care of all the argparse stuff.
     :returns: the args
@@ -187,10 +187,10 @@ def main():
     ares_parser.add_argument('--space',     help='Interval for the line computation', default=2.0,   type=float)
     ares_parser.add_argument('--rejt',      help='Continuum position',                default=False, type=float)
     ares_parser.add_argument('--lineresol', help='Line resolution',                   default=0.07,  type=float)
-    ares_parser.add_argument('--miniline',  help='Weaker line to be printed out',     default=5.0,     type=int)
+    ares_parser.add_argument('--miniline',  help='Weaker line to be printed out',     default=5.0,   type=float)
     ares_parser.add_argument('--SNR',       help='If specified, the rejt is calculated', type=float)
     ares_parser.add_argument('--EWcut',     help='Cut for the maximum EW value',      default=200.0, type=float)
-    ares_parser.add_argument('--RVmask',    help='RV of spectrum (km/s)',             default='0.0', type=float)
+    ares_parser.add_argument('--RVmask',    help='RV of spectrum (km/s)',             default=False, type=float)
     ares_parser.add_argument('--force',     help='Remove troublesome lines automatically', default=False, action='store_true', metavar='Force finish')
     ares_parser.set_defaults(driver=ares)
 
